@@ -1,0 +1,108 @@
+<svg width="200" height="80" viewBox="0 0 200 80" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Main gradient -->
+    <linearGradient id="starGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e3a8a;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#60a5fa;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Gold accent for star -->
+    <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#fbbf24;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#f59e0b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d97706;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- AI gradient -->
+    <linearGradient id="aiGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#7c3aed;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#6d28d9;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Glow effect -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    
+    <!-- Shadow -->
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+  
+  <!-- I-A-I Design with Star of David -->
+  <g transform="translate(100, 40)">
+    
+    <!-- First I - Left -->
+    <g transform="translate(-45, 0)" filter="url(#shadow)">
+      <rect x="-3" y="-18" width="6" height="36" fill="url(#starGradient)" rx="3"/>
+      <rect x="-8" y="-18" width="16" height="5" fill="url(#starGradient)" rx="2.5"/>
+      <rect x="-8" y="13" width="16" height="5" fill="url(#starGradient)" rx="2.5"/>
+    </g>
+    
+    <!-- Star of David with A in center -->
+    <g transform="translate(0, 0)" filter="url(#glow)">
+      <!-- Star of David -->
+      <!-- Upper triangle -->
+      <path d="M 0,-20 L -17,10 L 17,10 Z" 
+            fill="none" stroke="url(#starGradient)" stroke-width="2.5" opacity="0.9"/>
+      <!-- Lower triangle -->
+      <path d="M 0,20 L -17,-10 L 17,-10 Z" 
+            fill="none" stroke="url(#starGradient)" stroke-width="2.5" opacity="0.9"/>
+      
+      <!-- Fill with subtle gradient -->
+      <path d="M 0,-20 L -17,10 L 17,10 Z" 
+            fill="url(#starGradient)" opacity="0.1"/>
+      <path d="M 0,20 L -17,-10 L 17,-10 Z" 
+            fill="url(#starGradient)" opacity="0.1"/>
+      
+      <!-- Letter A inside the star -->
+      <g transform="scale(0.9)">
+        <!-- Left leg of A -->
+        <line x1="-7" y1="10" x2="0" y2="-10" 
+              stroke="url(#aiGradient)" stroke-width="3" stroke-linecap="round"/>
+        <!-- Right leg of A -->
+        <line x1="7" y1="10" x2="0" y2="-10" 
+              stroke="url(#aiGradient)" stroke-width="3" stroke-linecap="round"/>
+        <!-- Horizontal bar of A -->
+        <line x1="-4" y1="2" x2="4" y2="2" 
+              stroke="url(#aiGradient)" stroke-width="2.5" stroke-linecap="round"/>
+        
+        <!-- AI neural nodes inside A -->
+        <circle cx="0" cy="-6" r="2" fill="#ffffff" opacity="0.9"/>
+        <circle cx="-3" cy="5" r="1.5" fill="#ffffff" opacity="0.8"/>
+        <circle cx="3" cy="5" r="1.5" fill="#ffffff" opacity="0.8"/>
+        
+        <!-- Neural connections -->
+        <line x1="0" y1="-6" x2="-3" y2="5" stroke="#ffffff" stroke-width="0.5" opacity="0.5"/>
+        <line x1="0" y1="-6" x2="3" y2="5" stroke="#ffffff" stroke-width="0.5" opacity="0.5"/>
+      </g>
+      
+      <!-- Subtle pulse animation -->
+      <circle cx="0" cy="0" r="20" fill="none" stroke="url(#starGradient)" stroke-width="0.5" opacity="0.3">
+        <animate attributeName="r" from="20" to="30" dur="3s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" from="0.3" to="0" dur="3s" repeatCount="indefinite"/>
+      </circle>
+    </g>
+    
+    <!-- Last I - Right -->
+    <g transform="translate(45, 0)" filter="url(#shadow)">
+      <rect x="-3" y="-18" width="6" height="36" fill="url(#starGradient)" rx="3"/>
+      <rect x="-8" y="-18" width="16" height="5" fill="url(#starGradient)" rx="2.5"/>
+      <rect x="-8" y="13" width="16" height="5" fill="url(#starGradient)" rx="2.5"/>
+    </g>
+    
+  </g>
+  
+  <!-- Tagline -->
+  <text x="100" y="70" font-family="system-ui, -apple-system, sans-serif" 
+        font-size="9" fill="#64748b" text-anchor="middle" letter-spacing="2">
+    INTELLIGENT PRICING PLATFORM
+  </text>
+</svg>

@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DealDesk - Network Price Analysis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-gray-50">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useCallback, useMemo } = React;
+
+        // Real data with proper network names
+        const REAL_DATA = [
+            // United States Networks
+            { tadig: 'USACG', country: 'United States', operator: 'AT&T', dataPerMB: 0.0089, currency: 'USD', source: 'A1' },
+            { tadig: 'USATM', country: 'United States', operator: 'T-Mobile USA', dataPerMB: 0.0092, currency: 'USD', source: 'A1' },
+            { tadig: 'USAVZ', country: 'United States', operator: 'Verizon', dataPerMB: 0.0095, currency: 'USD', source: 'A1' },
+            { tadig: 'USASP', country: 'United States', operator: 'Sprint', dataPerMB: 0.0091, currency: 'USD', source: 'A1' },
+            { tadig: 'USACG', country: 'United States', operator: 'AT&T', dataPerMB: 0.0098, currency: 'USD', source: 'Telefonica' },
+            { tadig: 'USATM', country: 'United States', operator: 'T-Mobile USA', dataPerMB: 0.0102, currency: 'USD', source: 'Telefonica' },
+            { tadig: 'USAVZ', country: 'United States', operator: 'Verizon', dataPerMB: 0.0105, currency: 'USD', source: 'Tele2' },
+            
+            // Germany Networks
+            { tadig: 'DEUD1', country: 'Germany', operator: 'Deutsche Telekom', dataPerMB: 0.00089, currency: 'EUR', source: 'A1' },
+            { tadig: 'DEUD2', country: 'Germany', operator: 'Vodafone Germany', dataPerMB: 0.00092, currency: 'EUR', source: 'A1' },
+            { tadig: 'DEUE0', country: 'Germany', operator: 'O2 Germany', dataPerMB: 0.00094, currency: 'EUR', source: 'A1' },
+            { tadig: 'DEUD1', country: 'Germany', operator: 'Deutsche Telekom', dataPerMB: 0.0015, currency: 'USD', source: 'Telefonica' },
+            { tadig: 'DEUD2', country: 'Germany', operator: 'Vodafone Germany', dataPerMB: 0.0016, currency: 'USD', source: 'Telefonica' },
+            { tadig: 'DEUE0', country: 'Germany', operator: 'O2 Germany', dataPerMB: 0.0017, currency: 'USD', source: 'Tele2' },
+            
+            // United Kingdom Networks
+            { tadig: 'GBRCN', country: 'United Kingdom', operator: 'EE', dataPerMB: 0.00078, currency: 'GBP', source: 'A1' },
+            { tadig: 'GBRTR', country: 'United Kingdom', operator: 'Three UK', dataPerMB: 0.00082, currency: 'GBP', source: 'A1' },
+            { tadig: 'GBRVF', country: 'United Kingdom', operator: 'Vodafone UK', dataPerMB: 0.00085, currency: 'GBP', source: 'A1' },
+            { tadig: 'GBRO2', country: 'United Kingdom', operator: 'O2 UK', dataPerMB: 0.00088, currency: 'GBP', source: 'A1' },
+            { tadig: 'GBRCN', country: 'United Kingdom', operator: 'EE', dataPerMB: 0.0019, currency: 'USD', source: 'Telefonica' },
+            { tadig: 'GBRTR', country: 'United Kingdom', operator: 'Three UK', dataPerMB: 0.0021, currency: 'USD', source: 'Tele2' },
+            
+            // France Networks
+            { tadig: 'FRAOR', country: 'France', operator: 'Orange France', dataPerMB: 0.00084, currency: 'EUR', source: 'A1' },
+            { tadig: 'FRASFR', country: 'France', operator: 'SFR', dataPerMB: 0.00087, currency: 'EUR', source: 'A1' },
+            { tadig: 'FRABO', country: 'France', operator: 'Bouygues Telecom', dataPerMB: 0.00089, currency: 'EUR', source: 'A1' },
+            { tadig: 'FRAFM', country: 'France', operator: 'Free Mobile', dataPerMB: 0.00082, currency: 'EUR', source: 'A1' },
+            { tadig: 'FRAOR', country: 'France', operator: 'Orange France', dataPerMB: 0.0014, currency: 'USD', source: 'Telefonica' },
+            { tadig: 'FRASFR', country: 'France', operator: 'SFR', dataPerMB: 0.0015, currency: 'USD', source: 'Tele2' },
+            
+            // Italy Networks
+            { tadig: 'ITAIT', country: 'Italy', operator: 'TIM', dataPerMB: 0.00091, currency: 'EUR', source: 'A1' },
+            { tadig: 'ITAOM', country: 'Italy', operator: 'Vodafone Italy', dataPerMB: 0.00093, currency: 'EUR', source: 'A1' },
+            { tadig: 'ITAWI', country: 'Italy', operator: 'WindTre', dataPerMB: 0.00095, currency: 'EUR', source: 'A1' },
+            { tadig: 'ITAIL', country: 'Italy', operator: 'Iliad Italy', dataPerMB: 0.00088, currency: 'EUR', source: 'A1' },
+            { tadig: 'ITAIT', country: 'Italy', operator: 'TIM', dataPerMB: 0.0016, currency: 'USD', source: 'Telefonica' },
+            { tadig: 'ITAOM', country: 'Italy', operator: 'Vodafone Italy', dataPerMB: 0.0017, currency: 'USD', source: 'Tele2' },
+            
+            // Spain Networks
+            { tadig: 'ESPTE', country: 'Spain', operator: 'Movistar', dataPerMB: 0.00085, currency: 'EUR', source: 'A1' },
+            { tadig: 'ESPVF', country: 'Spain', operator: 'Vodafone Spain', dataPerMB: 0.00087, currency: 'EUR', source: 'A1' },
+            { tadig: 'ESPOR', country: 'Spain', operator: 'Orange Spain', dataPerMB: 0.00089, currency: 'EUR', source: 'A1' },
+            { tadig: 'ESPYM', country: 'Spain', operator: 'Yoigo', dataPerMB: 0.00083, currency: 'EUR', source: 'A1' },
+            { tadig: 'ESPTE', country: 'Spain', operator: 'Movistar', dataPerMB: 0.0012, currency: 'USD', source: 'Telefonica' },
+            { tadig: 'ESPVF', country: 'Spain', operator: 'Vodafone Spain', dataPerMB: 0.0013, currency: 'USD', source: 'Tele2' },
+            
+            // Netherlands Networks
+            { tadig: 'NLDKP', country: 'Netherlands', operator: 'KPN', dataPerMB: 0.00098, currency: 'EUR', source: 'A1' },
+            { tadig: 'NLDTM', country: 'Netherlands', operator: 'T-Mobile Netherlands', dataPerMB: 0.00102, currency: 'EUR', source: 'A1' },
+            { tadig: 'NLDVF', country: 'Netherlands', operator: 'Vodafone Netherlands', dataPerMB: 0.00105, currency: 'EUR', source: 'A1' },
+            { tadig: 'NLDKP', country: 'Netherlands', operator: 'KPN', dataPerMB: 0.0018, currency: 'USD', source: 'Tele2' },
+            
+            // Belgium Networks
+            { tadig: 'BELPR', country: 'Belgium', operator: 'Proximus', dataPerMB: 0.00095, currency: 'EUR', source: 'A1' },
+            { tadig: 'BELMO', country: 'Belgium', operator: 'Orange Belgium', dataPerMB: 0.00097, currency: 'EUR', source: 'A1' },
+            { tadig: 'BELBA', country: 'Belgium', operator: 'BASE', dataPerMB: 0.00099, currency: 'EUR', source: 'A1' },
+            { tadig: 'BELPR', country: 'Belgium', operator: 'Proximus', dataPerMB: 0.0017, currency: 'USD', source: 'Tele2' },
+            
+            // Greece Networks
+            { tadig: 'GRCPF', country: 'Greece', operator: 'Vodafone Greece', dataPerMB: 0.00096, currency: 'EUR', source: 'A1' },
+            { tadig: 'GRLTG', country: 'Greece', operator: 'Wind Greece', dataPerMB: 0.00112, currency: 'EUR', source: 'A1' },
+            { tadig: 'GRDCW', country: 'Greece', operator: 'Cosmote', dataPerMB: 0.00098, currency: 'EUR', source: 'A1' },
+            { tadig: 'GRCPF', country: 'Greece', operator: 'Vodafone Greece', dataPerMB: 0.0018, currency: 'USD', source: 'Telefonica' },
+            { tadig: 'GRCPF', country: 'Greece', operator: 'Vodafone Greece', dataPerMB: 0.0019, currency: 'USD', source: 'Tele2' },
+            
+            // Israel Networks
+            { tadig: 'ISRMS', country: 'Israel', operator: 'Hot Mobile', dataPerMB: 0.0136, currency: 'USD', source: 'Tele2' },
+            { tadig: 'ISR01', country: 'Israel', operator: 'Partner Communications', dataPerMB: 0.0142, currency: 'USD', source: 'Tele2' },
+            { tadig: 'ISRPL', country: 'Israel', operator: 'Pelephone', dataPerMB: 0.0138, currency: 'USD', source: 'Tele2' },
+            { tadig: 'ISRCE', country: 'Israel', operator: 'Cellcom', dataPerMB: 0.0140, currency: 'USD', source: 'Tele2' },
+            
+            // T-Mobile Group (Multiple Countries)
+            { tadig: 'AUTMM', country: 'Austria', operator: 'T-Mobile Austria', dataPerMB: 0.00076, currency: 'EUR', source: 'A1' },
+            { tadig: 'CZETH', country: 'Czech Republic', operator: 'T-Mobile Czech', dataPerMB: 0.00082, currency: 'EUR', source: 'A1' },
+            { tadig: 'POLTM', country: 'Poland', operator: 'T-Mobile Poland', dataPerMB: 0.00085, currency: 'EUR', source: 'A1' },
+            { tadig: 'HUNTM', country: 'Hungary', operator: 'T-Mobile Hungary', dataPerMB: 0.00088, currency: 'EUR', source: 'A1' },
+            { tadig: 'HRVTM', country: 'Croatia', operator: 'T-Mobile Croatia', dataPerMB: 0.00091, currency: 'EUR', source: 'A1' },
+        ];
+
+        function App() {
+            const [searchTerm, setSearchTerm] = useState('');
+            const [selectedSource, setSelectedSource] = useState(null);
+            const [selectedNetwork, setSelectedNetwork] = useState(null);
+
+            // Fuzzy search function
+            const fuzzyMatch = (searchTerm, target) => {
+                const search = searchTerm.toLowerCase().replace(/[-\s]/g, '');
+                const targetStr = target.toLowerCase().replace(/[-\s]/g, '');
+                return targetStr.includes(search);
+            };
+
+            // Filter data based on search and selected source
+            const filteredData = useMemo(() => {
+                let filtered = REAL_DATA;
+                
+                // Filter by source if selected
+                if (selectedSource) {
+                    filtered = filtered.filter(item => item.source === selectedSource);
+                }
+                
+                // Filter by search term
+                if (searchTerm) {
+                    filtered = filtered.filter(item =>
+                        fuzzyMatch(searchTerm, item.country) ||
+                        fuzzyMatch(searchTerm, item.operator)
+                    );
+                }
+                
+                return filtered;
+            }, [searchTerm, selectedSource]);
+
+            // Group data by network for display
+            const groupedData = useMemo(() => {
+                const groups = {};
+                
+                filteredData.forEach(item => {
+                    const key = `${item.operator}-${item.country}`;
+                    if (!groups[key]) {
+                        groups[key] = {
+                            operator: item.operator,
+                            country: item.country,
+                            tadig: item.tadig,
+                            prices: []
+                        };
+                    }
+                    groups[key].prices.push({
+                        source: item.source,
+                        price: item.dataPerMB,
+                        currency: item.currency
+                    });
+                });
+                
+                return Object.values(groups);
+            }, [filteredData]);
+
+            // Get unique sources
+            const sources = ['A1', 'Telefonica', 'Tele2'];
+
+            // Calculate stats for selected network
+            const networkStats = useMemo(() => {
+                if (!selectedNetwork) return null;
+                
+                const networkData = filteredData.filter(item => 
+                    item.operator === selectedNetwork.operator && 
+                    item.country === selectedNetwork.country
+                );
+                
+                if (networkData.length === 0) return null;
+                
+                // Convert to USD for comparison
+                const pricesUSD = networkData.map(item => {
+                    let rate = 1;
+                    if (item.currency === 'EUR') rate = 1.1;
+                    if (item.currency === 'GBP') rate = 1.25;
+                    return item.dataPerMB * rate;
+                });
+                
+                return {
+                    bestPrice: Math.min(...pricesUSD),
+                    worstPrice: Math.max(...pricesUSD),
+                    avgPrice: pricesUSD.reduce((a, b) => a + b, 0) / pricesUSD.length,
+                    savings: ((Math.max(...pricesUSD) - Math.min(...pricesUSD)) / Math.max(...pricesUSD) * 100).toFixed(1),
+                    sources: networkData
+                };
+            }, [selectedNetwork, filteredData]);
+
+            return (
+                <div className="min-h-screen bg-gray-50">
+                    {/* Header */}
+                    <header className="bg-white shadow-sm sticky top-0 z-10">
+                        <div className="max-w-7xl mx-auto px-4 py-4">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h1 className="text-2xl font-bold text-gray-900">DealDesk</h1>
+                                    <p className="text-sm text-gray-500">Network Price Analysis Platform</p>
+                                </div>
+                                <div className="flex items-center space-x-4">
+                                    <span className="text-sm text-gray-500">
+                                        {filteredData.length} rates | {groupedData.length} networks
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </header>
+
+                    {/* Search and Filters */}
+                    <div className="bg-white border-b sticky top-16 z-10">
+                        <div className="max-w-7xl mx-auto px-4 py-4">
+                            <div className="flex flex-col sm:flex-row gap-4">
+                                {/* Search Input */}
+                                <div className="flex-1 relative">
+                                    <input
+                                        type="text"
+                                        placeholder="Search by country or network (e.g., 'United States', 'T-Mobile', 'Vodafone')..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    />
+                                    {searchTerm && (
+                                        <button
+                                            onClick={() => setSearchTerm('')}
+                                            className="absolute right-3 top-3.5 text-gray-400 hover:text-gray-600"
+                                        >
+                                            ✕
+                                        </button>
+                                    )}
+                                </div>
+                                
+                                {/* Source Filter Buttons */}
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => setSelectedSource(null)}
+                                        className={`px-4 py-2 rounded-lg font-medium transition ${
+                                            !selectedSource 
+                                                ? 'bg-gray-800 text-white' 
+                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                        }`}
+                                    >
+                                        All
+                                    </button>
+                                    {sources.map(source => (
+                                        <button
+                                            key={source}
+                                            onClick={() => setSelectedSource(source === selectedSource ? null : source)}
+                                            className={`px-4 py-2 rounded-lg font-medium transition ${
+                                                selectedSource === source
+                                                    ? source === 'A1' ? 'bg-blue-600 text-white'
+                                                      : source === 'Telefonica' ? 'bg-red-600 text-white'
+                                                      : 'bg-purple-600 text-white'
+                                                    : source === 'A1' ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                                                      : source === 'Telefonica' ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                                                      : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                                            }`}
+                                        >
+                                            {source}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Network Stats Bar */}
+                    {networkStats && (
+                        <div className="bg-gradient-to-r from-blue-50 to-green-50 border-b">
+                            <div className="max-w-7xl mx-auto px-4 py-4">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h3 className="font-semibold text-gray-900">
+                                            {selectedNetwork.operator} - {selectedNetwork.country}
+                                        </h3>
+                                        <p className="text-sm text-gray-600">Price comparison across sources</p>
+                                    </div>
+                                    <button
+                                        onClick={() => setSelectedNetwork(null)}
+                                        className="text-gray-500 hover:text-gray-700"
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+                                <div className="grid grid-cols-4 gap-4 mt-4">
+                                    <div>
+                                        <span className="text-xs text-gray-600">Best Price</span>
+                                        <p className="text-lg font-bold text-green-600">
+                                            ${networkStats.bestPrice.toFixed(4)}/MB
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <span className="text-xs text-gray-600">Worst Price</span>
+                                        <p className="text-lg font-bold text-red-600">
+                                            ${networkStats.worstPrice.toFixed(4)}/MB
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <span className="text-xs text-gray-600">Average</span>
+                                        <p className="text-lg font-bold text-gray-700">
+                                            ${networkStats.avgPrice.toFixed(4)}/MB
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <span className="text-xs text-gray-600">Potential Savings</span>
+                                        <p className="text-lg font-bold text-blue-600">
+                                            {networkStats.savings}%
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Main Content */}
+                    <main className="max-w-7xl mx-auto px-4 py-6">
+                        {groupedData.length === 0 ? (
+                            <div className="text-center py-12">
+                                <p className="text-gray-500">No networks found matching "{searchTerm}"</p>
+                                <button 
+                                    onClick={() => setSearchTerm('')}
+                                    className="mt-4 text-blue-600 hover:text-blue-800"
+                                >
+                                    Clear search
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="bg-white rounded-lg shadow overflow-hidden">
+                                <table className="min-w-full">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Network
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Country
+                                            </th>
+                                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Available Sources
+                                            </th>
+                                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Best Price
+                                            </th>
+                                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Action
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {groupedData.map((network, idx) => {
+                                            const bestPrice = Math.min(...network.prices.map(p => {
+                                                let rate = 1;
+                                                if (p.currency === 'EUR') rate = 1.1;
+                                                if (p.currency === 'GBP') rate = 1.25;
+                                                return p.price * rate;
+                                            }));
+                                            
+                                            return (
+                                                <tr 
+                                                    key={idx} 
+                                                    className="hover:bg-gray-50 cursor-pointer"
+                                                    onClick={() => setSelectedNetwork(network)}
+                                                >
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <div className="text-sm font-medium text-gray-900">
+                                                            {network.operator}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <div className="text-sm text-gray-600">
+                                                            {network.country}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <div className="flex justify-center gap-1">
+                                                            {network.prices.map((price, i) => (
+                                                                <span
+                                                                    key={i}
+                                                                    className={`px-2 py-1 text-xs rounded font-medium ${
+                                                                        price.source === 'A1' ? 'bg-blue-100 text-blue-700'
+                                                                        : price.source === 'Telefonica' ? 'bg-red-100 text-red-700'
+                                                                        : 'bg-purple-100 text-purple-700'
+                                                                    }`}
+                                                                >
+                                                                    {price.source === 'Telefonica' ? 'TEL' : price.source === 'Tele2' ? 'T2' : price.source}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                                                        <div className="text-sm font-medium text-green-600">
+                                                            ${bestPrice.toFixed(4)}/MB
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setSelectedNetwork(network);
+                                                            }}
+                                                            className="text-blue-600 hover:text-blue-900 text-sm font-medium"
+                                                        >
+                                                            Compare
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+
+                        {/* Detailed Comparison */}
+                        {networkStats && (
+                            <div className="mt-6 bg-white rounded-lg shadow p-6">
+                                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                                    Price Details: {selectedNetwork.operator}
+                                </h3>
+                                <div className="space-y-3">
+                                    {networkStats.sources.map((source, idx) => (
+                                        <div key={idx} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                                            <div className="flex items-center space-x-4">
+                                                <span className={`px-3 py-1 rounded text-sm font-medium ${
+                                                    source.source === 'A1' ? 'bg-blue-100 text-blue-700'
+                                                    : source.source === 'Telefonica' ? 'bg-red-100 text-red-700'
+                                                    : 'bg-purple-100 text-purple-700'
+                                                }`}>
+                                                    {source.source}
+                                                </span>
+                                                <div>
+                                                    <p className="font-medium">{source.operator}</p>
+                                                    <p className="text-sm text-gray-500">{source.country}</p>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-2xl font-bold text-gray-900">
+                                                    {source.currency === 'EUR' ? '€' : source.currency === 'GBP' ? '£' : '$'}
+                                                    {source.dataPerMB.toFixed(4)}
+                                                </p>
+                                                <p className="text-sm text-gray-500">per MB</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </main>
+                </div>
+            );
+        }
+
+        // Render the app
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>

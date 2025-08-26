@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DealDesk - TADIG-Based Network Pricing</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="network_data.js"></script>
+    <style>
+        .source-a1 { background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); }
+        .source-telefonica { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
+        .source-tele2 { background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%); }
+        @keyframes slideIn {
+            from { transform: translateY(-10px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .slide-in { animation: slideIn 0.3s ease-out; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div id="root"></div>
+
+    <script>
+        // Global data from network_data.js
+        const networkData = typeof REAL_NETWORK_DATA !== 'undefined' ? REAL_NETWORK_DATA : [];
+        
+        // Group by TADIG (the correct way!)
+        const tadigGroups = {};
+        networkData.forEach(item => {
+            if (!tadigGroups[item.tadig]) {
+                tadigGroups[item.tadig] = {
+                    tadig: item.tadig,
+                    country: item.country,
+                    networks: [],
+                    sources: []
+                };
+            }
+            tadigGroups[item.tadig].sources.push(item);
+            
+            // Track all network name variations
+            if (!tadigGroups[item.tadig].networks.includes(item.network)) {
+                tadigGroups[item.tadig].networks.push(item.network);
+            }
+        });
+        
+        // Convert to array and calculate best prices
+        const uniqueNetworks = Object.values(tadigGroups).map(group => {
+            // Get the most common/best network name
+            const networkNames = group.networks;
+            const primaryNetwork = networkNames.find(n => !n.includes(' - ')) || networkNames[0];
+            
+            // Calculate prices
+            const prices = group.sources.map(s => {
+                const rate = s.currency === 'EUR' ? 1.1 : 1;
+                return { ...s, priceUSD: s.dataPerMB * rate };
+            });
+            
+            const bestPrice = Math.min(...prices.map(p => p.priceUSD));
+            const worstPrice = Math.max(...prices.map(p => p.priceUSD));
+            
+            return {
+                ...group,
+                primaryNetwork,
+                bestPrice,
+                worstPrice,
+                hasImsi: group.sources.some(s => s.imsiCost > 0),
+                searchText: `${group.country} ${networkNames.join(' ')} ${group.tadig}`.toLowerCase()
+            };
+        });
+        
+        // Intelligent search
+        function search(query) {
+            if (!query) return uniqueNetworks;
+            
+            const terms = query.toLowerCase().split(' ').filter(t => t.length > 0);
+            return uniqueNetworks.filter(network => 
+                terms.every(term => network.searchText.includes(term))
+            );
+        }
+        
+        // Main render function
+        function render() {
+            const app = document.getElementById('root');
+            
+            let searchTerm = '';
+            let selectedSource = null;
+            let selectedNetwork = null;
+            let filteredNetworks = uniqueNetworks;
+            
+            function updateView() {
+                // Apply filters
+                let filtered = uniqueNetworks;
+                
+                if (selectedSource) {
+                    filtered = filtered.filter(n => 
+                        n.sources.some(s => s.source === selectedSource)
+                    );
+                }
+                
+                if (searchTerm) {
+                    filtered = search(searchTerm);
+                }
+                
+                filteredNetworks = filtered;
+                
+                // Statistics
+                const stats = {
+                    total: networkData.length,
+                    uniqueTadigs: uniqueNetworks.length,
+                    a1: networkData.filter(d => d.source === 'A1').length,
+                    telefonica: networkData.filter(d => d.source === 'Telefonica').length,
+                    tele2: networkData.filter(d => d.source === 'Tele2').length,
+                    withImsi: networkData.filter(d => d.imsiCost > 0).length
+                };
+                
+                app.innerHTML = `
+                    <!-- Header -->
+                    <header class="bg-white shadow-sm sticky top-0 z-20">
+                        <div class="max-w-7xl mx-auto px-4 py-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h1 class="text-2xl font-bold text-gray-900">DealDesk</h1>
+                                    <p class="text-sm text-gray-500">TADIG-Grouped Network Pricing</p>
+                                </div>
+                                <div class="flex items-center space-x-6">
+                                    <div class="text-sm">
+                                        <span class="font-bold text-lg">${stats.uniqueTadigs}</span>
+                                        <span class="text-gray-600"> unique networks</span>
+                                    </div>
+                                    <div class="text-sm">
+                                        <span class="font-bold text-lg">${stats.total}</span>
+                                        <span class="text-gray-600"> total records</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </header>
+
+                    <!-- Search and Filters -->
+                    <div class="bg-white border-b sticky top-16 z-10">
+                        <div class="max-w-7xl mx-auto px-4 py-4">
+                            <div class="flex flex-col lg:flex-row gap-4">
+                                <!-- Search -->
+                                <div class="flex-1">
+                                    <div class="relative">
+                                        <input
+                                            type="text"
+                                            id="searchInput"
+                                            placeholder="🔍 Search by country or network (e.g., 'Israel', 'Vodafone', 'United States')..."
+                                            value="${searchTerm}"
+                                            class="w-full px-4 py-3 pr-10 border rounded-lg focus:ring-2 focus:ring-blue-500 text-lg"
+                                        />
+                                        ${searchTerm ? `
+                                            <button onclick="clearSearch()" class="absolute right-3 top-3.5 text-gray-400 hover:text-gray-600">✕</button>
+                                        ` : ''}
+                                    </div>
+                                    ${searchTerm ? `
+                                        <div class="mt-2 text-sm text-gray-600">
+                                            Found <span class="font-bold">${filteredNetworks.length}</span> networks
+                                        </div>
+                                    ` : ''}
+                                </div>
+                                
+                                <!-- Source Filters -->
+                                <div class="flex gap-2">
+                                    <button onclick="setSource(null)" 
+                                        class="px-4 py-2 rounded-lg font-medium transition ${!selectedSource ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}">
+                                        All Sources
+                                    </button>
+                                    <button onclick="setSource('A1')"
+                                        class="px-4 py-2 rounded-lg font-medium transition ${selectedSource === 'A1' ? 'source-a1 text-white' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}">
+                                        A1 (${stats.a1})
+                                    </button>
+                                    <button onclick="setSource('Telefonica')"
+                                        class="px-4 py-2 rounded-lg font-medium transition ${selectedSource === 'Telefonica' ? 'source-telefonica text-white' : 'bg-red-100 text-red-700 hover:bg-red-200'}">
+                                        Telefonica (${stats.telefonica})
+                                    </button>
+                                    <button onclick="setSource('Tele2')"
+                                        class="px-4 py-2 rounded-lg font-medium transition ${selectedSource === 'Tele2' ? 'source-tele2 text-white' : 'bg-purple-100 text-purple-700 hover:bg-purple-200'}">
+                                        Tele2 (${stats.tele2})
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Selected Network Details -->
+                    ${selectedNetwork ? `
+                        <div class="bg-gradient-to-r from-blue-50 to-green-50 border-b">
+                            <div class="max-w-7xl mx-auto px-4 py-6">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div>
+                                        <h2 class="text-xl font-bold text-gray-900">${selectedNetwork.primaryNetwork}</h2>
+                                        <p class="text-gray-600">${selectedNetwork.country} · TADIG: ${selectedNetwork.tadig}</p>
+                                        ${selectedNetwork.networks.length > 1 ? `
+                                            <p class="text-sm text-gray-500 mt-1">
+                                                Also known as: ${selectedNetwork.networks.filter(n => n !== selectedNetwork.primaryNetwork).join(', ')}
+                                            </p>
+                                        ` : ''}
+                                    </div>
+                                    <button onclick="selectNetwork(null)" class="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
+                                </div>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-${selectedNetwork.sources.length} gap-4">
+                                    ${selectedNetwork.sources.map(source => `
+                                        <div class="${source.source === 'A1' ? 'bg-blue-50 border-blue-200' : source.source === 'Telefonica' ? 'bg-red-50 border-red-200' : 'bg-purple-50 border-purple-200'} border rounded-lg p-4">
+                                            <div class="flex items-center justify-between mb-3">
+                                                <span class="font-bold text-lg ${source.source === 'A1' ? 'text-blue-700' : source.source === 'Telefonica' ? 'text-red-700' : 'text-purple-700'}">
+                                                    ${source.source}
+                                                </span>
+                                                <span class="text-xs text-gray-500">${source.network}</span>
+                                            </div>
+                                            
+                                            <div class="space-y-2">
+                                                <div class="flex justify-between">
+                                                    <span class="text-sm text-gray-600">Data/MB:</span>
+                                                    <span class="font-bold text-lg">
+                                                        ${source.currency === 'EUR' ? '€' : '$'}${source.dataPerMB.toFixed(4)}
+                                                    </span>
+                                                </div>
+                                                
+                                                ${source.imsiCost > 0 ? `
+                                                    <div class="flex justify-between">
+                                                        <span class="text-sm text-gray-600">IMSI Fee:</span>
+                                                        <span class="font-medium">
+                                                            ${source.currency === 'EUR' ? '€' : '$'}${source.imsiCost.toFixed(2)}
+                                                        </span>
+                                                    </div>
+                                                ` : ''}
+                                                
+                                                ${source.technologies && source.technologies.length > 0 ? `
+                                                    <div class="flex gap-1 mt-2">
+                                                        ${source.technologies.map(tech => `
+                                                            <span class="px-2 py-1 bg-white rounded text-xs font-medium">${tech}</span>
+                                                        `).join('')}
+                                                    </div>
+                                                ` : ''}
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                                
+                                ${selectedNetwork.bestPrice !== selectedNetwork.worstPrice ? `
+                                    <div class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                        <p class="text-sm">
+                                            💡 Price variance: <span class="font-bold">$${selectedNetwork.bestPrice.toFixed(4)}</span> to 
+                                            <span class="font-bold">$${selectedNetwork.worstPrice.toFixed(4)}</span> per MB
+                                            (${((selectedNetwork.worstPrice - selectedNetwork.bestPrice) / selectedNetwork.bestPrice * 100).toFixed(0)}% difference)
+                                        </p>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    <!-- Main Table -->
+                    <main class="max-w-7xl mx-auto px-4 py-6">
+                        <div class="bg-white rounded-lg shadow overflow-hidden">
+                            <table class="min-w-full">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Network</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Country</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">TADIG</th>
+                                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Sources</th>
+                                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Best Price</th>
+                                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">IMSI</th>
+                                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200">
+                                    ${filteredNetworks.slice(0, 100).map((network, idx) => `
+                                        <tr class="hover:bg-gray-50 cursor-pointer slide-in" 
+                                            style="animation-delay: ${idx * 0.01}s"
+                                            onclick="selectNetwork(${idx})">
+                                            <td class="px-6 py-4">
+                                                <div class="text-sm font-medium text-gray-900">${network.primaryNetwork}</div>
+                                                ${network.networks.length > 1 ? `
+                                                    <div class="text-xs text-gray-500">${network.networks.length} name variations</div>
+                                                ` : ''}
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                <div class="text-sm text-gray-600">${network.country}</div>
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                <div class="text-sm font-mono text-gray-700">${network.tadig}</div>
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                <div class="flex justify-center gap-1">
+                                                    ${[...new Set(network.sources.map(s => s.source))].map(source => {
+                                                        const color = source === 'A1' ? 'source-a1' :
+                                                                     source === 'Telefonica' ? 'source-telefonica' : 'source-tele2';
+                                                        const label = source === 'Telefonica' ? 'TEL' : source === 'Tele2' ? 'T2' : 'A1';
+                                                        return `<span class="${color} text-white px-2 py-1 rounded text-xs font-medium">${label}</span>`;
+                                                    }).join('')}
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4 text-right">
+                                                <div class="text-sm font-bold text-green-600">
+                                                    $${network.bestPrice.toFixed(4)}/MB
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4 text-center">
+                                                ${network.hasImsi ? '<span class="text-yellow-500">✓</span>' : '-'}
+                                            </td>
+                                            <td class="px-6 py-4 text-center">
+                                                <button class="text-blue-600 hover:text-blue-800 font-medium text-sm">Details</button>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                            
+                            ${filteredNetworks.length > 100 ? `
+                                <div class="bg-gray-50 px-6 py-3 text-center text-sm text-gray-600">
+                                    Showing 100 of ${filteredNetworks.length} networks
+                                </div>
+                            ` : ''}
+                        </div>
+                    </main>
+                `;
+                
+                // Attach event listeners
+                const searchInput = document.getElementById('searchInput');
+                if (searchInput) {
+                    searchInput.addEventListener('input', (e) => {
+                        searchTerm = e.target.value;
+                        updateView();
+                    });
+                }
+            }
+            
+            // Global functions
+            window.setSource = (source) => {
+                selectedSource = source;
+                updateView();
+            };
+            
+            window.clearSearch = () => {
+                searchTerm = '';
+                updateView();
+            };
+            
+            window.selectNetwork = (index) => {
+                selectedNetwork = index === null ? null : filteredNetworks[index];
+                updateView();
+            };
+            
+            // Initial render
+            updateView();
+        }
+        
+        // Start the app
+        render();
+    </script>
+</body>
+</html>

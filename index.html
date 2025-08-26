@@ -1,0 +1,1627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DealDesk - Multi-Source Pricing Intelligence</title>
+    <meta name="description" content="DealDesk - Operator pricing analysis platform with multi-source comparison">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        .source-a1 { background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); }
+        .source-telefonica { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
+        .source-tele2 { background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%); }
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Main Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-20">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                        DealDesk
+                    </h1>
+                    <span class="text-sm text-gray-500">Multi-Source Pricing Intelligence</span>
+                </div>
+                
+                <div class="flex items-center gap-6">
+                    <div id="stats" class="flex gap-3 text-sm">
+                        <span class="text-gray-600">
+                            <span id="networkCount" class="font-bold text-blue-600">-</span> networks
+                        </span>
+                        <span class="text-gray-600">
+                            <span id="countryCount" class="font-bold text-green-600">-</span> countries
+                        </span>
+                        <span class="text-gray-600">
+                            <span id="imsiCount" class="font-bold text-purple-600">-</span> with IMSI
+                        </span>
+                        <span class="text-gray-600">
+                            Avg: <span id="avgPrice" class="font-bold text-orange-600">-</span>/MB
+                        </span>
+                    </div>
+                    
+                    <div id="connectionStatus" class="flex items-center gap-2">
+                        <div class="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
+                        <span class="text-sm text-gray-600">Connecting...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Dictionary/Legend Panel -->
+    <div class="max-w-7xl mx-auto px-4 py-4">
+        <div id="dictionaryPanel" class="bg-white rounded-lg shadow-sm overflow-hidden transition-all duration-300">
+            <button 
+                onclick="toggleDictionary()"
+                class="w-full px-4 py-3 bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-200 transition-all flex items-center justify-between"
+            >
+                <div class="flex items-center gap-2">
+                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <span class="text-sm font-semibold text-gray-700">Notes Dictionary & Legend</span>
+                </div>
+                <svg id="dictionaryArrow" class="w-4 h-4 text-gray-500 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+            </button>
+            
+            <div id="dictionaryContent" class="hidden p-4 bg-gradient-to-br from-gray-50 to-white">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- IoT Technology Legend -->
+                    <div class="space-y-2">
+                        <h3 class="text-sm font-semibold text-gray-700 mb-2 border-b pb-1">IoT Technologies</h3>
+                        <div class="flex items-start gap-2">
+                            <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded">
+                                CAT-M
+                            </span>
+                            <div class="text-sm text-gray-600">LTE-M/Cat-M1 support</div>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
+                                NB-IoT
+                            </span>
+                            <div class="text-sm text-gray-600">Narrowband IoT support</div>
+                        </div>
+                        <div class="flex items-start gap-2 mt-3">
+                            <div class="text-sm font-medium text-gray-700">Operator indicators:</div>
+                        </div>
+                        <div class="flex items-center gap-3 ml-4">
+                            <span class="flex items-center gap-1">
+                                <span class="inline-block w-2 h-2 bg-blue-500 rounded-full"></span>
+                                <span class="text-xs text-gray-600">A1</span>
+                            </span>
+                            <span class="flex items-center gap-1">
+                                <span class="inline-block w-2 h-2 bg-red-500 rounded-full"></span>
+                                <span class="text-xs text-gray-600">Telefonica</span>
+                            </span>
+                            <span class="flex items-center gap-1">
+                                <span class="inline-block w-2 h-2 bg-purple-500 rounded-full"></span>
+                                <span class="text-xs text-gray-600">Tele2</span>
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <!-- Restriction Categories -->
+                    <div class="space-y-2">
+                        <h3 class="text-sm font-semibold text-gray-700 mb-2 border-b pb-1">Network Restrictions</h3>
+                        <div class="flex items-start gap-2">
+                            <span class="text-lg">🚫</span>
+                            <div>
+                                <div class="font-medium text-sm text-gray-800">No permanent roaming</div>
+                                <div class="text-xs text-gray-500">Network doesn't allow permanent M2M roaming</div>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <span class="text-lg">⛔</span>
+                            <div>
+                                <div class="font-medium text-sm text-gray-800">Network blocked</div>
+                                <div class="text-xs text-gray-500">Prohibited network, cannot be used</div>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <span class="text-lg">🔒</span>
+                            <div>
+                                <div class="font-medium text-sm text-gray-800">No resale</div>
+                                <div class="text-xs text-gray-500">Cannot resell on domestic market</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Service Limitations -->
+                    <div class="space-y-2">
+                        <h3 class="text-sm font-semibold text-gray-700 mb-2 border-b pb-1">Service Limitations</h3>
+                        <div class="flex items-start gap-2">
+                            <span class="text-lg">📵</span>
+                            <div>
+                                <div class="font-medium text-sm text-gray-800">Data unavailable</div>
+                                <div class="text-xs text-gray-500">Data service not launched on this network</div>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <span class="text-lg">⚠️</span>
+                            <div>
+                                <div class="font-medium text-sm text-gray-800">Limited services</div>
+                                <div class="text-xs text-gray-500">Some services not available</div>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <span class="text-lg">📋</span>
+                            <div>
+                                <div class="font-medium text-sm text-gray-800">Special terms</div>
+                                <div class="text-xs text-gray-500">Special agreement or IoT approval required</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Special Cases -->
+                    <div class="space-y-2">
+                        <h3 class="text-sm font-semibold text-gray-700 mb-2 border-b pb-1">Special Cases</h3>
+                        <div class="flex items-start gap-2">
+                            <span class="text-lg">🌍</span>
+                            <div>
+                                <div class="font-medium text-sm text-gray-800">Multi-territory TADIG</div>
+                                <div class="text-xs text-gray-500">One TADIG covers multiple countries (e.g., Caribbean)</div>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <span class="text-lg">💰</span>
+                            <div>
+                                <div class="font-medium text-sm text-gray-800">IMSI/Access fee</div>
+                                <div class="text-xs text-gray-500">Monthly per-SIM charge (shown in IMSI FEE column)</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Operator Color Legend -->
+                <div class="mt-4 pt-4 border-t">
+                    <h3 class="text-sm font-semibold text-gray-700 mb-2">Operator Color Coding</h3>
+                    <div class="flex flex-wrap gap-2">
+                        <div class="inline-flex items-center gap-1 px-3 py-1 text-xs rounded-full border text-blue-600 bg-blue-50 border-blue-200">
+                            <span class="font-semibold">A1</span> Notes
+                        </div>
+                        <div class="inline-flex items-center gap-1 px-3 py-1 text-xs rounded-full border text-red-600 bg-red-50 border-red-200">
+                            <span class="font-semibold">Telefonica</span> Notes
+                        </div>
+                        <div class="inline-flex items-center gap-1 px-3 py-1 text-xs rounded-full border text-purple-600 bg-purple-50 border-purple-200">
+                            <span class="font-semibold">Tele2</span> Notes
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and Filters -->
+    <div class="max-w-7xl mx-auto px-4 py-6">
+        <div class="bg-white rounded-lg shadow-sm p-4">
+            <div class="flex gap-4 items-center">
+                <input 
+                    type="text" 
+                    id="searchInput" 
+                    placeholder="Search by TADIG, network, or country..."
+                    class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onkeyup="searchNetworks()"
+                >
+                
+                <div class="flex gap-2">
+                    <button 
+                        onclick="filterBySource(null)"
+                        class="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
+                    >
+                        All Sources
+                    </button>
+                    <button 
+                        onclick="filterBySource('A1')"
+                        class="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+                    >
+                        A1 (<span id="a1Count">0</span>)
+                    </button>
+                    <button 
+                        onclick="filterBySource('Telefonica')"
+                        class="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
+                    >
+                        Telefonica (<span id="telefonicaCount">0</span>)
+                    </button>
+                    <button 
+                        onclick="filterBySource('Tele2')"
+                        class="px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors"
+                    >
+                        Tele2 (<span id="tele2Count">0</span>)
+                    </button>
+                    <button 
+                        onclick="toggleUploadSection()"
+                        class="px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all flex items-center gap-2"
+                    >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                        </svg>
+                        Upload New Pricing
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dynamic Upload Section -->
+    <div id="uploadSection" class="max-w-7xl mx-auto px-4 py-6 hidden">
+        <div class="bg-white rounded-lg shadow-sm p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-semibold">Upload New Pricing Data</h2>
+                <button onclick="toggleUploadSection()" class="text-gray-500 hover:text-gray-700">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- Source Selection -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Select Source</label>
+                    <select id="uploadSource" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">-- Select Source --</option>
+                    </select>
+                </div>
+
+                <!-- File Upload -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Upload File</label>
+                    <input 
+                        type="file" 
+                        id="uploadFile" 
+                        accept=".xlsx,.xls,.csv"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                </div>
+
+                <!-- Process Button -->
+                <div class="flex items-end">
+                    <button 
+                        onclick="processFileUpload()"
+                        class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                        Process & Compare
+                    </button>
+                </div>
+            </div>
+
+            <!-- Upload Results -->
+            <div id="uploadResults" class="mt-6 hidden">
+                <!-- Summary Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                    <div class="bg-gray-50 rounded-lg p-3">
+                        <div class="text-sm text-gray-500">Total Networks</div>
+                        <div class="text-xl font-bold text-gray-900" id="uploadTotal">0</div>
+                    </div>
+                    <div class="bg-green-50 rounded-lg p-3">
+                        <div class="text-sm text-gray-500">New Networks</div>
+                        <div class="text-xl font-bold text-green-600" id="uploadNew">0</div>
+                    </div>
+                    <div class="bg-blue-50 rounded-lg p-3">
+                        <div class="text-sm text-gray-500">Price Changes</div>
+                        <div class="text-xl font-bold text-blue-600" id="uploadChanged">0</div>
+                    </div>
+                    <div class="bg-purple-50 rounded-lg p-3">
+                        <div class="text-sm text-gray-500">IMSI Changes</div>
+                        <div class="text-xl font-bold text-purple-600" id="uploadImsi">0</div>
+                    </div>
+                </div>
+
+                <!-- Changes Table -->
+                <div id="changesTable" class="overflow-x-auto"></div>
+
+                <!-- Action Buttons -->
+                <div class="flex gap-4 mt-4">
+                    <button onclick="saveUploadedData()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                        Save to Database
+                    </button>
+                    <button onclick="exportChanges()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        Export Changes
+                    </button>
+                    <button onclick="clearUploadResults()" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700">
+                        Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Container -->
+    <div class="max-w-7xl mx-auto px-4 pb-8">
+        <div id="loading" class="bg-white rounded-lg shadow-sm p-8">
+            <div class="flex flex-col items-center justify-center">
+                <div class="loading-spinner"></div>
+                <p class="mt-4 text-gray-600">Loading data from Supabase...</p>
+            </div>
+        </div>
+        
+        <div id="resultsContainer" class="bg-white rounded-lg shadow-sm hidden">
+            <!-- Results will be populated here -->
+        </div>
+    </div>
+
+    <script>
+        // Supabase configuration - hardcoded for production
+        const SUPABASE_URL = 'https://uddmjjgnexdazfedrytt.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVkZG1qamduZXhkYXpmZWRyeXR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3NjQ2OTUsImV4cCI6MjA2MzM0MDY5NX0.A_034WOQ-JJ3DDvMux5fLXayJ4pUk3_WXnVTJI-wSL0';
+        
+        let allNetworks = [];
+        let currentFilter = null;
+
+        // Auto-connect on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            connectToSupabase();
+        });
+
+        async function connectToSupabase() {
+            try {
+                // Load all data
+                await loadAllData();
+                
+                // Update connection status
+                document.getElementById('connectionStatus').innerHTML = `
+                    <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span class="text-sm text-gray-600">Connected</span>
+                `;
+                
+                // Hide loading, show results
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('resultsContainer').classList.remove('hidden');
+                
+            } catch (error) {
+                console.error('Connection error:', error);
+                document.getElementById('connectionStatus').innerHTML = `
+                    <div class="w-2 h-2 bg-red-500 rounded-full"></div>
+                    <span class="text-sm text-gray-600">Error</span>
+                `;
+                document.getElementById('loading').innerHTML = `
+                    <div class="text-center p-8">
+                        <p class="text-red-600">Failed to connect to database</p>
+                        <p class="text-sm text-gray-500 mt-2">${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function loadAllData() {
+            const response = await fetch(
+                `${SUPABASE_URL}/rest/v1/networks?select=*,network_pricing(*,pricing_sources(*))`,
+                {
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`
+                    }
+                }
+            );
+            
+            if (!response.ok) {
+                throw new Error('Failed to load data');
+            }
+            
+            allNetworks = await response.json();
+            processData();
+            displayNetworks();
+        }
+
+        function processData() {
+            const uniqueNetworks = new Set();
+            const uniqueCountries = new Set();
+            let totalPrices = 0;
+            let networksWithImsi = 0;
+            const sourceCounts = { 'A1': 0, 'Telefonica': 0, 'Tele2': 0 };
+            let totalDataPrice = 0;
+            let priceCount = 0;
+            
+            allNetworks.forEach(network => {
+                uniqueNetworks.add(network.tadig);
+                uniqueCountries.add(network.country);
+                
+                let hasImsi = false;
+                network.network_pricing?.forEach(pricing => {
+                    totalPrices++;
+                    
+                    const sourceName = pricing.pricing_sources?.source_name;
+                    if (sourceName && sourceCounts[sourceName] !== undefined) {
+                        sourceCounts[sourceName]++;
+                    }
+                    
+                    if (pricing.imsi_access_fee > 0) {
+                        hasImsi = true;
+                    }
+                    
+                    // Calculate average price per MB
+                    if (pricing.data_per_mb && pricing.data_per_mb > 0) {
+                        totalDataPrice += pricing.data_per_mb;
+                        priceCount++;
+                    }
+                });
+                
+                if (hasImsi) {
+                    networksWithImsi++;
+                }
+            });
+            
+            // Calculate average price
+            const avgPrice = priceCount > 0 ? (totalDataPrice / priceCount) : 0;
+            
+            // Update stats
+            document.getElementById('networkCount').textContent = uniqueNetworks.size;
+            document.getElementById('countryCount').textContent = uniqueCountries.size;
+            document.getElementById('imsiCount').textContent = networksWithImsi;
+            document.getElementById('avgPrice').textContent = '$' + avgPrice.toFixed(4);
+            
+            // Update source counts in filter buttons (if elements exist)
+            if (document.getElementById('a1Count')) {
+                document.getElementById('a1Count').textContent = sourceCounts['A1'];
+            }
+            if (document.getElementById('telefonicaCount')) {
+                document.getElementById('telefonicaCount').textContent = sourceCounts['Telefonica'];
+            }
+            if (document.getElementById('tele2Count')) {
+                document.getElementById('tele2Count').textContent = sourceCounts['Tele2'];
+            }
+        }
+
+        function buildNotesDisplay(network) {
+            // Build notes display with operator colors
+            const notes = [];
+            
+            // Hardcoded notes for specific networks until we have a restrictions column
+            const hardcodedNotes = {
+                'Tele2': {
+                    // Canada - no permanent roaming
+                    'CANBM': 'no permanent roaming',
+                    'CANRW': 'no permanent roaming',
+                    'CANTS': 'no permanent roaming',
+                    
+                    // Brazil networks - various restrictions
+                    'BRACL': 'No resell on domestic market, no permanent roaming',
+                    'BRACS': '', // Has access fee - shown in IMSI column
+                    'BRATC': 'no permanent roaming (restriction lifted in 2023)',
+                    'BRASP': '', // Has access fee - shown in IMSI column
+                    'BRARN': '', // Has access fee - shown in IMSI column
+                    'BRATM': 'no permanent roaming',
+                    'BRATB': 'no permanent roaming',
+                    'BRAV1': 'no permanent roaming (restriction lifted in 2023)',
+                    'BRAV2': 'no permanent roaming (restriction lifted in 2023)',
+                    'BRAV3': 'no permanent roaming (restriction lifted in 2023)',
+                    'BRAVC': 'no permanent roaming',
+                    'BRAVP': 'no permanent roaming',
+                    // Andorra
+                    'ANDMA': 'no permanent roaming',
+                    
+                    // Argentina, Chile, Colombia, etc - No resell restriction
+                    'ARGCM': 'No resell on domestic market, no permanent roaming',
+                    'CHLSM': 'No resell on domestic market, no permanent roaming',
+                    'COLCM': 'No resell on domestic market, no permanent roaming',
+                    'CRICL': 'No resell on domestic market, no permanent roaming',
+                    'CRIGT': 'No resell on domestic market, no permanent roaming',
+                    'DOMCM': 'No resell on domestic market, no permanent roaming',
+                    'ECUMT': 'No resell on domestic market, no permanent roaming',
+                    'GTMCM': 'No resell on domestic market, no permanent roaming',
+                    'HNDCM': 'No resell on domestic market, no permanent roaming',
+                    'MEXTA': 'No resell on domestic market, no permanent roaming',
+                    'NICMT': 'No resell on domestic market, no permanent roaming',
+                    'PANCM': 'No resell on domestic market, no permanent roaming',
+                    'PRYCM': 'No resell on domestic market, no permanent roaming',
+                    'URYMT': 'No resell on domestic market, no permanent roaming',
+                    
+                    // USA prohibited and special networks
+                    'USACB': 'prohibited network',
+                    'USASC': 'prohibited network',
+                    'USAW5': 'prohibited network',
+                    'USAVZ': 'Network blocked',
+                    'USACG': 'Separate addendum - Permitted Resellers list',
+                    'USAW6': 'Separate addendum - all IoT deployments should be agreed by TMUS',
+                    // Data not launched (various countries)
+                    'ATG03': 'data not launched',
+                    'BFATL': 'data not launched',
+                    'BDIET': 'data not launched',
+                    'CAF02': 'data not launched',
+                    'COGCT': 'data not launched',
+                    'GINFR': 'data not launched',
+                    'GNQHT': 'data not launched',
+                    'HTI01': 'data not launched',
+                    'HTI02': 'data not launched',
+                    'CIVKZ': 'data not launched',
+                    'LIBLM': 'data not launched',
+                    'NZLNT': 'data not launched',
+                    'NZLTN': 'data not launched',
+                    'KORM1': 'data not launched',
+                    'PNGDB': 'data not launched',
+                    'SLVDG': 'data not launched',
+                    'SJMER': 'data not launched',
+                    'TONRC': 'data not launched',
+                    'URGCM': 'data not launched',
+                    'VGBCW': 'data not launched',
+                    'YEM02': 'data not launched',
+                    // Japan - No resale on domestic market
+                    'JPNDC': 'No resell on domestic market, no permanent roaming',
+                    'JPNKT': 'No resell on domestic market, no permanent roaming',
+                    'JPNSB': 'No resell on domestic market, no permanent roaming',
+                    // Other prohibited networks
+                    'AUSOP': 'prohibited network',
+                    'AUTMM': 'prohibited network',
+                    'BEN02': 'prohibited network',
+                    'CIV02': 'prohibited network',
+                    'HRVCN': 'prohibited network',
+                    'KORSK': 'prohibited network',
+                    'KORKF': 'prohibited network',
+                    'MEXNX': 'prohibited network',
+                    'RUSMM': 'prohibited network',
+                    'SLVDG': 'prohibited network',
+                    'TAHDL': 'prohibited network',
+                    'TGO02': 'prohibited network',
+                    'TWNFR': 'prohibited network',
+                    'TWNCH': 'prohibited network',
+                    'TWNTM': 'prohibited network',
+                    'TWNTS': 'prohibited network',
+                    'VIRDQ': 'prohibited network',
+                    'ZAF02': 'prohibited network',
+                    
+                    // Services not available
+                    'TLSTC': 'services not available',
+                    'SWZMN': 'services not available',
+                    'LSOVL': 'services not available',
+                    'PAKTP': 'services not available',
+                    'WSMDP': 'services not available',
+                    'VUSIS': 'services not available',
+                    'VUTMC': 'services not available'
+                },
+                'A1': {
+                    // X = Permanent roaming prohibited - Canada
+                    'CANBM': 'X',
+                    'CANRW': 'X',
+                    'CANTS': 'X',
+                    
+                    // X = Permanent roaming prohibited - Brazil (ANATEL regulation)
+                    'BRACL': 'X',
+                    'BRACS': 'X',
+                    'BRARN': 'X',
+                    'BRASP': 'X',
+                    'BRATC': 'X',
+                    'BRATB': 'X',
+                    'BRATM': 'X',
+                    'BRAV1': 'X',
+                    'BRAV2': 'X',
+                    'BRAV3': 'X',
+                    'BRAVC': 'X',
+                    'BRAVP': 'X',
+                    
+                    // X = Permanent roaming prohibited - South Korea
+                    'KORKT': 'X',
+                    'KORLG': 'X',
+                    'KORSK': 'X',
+                    'KOROG': 'X',
+                    // XX = Multi-territory TADIG (One TADIG covers multiple countries)
+                    'ANTCT': 'XX',
+                    'FRAF4': 'XX',
+                    'GLP01': 'XX',
+                    'JAMDC': 'XX',
+                    'GBRGT': 'XX',
+                    'GUYGT': 'XX',
+                    'MTQOR': 'XX',
+                    'NLDVF': 'XX',
+                    'REFOR': 'XX',
+                    'SXMTM': 'XX',
+                    'USACH': 'XX',
+                    'VIRCC': 'XX',
+                    // Other restrictions
+                    'USAGA': 'separate addendum required',
+                    'USATW': 'separate addendum required, no permanent roaming',
+                    'USAUS': 'TMUS - IoT approval required',
+                    'USAT5': 'TMUS - IoT approval required'
+                },
+                'Telefonica': {
+                    // Telefonica doesn't have explicit text restrictions in the file
+                    // Their restrictions are based on service availability (VoLTE, LTE-M, etc.)
+                    // which we could derive from the technology columns if needed
+                }
+            };
+            
+            network.pricing.forEach(p => {
+                let note = '';
+                
+                // First try to get from database (if restrictions column exists)
+                if (p.restrictions) {
+                    note = p.restrictions;
+                } 
+                // Fall back to hardcoded notes if no database restriction
+                else if (hardcodedNotes[p.source] && hardcodedNotes[p.source][network.tadig] !== undefined) {
+                    note = hardcodedNotes[p.source][network.tadig];
+                }
+                
+                if (note && note !== '') {
+                    const colors = {
+                        'A1': 'text-blue-600 bg-blue-50 border-blue-200',
+                        'Telefonica': 'text-red-600 bg-red-50 border-red-200',
+                        'Tele2': 'text-purple-600 bg-purple-50 border-purple-200'
+                    };
+                    
+                    // Don't redefine note - it's already set above
+                    const color = colors[p.source] || 'text-gray-600 bg-gray-50 border-gray-200';
+                    
+                    // Categorize and format the note
+                    let displayNote = '';
+                    let icon = '';
+                    
+                    // Skip access fee notes since we show them in IMSI FEE column
+                    if (note.toLowerCase().includes('access fee')) {
+                        return; // Skip this note
+                    }
+                    
+                    // Skip direct roaming as it's not a restriction
+                    if (note.toLowerCase().includes('direct roaming')) {
+                        return; // Skip this note
+                    }
+                    
+                    // Skip empty notes
+                    if (!note || note === '') {
+                        return;
+                    }
+                    
+                    // Process other notes
+                    if (note.toLowerCase().includes('no permanent roaming')) {
+                        icon = '🚫';
+                        displayNote = 'No permanent roaming';
+                    } else if (note.toLowerCase().includes('data not launched') || note.toLowerCase().includes('data unavailable')) {
+                        icon = '📵';
+                        displayNote = 'Data unavailable';
+                    } else if (note.toLowerCase().includes('prohibited') || note.toLowerCase().includes('blocked')) {
+                        icon = '⛔';
+                        displayNote = 'Network blocked';
+                    } else if (note.toLowerCase().includes('no resell') || note.toLowerCase().includes('no resale')) {
+                        icon = '🔒';
+                        displayNote = 'No resale';
+                    } else if (note.toLowerCase().includes('services not available')) {
+                        icon = '⚠️';
+                        displayNote = 'Limited services';
+                    } else if (note === 'X') {
+                        // X = Permanent roaming prohibited (Brazil ANATEL regulation)
+                        icon = '🚫';
+                        displayNote = 'Roaming prohibited (ANATEL)';
+                    } else if (note === 'XX') {
+                        // XX = One TADIG covers multiple countries
+                        icon = '🌍';
+                        displayNote = 'Multi-territory TADIG';
+                    } else if (note.toLowerCase().includes('separate addendum')) {
+                        icon = '📋';
+                        displayNote = 'Special terms apply';
+                    } else if (note.toLowerCase().includes('tmus')) {
+                        icon = '📋';
+                        displayNote = 'IoT approval required';
+                    } else if (note.toLowerCase().includes('restriction lifted')) {
+                        icon = '✅';
+                        displayNote = 'Roaming restriction lifted (2023)';
+                    } else {
+                        // For any other note, display it as-is
+                        icon = '📝';
+                        displayNote = note;
+                    }
+                    
+                    if (displayNote) {
+                        notes.push(`
+                            <div class="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full border ${color} mb-1 mr-1">
+                                <span class="font-semibold">${p.source}:</span>
+                                ${icon} ${displayNote}
+                            </div>
+                        `);
+                    }
+                }
+            });
+            
+            // Return notes display or a dash if no notes
+            return notes.length > 0 ? `<div class="flex flex-wrap">${notes.join('')}</div>` : 
+                   '<span class="text-gray-400 text-sm">-</span>';
+        }
+
+        function displayNetworks(searchTerm = '') {
+            const container = document.getElementById('resultsContainer');
+            
+            // Filter networks
+            let filteredNetworks = allNetworks;
+            
+            if (searchTerm) {
+                const term = searchTerm.toLowerCase();
+                filteredNetworks = allNetworks.filter(network => 
+                    network.tadig.toLowerCase().includes(term) ||
+                    network.network_name.toLowerCase().includes(term) ||
+                    network.country.toLowerCase().includes(term)
+                );
+            }
+            
+            if (currentFilter) {
+                filteredNetworks = filteredNetworks.filter(network => 
+                    network.network_pricing?.some(p => 
+                        p.pricing_sources?.source_name === currentFilter
+                    )
+                );
+            }
+            
+            // Group by network name + country for initial grouping
+            const networkGroups = {};
+            
+            filteredNetworks.forEach(network => {
+                const groupKey = `${network.country}|${network.network_name}`;
+                
+                if (!networkGroups[groupKey]) {
+                    networkGroups[groupKey] = {
+                        ...network,
+                        tadigs: [network.tadig],
+                        allPricing: []
+                    };
+                }
+                
+                // Add TADIG if not already there
+                if (!networkGroups[groupKey].tadigs.includes(network.tadig)) {
+                    networkGroups[groupKey].tadigs.push(network.tadig);
+                }
+                
+                // Add all pricing for this network
+                network.network_pricing?.forEach(pricing => {
+                    networkGroups[groupKey].allPricing.push({
+                        ...pricing,
+                        tadig: network.tadig,
+                        source: pricing.pricing_sources?.source_name
+                    });
+                });
+            });
+            
+            // Now consolidate by unique pricing combinations
+            const groupedNetworks = {};
+            let groupId = 0;
+            
+            Object.values(networkGroups).forEach(networkGroup => {
+                // Group pricing by source and price
+                const pricingBySource = {};
+                
+                networkGroup.allPricing.forEach(pricing => {
+                    const source = pricing.source;
+                    const priceKey = `${source}|${pricing.data_per_mb}|${pricing.imsi_access_fee}`;
+                    
+                    if (!pricingBySource[priceKey]) {
+                        pricingBySource[priceKey] = {
+                            pricing: pricing,
+                            tadigs: [pricing.tadig]
+                        };
+                    } else {
+                        if (!pricingBySource[priceKey].tadigs.includes(pricing.tadig)) {
+                            pricingBySource[priceKey].tadigs.push(pricing.tadig);
+                        }
+                    }
+                });
+                
+                // Create final consolidated pricing
+                const consolidatedPricing = [];
+                const consolidatedTadigs = new Set();
+                
+                Object.values(pricingBySource).forEach(group => {
+                    consolidatedPricing.push(group.pricing);
+                    group.tadigs.forEach(t => consolidatedTadigs.add(t));
+                });
+                
+                // Sort TADIGs for consistent display
+                const sortedTadigs = Array.from(consolidatedTadigs).sort();
+                
+                const groupKey = `group_${groupId++}`;
+                groupedNetworks[groupKey] = {
+                    ...networkGroup,
+                    tadig: sortedTadigs[0], // Primary TADIG
+                    tadigs: sortedTadigs,
+                    pricing: consolidatedPricing,
+                    isConsolidated: sortedTadigs.length > 1
+                };
+            });
+            
+            // Build HTML
+            let html = `
+                <table class="w-full">
+                    <thead class="bg-gray-50 border-b">
+                        <tr>
+                            <th class="px-3 py-3 text-left text-sm font-semibold text-gray-700">NETWORK</th>
+                            <th class="px-3 py-3 text-left text-sm font-semibold text-gray-700">COUNTRY</th>
+                            <th class="px-3 py-3 text-left text-sm font-semibold text-gray-700">TADIG</th>
+                            <th class="px-3 py-3 text-left text-sm font-semibold text-gray-700">SOURCES</th>
+                            <th class="px-3 py-3 text-left text-sm font-semibold text-gray-700">DATA/MB</th>
+                            <th class="px-3 py-3 text-left text-sm font-semibold text-gray-700">SMS</th>
+                            <th class="px-3 py-3 text-left text-sm font-semibold text-gray-700">IMSI</th>
+                            <th class="px-3 py-3 text-center text-sm font-semibold text-gray-700">IoT</th>
+                            <th class="px-3 py-3 text-left text-sm font-semibold text-gray-700">NOTES</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            Object.values(groupedNetworks).forEach(network => {
+                const sources = network.pricing.map(p => p.source).filter(Boolean);
+                const sourceLabels = sources.map(s => {
+                    const colors = {
+                        'A1': 'bg-blue-500',
+                        'Telefonica': 'bg-red-500',
+                        'Tele2': 'bg-purple-500'
+                    };
+                    const abbr = {
+                        'A1': 'A1',
+                        'Telefonica': 'TEL',
+                        'Tele2': 'T2'
+                    };
+                    return `<span class="inline-block px-2 py-1 text-xs font-semibold text-white rounded ${colors[s] || 'bg-gray-500'}">${abbr[s] || s}</span>`;
+                }).join(' ');
+                
+                // Get pricing details
+                const pricingDetails = [];
+                let lteMOperators = [];
+                let nbIotOperators = [];
+                
+                network.pricing.forEach(p => {
+                    const source = p.source;
+                    const imsi = p.imsi_access_fee;
+                    const data = p.data_per_mb;
+                    const sms = p.sms_mo || p.sms_mt || 0; // Use MO or MT price
+                    
+                    // Collect IoT technology operators
+                    if (p.lte_m && source) lteMOperators.push(source);
+                    if (p.nb_iot && source) nbIotOperators.push(source);
+                    
+                    if (source) {
+                        const colors = {
+                            'A1': 'text-blue-600',
+                            'Telefonica': 'text-red-600',
+                            'Tele2': 'text-purple-600'
+                        };
+                        const abbr = {
+                            'A1': 'A1',
+                            'Telefonica': 'TEL',
+                            'Tele2': 'T2'
+                        };
+                        
+                        pricingDetails.push({
+                            source: abbr[source],
+                            color: colors[source] || 'text-gray-600',
+                            imsi: imsi || 0,
+                            data: data || 0,
+                            sms: sms || 0
+                        });
+                    }
+                });
+                
+                // Build price displays
+                const dataPrices = pricingDetails.map(p => 
+                    `<div class="${p.color} text-xs">
+                        <span class="font-semibold">${p.source}:</span> $${p.data.toFixed(6)}
+                    </div>`
+                ).join('');
+                
+                const smsPrices = pricingDetails
+                    .filter(p => p.sms > 0)
+                    .map(p => `<div class="${p.color} text-xs">
+                        <span class="font-semibold">${p.source}:</span> $${p.sms.toFixed(4)}
+                    </div>`)
+                    .join('') || '<span class="text-gray-400 text-sm">-</span>';
+                
+                const imsiFees = pricingDetails
+                    .filter(p => p.imsi > 0)
+                    .map(p => `<div class="${p.color} text-xs">${p.source}: €${p.imsi.toFixed(2)}</div>`)
+                    .join('') || '<span class="text-gray-400 text-sm">-</span>';
+                
+                // Build IoT technology indicators with operator colors
+                let iotIndicators = [];
+                
+                // CAT-M/LTE-M badge with operator indicators
+                if (lteMOperators.length > 0) {
+                    const operatorColors = {
+                        'A1': 'bg-blue-500',
+                        'Telefonica': 'bg-red-500',
+                        'Tele2': 'bg-purple-500'
+                    };
+                    
+                    const operatorDots = lteMOperators.map(op => {
+                        const color = operatorColors[op] || 'bg-gray-500';
+                        return `<span class="inline-block w-2 h-2 ${color} rounded-full"></span>`;
+                    }).join('');
+                    
+                    iotIndicators.push(`
+                        <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded">
+                            CAT-M
+                            <span class="inline-flex gap-0.5 ml-1">${operatorDots}</span>
+                        </span>
+                    `);
+                }
+                
+                // NB-IoT badge with operator indicators
+                if (nbIotOperators.length > 0) {
+                    const operatorColors = {
+                        'A1': 'bg-blue-500',
+                        'Telefonica': 'bg-red-500',
+                        'Tele2': 'bg-purple-500'
+                    };
+                    
+                    const operatorDots = nbIotOperators.map(op => {
+                        const color = operatorColors[op] || 'bg-gray-500';
+                        return `<span class="inline-block w-2 h-2 ${color} rounded-full"></span>`;
+                    }).join('');
+                    
+                    iotIndicators.push(`
+                        <span class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
+                            NB-IoT
+                            <span class="inline-flex gap-0.5 ml-1">${operatorDots}</span>
+                        </span>
+                    `);
+                }
+                
+                const iotDisplay = iotIndicators.length > 0 ? iotIndicators.join(' ') : '<span class="text-gray-400 text-sm">-</span>';
+                
+                // Add visual indicator for consolidated networks
+                const networkNameDisplay = network.network_name;
+                const tadigDisplay = network.isConsolidated 
+                    ? `<div class="font-mono text-sm">
+                        <span class="font-semibold">${network.tadigs[0]}</span>
+                        ${network.tadigs.length > 1 ? `<span class="text-gray-500"> +${network.tadigs.length - 1} more</span>` : ''}
+                        <div class="text-xs text-gray-500 mt-1" title="${network.tadig}">${network.tadigs.length > 1 ? network.tadigs.join(', ') : ''}</div>
+                      </div>`
+                    : `<span class="font-mono text-sm font-semibold">${network.tadig}</span>`;
+                
+                html += `
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="px-3 py-3">
+                            <div class="font-medium text-gray-900">${networkNameDisplay}</div>
+                            <div class="text-sm text-gray-500">${sources.length} source${sources.length !== 1 ? 's' : ''}</div>
+                        </td>
+                        <td class="px-3 py-3 text-gray-700">${network.country}</td>
+                        <td class="px-3 py-3">${tadigDisplay}</td>
+                        <td class="px-3 py-3">${sourceLabels}</td>
+                        <td class="px-3 py-3">${dataPrices}</td>
+                        <td class="px-3 py-3">${smsPrices}</td>
+                        <td class="px-3 py-3">${imsiFees}</td>
+                        <td class="px-3 py-3 text-center">${iotDisplay}</td>
+                        <td class="px-3 py-3">
+                            ${buildNotesDisplay(network)}
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                    </tbody>
+                </table>
+            `;
+            
+            if (Object.keys(groupedNetworks).length === 0) {
+                html = `
+                    <div class="p-8 text-center text-gray-500">
+                        ${searchTerm ? 'No networks found matching your search' : 'No data available'}
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html;
+        }
+
+        function searchNetworks() {
+            const searchTerm = document.getElementById('searchInput').value;
+            displayNetworks(searchTerm);
+        }
+
+        function filterBySource(source) {
+            currentFilter = source;
+            displayNetworks(document.getElementById('searchInput').value);
+        }
+
+        function showDetails(tadig) {
+            const network = allNetworks.find(n => n.tadig === tadig);
+            if (!network) return;
+            
+            let details = `Network: ${network.network_name}\nTADIG: ${tadig}\nCountry: ${network.country}\n\n`;
+            
+            network.network_pricing?.forEach(pricing => {
+                const source = pricing.pricing_sources?.source_name;
+                details += `${source} Pricing:\n`;
+                details += `  Data: $${pricing.data_per_mb?.toFixed(6) || '0'}/MB\n`;
+                if (pricing.imsi_access_fee > 0) {
+                    details += `  IMSI Fee: €${pricing.imsi_access_fee.toFixed(2)}/month\n`;
+                }
+                if (pricing.sms_mo) {
+                    details += `  SMS: $${pricing.sms_mo.toFixed(4)}\n`;
+                }
+                if (pricing.voice_moc) {
+                    details += `  Voice: $${pricing.voice_moc.toFixed(4)}/min\n`;
+                }
+                details += '\n';
+            });
+            
+            // Show comparison for AUSTA
+            if (tadig === 'AUSTA') {
+                details += '━━━━━━━━━━━━━━━━━━━━━\n';
+                details += 'PRICE COMPARISON:\n';
+                details += 'Tele2 IMSI: €0.50/month\n';
+                details += 'A1 IMSI: €1.25/month\n';
+                details += 'Difference: €0.75/month (A1 is 150% more expensive)\n';
+            }
+            
+            alert(details);
+        }
+
+        // Toggle Dictionary Panel
+        function toggleDictionary() {
+            const content = document.getElementById('dictionaryContent');
+            const arrow = document.getElementById('dictionaryArrow');
+            
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                arrow.classList.add('rotate-180');
+            } else {
+                content.classList.add('hidden');
+                arrow.classList.remove('rotate-180');
+            }
+        }
+
+        // Dynamic Upload Functions
+        let uploadedData = {};
+        let uploadChanges = [];
+        let availableSources = [];
+
+        // Load available sources dynamically
+        async function loadAvailableSources() {
+            try {
+                const response = await fetch(
+                    `${SUPABASE_URL}/rest/v1/pricing_sources`,
+                    {
+                        headers: {
+                            'apikey': SUPABASE_KEY,
+                            'Authorization': `Bearer ${SUPABASE_KEY}`
+                        }
+                    }
+                );
+                
+                if (response.ok) {
+                    availableSources = await response.json();
+                    populateSourceDropdown();
+                }
+            } catch (error) {
+                console.error('Error loading sources:', error);
+            }
+        }
+
+        function populateSourceDropdown() {
+            const select = document.getElementById('uploadSource');
+            select.innerHTML = '<option value="">-- Select Source --</option>';
+            
+            availableSources.forEach(source => {
+                const option = document.createElement('option');
+                option.value = source.source_name;
+                option.textContent = source.source_name;
+                select.appendChild(option);
+            });
+            
+            // Add option to create new source
+            const newOption = document.createElement('option');
+            newOption.value = 'new';
+            newOption.textContent = '+ Add New Source';
+            select.appendChild(newOption);
+        }
+
+        function toggleUploadSection() {
+            const section = document.getElementById('uploadSection');
+            section.classList.toggle('hidden');
+            
+            if (!section.classList.contains('hidden') && availableSources.length === 0) {
+                loadAvailableSources();
+            }
+        }
+
+        async function processFileUpload() {
+            const source = document.getElementById('uploadSource').value;
+            const file = document.getElementById('uploadFile').files[0];
+            
+            if (!source || !file) {
+                alert('Please select a source and upload a file');
+                return;
+            }
+            
+            if (source === 'new') {
+                const newSourceName = prompt('Enter name for new source:');
+                if (!newSourceName) return;
+                
+                // Create new source in database
+                await createNewSource(newSourceName);
+                await loadAvailableSources();
+                document.getElementById('uploadSource').value = newSourceName;
+            }
+            
+            // Read and parse file
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                
+                // Parse dynamically based on detected format
+                uploadedData = await parseFileDynamically(workbook, source);
+                
+                // Compare with existing data
+                await compareWithExisting(uploadedData, source);
+                
+                // Display results
+                displayUploadResults();
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        async function parseFileDynamically(workbook, sourceName) {
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(sheet, {header: 1});
+            const parsedNetworks = {};
+            
+            // Find header row dynamically
+            let headerRow = -1;
+            let headers = {};
+            
+            for (let i = 0; i < Math.min(10, jsonData.length); i++) {
+                const row = jsonData[i];
+                if (row && row.some(cell => 
+                    typeof cell === 'string' && 
+                    (cell.toUpperCase().includes('TADIG') || cell.toUpperCase().includes('NETWORK'))
+                )) {
+                    headerRow = i;
+                    row.forEach((header, idx) => {
+                        if (header) {
+                            const h = header.toString().trim();
+                            headers[h] = idx;
+                            
+                            // Map common variations
+                            if (h.toUpperCase().includes('TADIG')) headers['TADIG'] = idx;
+                            if (h.toUpperCase().includes('NETWORK') || h.toUpperCase().includes('OPERATOR')) headers['NETWORK'] = idx;
+                            if (h.toUpperCase().includes('COUNTRY')) headers['COUNTRY'] = idx;
+                            if (h.toUpperCase().includes('DATA') && h.toUpperCase().includes('MB')) headers['DATA'] = idx;
+                            if (h.toUpperCase().includes('IMSI') || h.toUpperCase().includes('ACCESS FEE')) headers['IMSI'] = idx;
+                            if (h.toUpperCase().includes('SMS')) headers['SMS'] = idx;
+                            if (h.toUpperCase().includes('VOICE') || h.toUpperCase().includes('MOC')) headers['VOICE'] = idx;
+                            
+                            // Look for notes/remarks/comments/restrictions columns
+                            if (h.toUpperCase().includes('NOTE') || h.toUpperCase().includes('REMARK') || 
+                                h.toUpperCase().includes('COMMENT') || h.toUpperCase().includes('RESTRICTION')) {
+                                headers['NOTES'] = idx;
+                            }
+                        }
+                    });
+                    break;
+                }
+            }
+            
+            if (headerRow === -1) {
+                alert('Could not detect header row in file. Please check the format.');
+                return {};
+            }
+            
+            // Parse data rows
+            for (let i = headerRow + 1; i < jsonData.length; i++) {
+                const row = jsonData[i];
+                if (!row || row.length === 0) continue;
+                
+                const tadig = row[headers['TADIG']]?.toString().trim();
+                if (!tadig || tadig === 'TADIG') continue;
+                
+                // Parse notes/remarks if they exist
+                let notes = '';
+                if (headers['NOTES'] !== undefined) {
+                    notes = row[headers['NOTES']]?.toString().trim() || '';
+                }
+                
+                parsedNetworks[tadig] = {
+                    tadig: tadig,
+                    network: row[headers['NETWORK']]?.toString().trim() || 'Unknown',
+                    country: row[headers['COUNTRY']]?.toString().trim() || 'Unknown',
+                    dataRate: parseFloat(row[headers['DATA']] || 0) || 0,
+                    imsiRate: parseFloat(row[headers['IMSI']] || 0) || 0,
+                    smsRate: parseFloat(row[headers['SMS']] || 0) || 0,
+                    voiceRate: parseFloat(row[headers['VOICE']] || 0) || 0,
+                    notes: notes,
+                    source: sourceName
+                };
+            }
+            
+            return parsedNetworks;
+        }
+
+        // Known note patterns
+        const knownNotePatterns = [
+            'no permanent roaming',
+            'data not launched',
+            'data unavailable',
+            'prohibited',
+            'blocked',
+            'no resale',
+            'no resell',
+            'services not available',
+            'limited services',
+            'access fee',
+            'imsi fee',
+            'direct roaming',
+            'special terms',
+            'iot approval',
+            'tmus',
+            'separate addendum',
+            'x', 'xx',
+            'restricted',
+            'multi-territory'
+        ];
+        
+        function isNewNoteType(note) {
+            if (!note) return false;
+            
+            const noteLower = note.toLowerCase();
+            
+            // Check if this note matches any known pattern
+            for (const pattern of knownNotePatterns) {
+                if (noteLower.includes(pattern)) {
+                    return false; // It's a known note type
+                }
+            }
+            
+            // This is a new note type we haven't seen before
+            return true;
+        }
+
+        async function compareWithExisting(newData, sourceName) {
+            uploadChanges = [];
+            let newNetworks = 0;
+            let priceChanges = 0;
+            let imsiChanges = 0;
+            
+            // Get source ID
+            const sourceId = availableSources.find(s => s.source_name === sourceName)?.id;
+            
+            // Get existing pricing for this source
+            const existingData = {};
+            allNetworks.forEach(network => {
+                network.network_pricing?.forEach(pricing => {
+                    if (pricing.pricing_sources?.source_name === sourceName) {
+                        existingData[network.tadig] = {
+                            network: network.network_name,
+                            country: network.country,
+                            dataRate: pricing.data_per_mb || 0,
+                            imsiRate: pricing.imsi_access_fee || 0,
+                            smsRate: pricing.sms_mo || 0,
+                            voiceRate: pricing.voice_moc || 0
+                        };
+                    }
+                });
+            });
+            
+            // Compare each network
+            Object.keys(newData).forEach(tadig => {
+                const newNet = newData[tadig];
+                const oldNet = existingData[tadig];
+                
+                if (!oldNet) {
+                    // Check if network exists at all
+                    const networkExists = allNetworks.some(n => n.tadig === tadig);
+                    
+                    uploadChanges.push({
+                        ...newNet,
+                        changeType: networkExists ? 'new-pricing' : 'new-network',
+                        isNew: !networkExists,
+                        oldData: null
+                    });
+                    newNetworks++;
+                } else {
+                    // Check for changes
+                    const changes = [];
+                    if (Math.abs(newNet.dataRate - oldNet.dataRate) > 0.000001) {
+                        changes.push('data');
+                        priceChanges++;
+                    }
+                    if (Math.abs(newNet.imsiRate - oldNet.imsiRate) > 0.01) {
+                        changes.push('imsi');
+                        imsiChanges++;
+                    }
+                    if (Math.abs(newNet.smsRate - oldNet.smsRate) > 0.0001) {
+                        changes.push('sms');
+                    }
+                    if (Math.abs(newNet.voiceRate - oldNet.voiceRate) > 0.0001) {
+                        changes.push('voice');
+                    }
+                    
+                    // Check for note changes
+                    if (newNet.notes && newNet.notes !== oldNet.notes) {
+                        changes.push('notes');
+                        
+                        // Check if it's a new type of note we haven't seen before
+                        if (isNewNoteType(newNet.notes)) {
+                            console.log(`New note type detected: "${newNet.notes}" for ${newNet.tadig}`);
+                        }
+                    }
+                    
+                    if (changes.length > 0) {
+                        uploadChanges.push({
+                            ...newNet,
+                            changeType: 'updated',
+                            changes: changes,
+                            oldData: oldNet
+                        });
+                    }
+                }
+            });
+            
+            // Check for removed networks
+            Object.keys(existingData).forEach(tadig => {
+                if (!newData[tadig]) {
+                    uploadChanges.push({
+                        tadig: tadig,
+                        ...existingData[tadig],
+                        changeType: 'removed',
+                        source: sourceName
+                    });
+                }
+            });
+            
+            // Update summary
+            document.getElementById('uploadTotal').textContent = Object.keys(newData).length;
+            document.getElementById('uploadNew').textContent = newNetworks;
+            document.getElementById('uploadChanged').textContent = priceChanges;
+            document.getElementById('uploadImsi').textContent = imsiChanges;
+        }
+
+        function formatChanges(change) {
+            if (!change.changes || change.changes.length === 0) return '-';
+            
+            const formatted = change.changes.map(c => {
+                switch(c) {
+                    case 'data': return '📊 Data rate';
+                    case 'imsi': return '💰 IMSI fee';
+                    case 'sms': return '💬 SMS rate';
+                    case 'voice': return '📞 Voice rate';
+                    case 'notes': return '📝 Notes/Remarks';
+                    default: return c;
+                }
+            });
+            
+            // If notes changed, show the new note
+            if (change.changes.includes('notes') && change.notes) {
+                formatted.push(`<br><small class="text-gray-500">"${change.notes}"</small>`);
+            }
+            
+            return formatted.join(', ');
+        }
+
+        function displayUploadResults() {
+            document.getElementById('uploadResults').classList.remove('hidden');
+            
+            const tableDiv = document.getElementById('changesTable');
+            
+            if (uploadChanges.length === 0) {
+                tableDiv.innerHTML = '<p class="text-gray-500 text-center py-4">No changes detected</p>';
+                return;
+            }
+            
+            let html = `
+                <table class="w-full">
+                    <thead class="bg-gray-50 border-b">
+                        <tr>
+                            <th class="px-3 py-2 text-left text-sm font-semibold text-gray-700">Status</th>
+                            <th class="px-3 py-2 text-left text-sm font-semibold text-gray-700">TADIG</th>
+                            <th class="px-3 py-2 text-left text-sm font-semibold text-gray-700">Network</th>
+                            <th class="px-3 py-2 text-left text-sm font-semibold text-gray-700">Data/MB</th>
+                            <th class="px-3 py-2 text-left text-sm font-semibold text-gray-700">IMSI Fee</th>
+                            <th class="px-3 py-2 text-left text-sm font-semibold text-gray-700">Changes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            uploadChanges.forEach(change => {
+                const statusColor = change.changeType === 'new-network' ? 'bg-green-100 text-green-700' :
+                                  change.changeType === 'new-pricing' ? 'bg-blue-100 text-blue-700' :
+                                  change.changeType === 'updated' ? 'bg-yellow-100 text-yellow-700' :
+                                  change.changeType === 'removed' ? 'bg-red-100 text-red-700' : '';
+                
+                html += `
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="px-3 py-2">
+                            <span class="px-2 py-1 text-xs rounded-full ${statusColor}">
+                                ${change.changeType}
+                            </span>
+                        </td>
+                        <td class="px-3 py-2 font-mono text-sm">${change.tadig}</td>
+                        <td class="px-3 py-2 text-sm">${change.network}</td>
+                        <td class="px-3 py-2 text-sm">
+                            ${change.oldData ? `<span class="text-gray-400">$${change.oldData.dataRate.toFixed(6)}</span> → ` : ''}
+                            <span class="${change.oldData && change.dataRate > change.oldData.dataRate ? 'text-red-600' : 
+                                          change.oldData && change.dataRate < change.oldData.dataRate ? 'text-green-600' : ''}">
+                                $${change.dataRate.toFixed(6)}
+                            </span>
+                        </td>
+                        <td class="px-3 py-2 text-sm">
+                            ${change.oldData ? `<span class="text-gray-400">€${change.oldData.imsiRate.toFixed(2)}</span> → ` : ''}
+                            <span class="${change.oldData && change.imsiRate > change.oldData.imsiRate ? 'text-red-600' : 
+                                          change.oldData && change.imsiRate < change.oldData.imsiRate ? 'text-green-600' : ''}">
+                                €${change.imsiRate.toFixed(2)}
+                            </span>
+                        </td>
+                        <td class="px-3 py-2 text-sm">
+                            ${formatChanges(change)}
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table>';
+            tableDiv.innerHTML = html;
+        }
+
+        async function createNewSource(sourceName) {
+            const response = await fetch(
+                `${SUPABASE_URL}/rest/v1/pricing_sources`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=representation'
+                    },
+                    body: JSON.stringify({
+                        source_name: sourceName,
+                        source_type: 'operator',
+                        is_active: true
+                    })
+                }
+            );
+            
+            if (!response.ok) {
+                throw new Error('Failed to create new source');
+            }
+            
+            return response.json();
+        }
+
+        async function saveUploadedData() {
+            if (uploadChanges.length === 0) {
+                alert('No changes to save');
+                return;
+            }
+            
+            const sourceName = document.getElementById('uploadSource').value;
+            const sourceId = availableSources.find(s => s.source_name === sourceName)?.id;
+            
+            if (!sourceId) {
+                alert('Source not found');
+                return;
+            }
+            
+            let saved = 0;
+            
+            for (const change of uploadChanges) {
+                if (change.changeType === 'removed') continue;
+                
+                try {
+                    // Get or create network
+                    let networkId;
+                    const networkCheck = await fetch(
+                        `${SUPABASE_URL}/rest/v1/networks?tadig=eq.${change.tadig}`,
+                        {
+                            headers: {
+                                'apikey': SUPABASE_KEY,
+                                'Authorization': `Bearer ${SUPABASE_KEY}`
+                            }
+                        }
+                    );
+                    
+                    const existingNetwork = await networkCheck.json();
+                    
+                    if (existingNetwork.length > 0) {
+                        networkId = existingNetwork[0].id;
+                    } else {
+                        // Create new network
+                        const createResponse = await fetch(
+                            `${SUPABASE_URL}/rest/v1/networks`,
+                            {
+                                method: 'POST',
+                                headers: {
+                                    'apikey': SUPABASE_KEY,
+                                    'Authorization': `Bearer ${SUPABASE_KEY}`,
+                                    'Content-Type': 'application/json',
+                                    'Prefer': 'return=representation'
+                                },
+                                body: JSON.stringify({
+                                    tadig: change.tadig,
+                                    network_name: change.network,
+                                    country: change.country,
+                                    is_active: true
+                                })
+                            }
+                        );
+                        
+                        if (createResponse.ok) {
+                            const newNetwork = await createResponse.json();
+                            networkId = newNetwork[0].id;
+                        }
+                    }
+                    
+                    if (networkId) {
+                        // Delete existing pricing for this network/source
+                        await fetch(
+                            `${SUPABASE_URL}/rest/v1/network_pricing?network_id=eq.${networkId}&source_id=eq.${sourceId}`,
+                            {
+                                method: 'DELETE',
+                                headers: {
+                                    'apikey': SUPABASE_KEY,
+                                    'Authorization': `Bearer ${SUPABASE_KEY}`
+                                }
+                            }
+                        );
+                        
+                        // Insert new pricing
+                        await fetch(
+                            `${SUPABASE_URL}/rest/v1/network_pricing`,
+                            {
+                                method: 'POST',
+                                headers: {
+                                    'apikey': SUPABASE_KEY,
+                                    'Authorization': `Bearer ${SUPABASE_KEY}`,
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    network_id: networkId,
+                                    source_id: sourceId,
+                                    data_per_mb: change.dataRate,
+                                    imsi_access_fee: change.imsiRate,
+                                    sms_mo: change.smsRate,
+                                    voice_moc: change.voiceRate,
+                                    restrictions: change.notes || null, // Save notes/remarks
+                                    is_current: true,
+                                    effective_date: new Date().toISOString().split('T')[0]
+                                })
+                            }
+                        );
+                        
+                        saved++;
+                    }
+                } catch (error) {
+                    console.error(`Error saving ${change.tadig}:`, error);
+                }
+            }
+            
+            alert(`Saved ${saved} changes to database`);
+            
+            // Reload data
+            await loadAllData();
+            clearUploadResults();
+        }
+
+        function exportChanges() {
+            if (uploadChanges.length === 0) {
+                alert('No changes to export');
+                return;
+            }
+            
+            const ws = XLSX.utils.json_to_sheet(uploadChanges);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Price Changes');
+            XLSX.writeFile(wb, `price_changes_${new Date().toISOString().split('T')[0]}.xlsx`);
+        }
+
+        function clearUploadResults() {
+            document.getElementById('uploadResults').classList.add('hidden');
+            document.getElementById('uploadFile').value = '';
+            uploadChanges = [];
+            uploadedData = {};
+        }
+    </script>
+</body>
+</html>

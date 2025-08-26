@@ -1,0 +1,574 @@
+tadig,country,network,access_fee_per_imsi,data_per_mb,is_prohibited,restrictions,original_comments
+AFGTD,Afghanistan,Roshan,0,0.2,False,,
+AFGAR,Afghanistan,MTN,0,0.02,False,,
+AFGAW,Afghanistan,AFW,0,0.1,False,,
+AFGEA,Afghanistan,Etisalat,0,1.0,False,,
+ALBAM,Albania,AMC,0,0.06,False,,
+ALBEM,Albania,Eagle Mobile,0,0.06,False,,
+ALBVF,Albania,Vodafone Albania,0,0.006,False,,
+DZAWT,Algeria,Wataniya Telecom Ooredoo,0,0.2,False,,
+DZAA1,Algeria,ATM Mobilis,0,0.05,False,,
+DZAOT,Algeria,Djezzy,0,0.2,False,,
+ANDMA,Andorra,Mobiland,0,0.1,False,no permanent roaming,no permanent roaming
+AGOAC,Angola,Africell Angola,0,0.0,False,,
+AGOUT,Angola,UNITEL,0,20.0,False,,
+AIACW,Anguilla,Cable & Wireless,0,0.1,False,,
+ATG03,Antigua and Barbuda,APUA,0,0.0,False,data not launched,data not launched
+ATGCW,Antigua and Barbuda,Cable & Wireless,0,0.1,False,,
+ARGTP,Argentina,Personal,0,0.05,False,,
+ARGTM,Argentina,TMA,0,0.05,False,Access fee,Access fee
+ARGCM,Argentina,Claro,0,0.5,False,"no permanent roaming, no resell on domestic market","No resell on domestic market, no permanent roaming"
+ARM01,Armenia,ArmenTel,0,0.06,False,,
+ARM05,Armenia,Vivacell,0,0.06,False,,
+ARMOR,Armenia,UCOM (Orange),0,0.1,False,,
+ABWSE,Aruba,Setar,0,0.1,False,,
+AUSVF,Australia,Vodafone,0,0.08,False,,
+AUSTA,Australia,Telstra MobileNet,0,0.005,False,Access fee,Access fee
+AUSOP,Australia,Optus,0,30.0,True,prohibited network,prohibited network
+AUTMM,Austria,T-Mobile,0,30.0,True,prohibited network,prohibited network
+AUTPT,Austria,A1,0,0.01,False,,
+AUTCA,Austria,Hutchison Drei Austria,0,0.006,False,Access fee,Access fee
+AZEAC,Azerbaijan,Azercell,0,0.2,False,,
+AZEAF,Azerbaijan,Azerfon LLC,0,0.05,False,,
+AZEBC,Azerbaijan,Bakcell GSM 2000,0,0.5,False,,
+BHSNC,Bahamas,NewCo,0,0.2,False,,
+BHSBH,Bahamas,BTC The Bahamas Telecom Company,0,0.2,False,,
+BHRBT,Bahrain,BHR Mobile Plus,0,0.1,False,,
+BHRMV,Bahrain,zain BH,0,0.06,False,,
+BHRST,Bahrain,VIVA Bahrain,0,0.1,False,,
+BGDBL,Bangladesh,Banglalink,0,0.02,False,Access fee,Access fee
+BGDAK,Bangladesh,Robi,0,0.12,False,,
+BGDGP,Bangladesh,GrameenPhone,0,0.09,False,,
+BGDWT,Bangladesh,Airtel (Bangladesh),0,0.12,False,,
+BRBCW,Barbados,Cable & Wireless,0,0.1,False,,
+BLR02,Belarus,MTS,0,0.1,False,,
+BLRBT,Belarus,BEST,0,0.1,False,,
+BLRMD,Belarus,VELCOM,0,0.06,False,,
+BELKO,Belgium,Base,0,0.01,False,,
+BELMO,Belgium,Mobistar,0,0.006,False,Access fee,Access fee
+BELTB,Belgium,Proximus,0,0.01,False,,
+BLZSC,Belize,Speednet,0,0.0,False,,
+BEN02,Benin,Etisalat Benin S.A,0,0.5,True,prohibited network,prohibited network
+BENSP,Benin,MTN,0,0.02,False,,
+BMUBD,Bermuda,Bermuda Digital,0,1.0,False,,
+BTNTC,Bhutan,Tashi InfoComm Limited,0,10.0,False,,
+BOLTE,Bolivia,Telecel,0,0.012,False,Access fee,Access fee
+BOLNT,Bolivia,NuevaTel,0,0.2,False,,
+ANTCT,Bonaire,Digicel Curacao and Bonaire,0,0.1,False,Access fee,Access fee
+BIHER,Bosnia and Herzegovina,HT Eronet,0,0.1,False,,
+BIHMS,Bosnia and Herzegovina,m:tel,0,0.1,False,,
+BIHPT,Bosnia and Herzegovina,BIH,0,0.015,False,,
+BWAGA,Botswana,Mascom Wireless,0,0.0,False,,
+BWABC,Botswana,beMobile,0,0.45,False,,
+BWAVC,Botswana,Orange,0,30.0,False,,
+BRABT,Brazil,Oi,0,1.0,False,no permanent roaming,no permanent roaming
+BRACL,Brazil,Claro,0,1.0,False,"no permanent roaming, no resell on domestic market","No resell on domestic market, no permanent roaming"
+BRACS,Brazil,Tim Brazil,0,1.0,False,Access fee,Access fee
+BRATM,Brazil,Oi,0,1.0,False,no permanent roaming,no permanent roaming
+BRATC,Brazil,VIVO,0,1.0,False,no permanent roaming,no permanent roaming (permanent roaming restriction lifted in 2023)
+BRASP,Brazil,Tim Brazil,0,1.0,False,Access fee,Access fee
+BRARN,Brazil,Tim Brazil,0,1.0,False,Access fee,Access fee
+BRAV3,Brazil,VIVO,0,1.0,False,no permanent roaming,no permanent roaming (permanent roaming restriction lifted in 2023)
+BRAV2,Brazil,VIVO,0,1.0,False,no permanent roaming,no permanent roaming (permanent roaming restriction lifted in 2023)
+BRAV1,Brazil,VIVO,0,1.0,False,no permanent roaming,no permanent roaming (permanent roaming restriction lifted in 2023)
+VGBCW,British Virgin Islands,Cable & Wireless,0,0.1,False,,
+VGBCC,British Virgin Islands,CCT Global Communications,0,0.1,False,,
+BRNDS,Brunei Darussalam,DSTCom,0,0.1,False,,
+BGR01,Bulgaria,M-Tel Gsm,0,0.01,False,,
+BGRCM,Bulgaria,Globul,0,0.006,False,,
+BGRVA,Bulgaria,Vivacom,0,0.01,False,,
+BFATL,Burkina Faso,Telecel,0,0.0,False,data not launched,data not launched
+BFAON,Burkina Faso,Onatel,0,0.0,False,,
+BFACT,Burkina Faso,Orange,0,30.0,False,,
+BDIL1,Burundi,Smart,0,0.2,False,,
+BDIET,Burundi,Econet LEO S.A,0,0.0,False,data not launched,data not launched
+BDITL,Burundi,U-COM,0,0.2,False,,
+KHMGM,Cambodia,Cellcard,0,0.1,False,,
+KHMSM,Cambodia,"Smart Axiata Co., Ltd",0,0.1,False,,
+KHMVC,Cambodia,Metfone,0,0.06,False,,
+CMR02,Cameroon,Orange,0,30.0,False,,
+CMRMT,Cameroon,MTN,0,0.02,False,,
+CANBM,Canada,Bell Mobility inc.,0,0.1,False,no permanent roaming,no permanent roaming
+CANRW,Canada,Rogers Wireless Inc,0,0.1,False,no permanent roaming,no permanent roaming
+CANTS,Canada,TELUS,0,0.1,False,no permanent roaming,no permanent roaming
+CPVCV,Cape Verde,CVMovel,0,0.06,False,,
+CPVTM,Cape Verde,Unitel T+,0,1.0,False,,
+CYMCW,Cayman Islands,Cable & Wireless,0,0.1,False,,
+CAF02,Central African Republic,Telecel Centrafrique,0,0.0,False,data not launched,data not launched
+CAF03,Central African Republic,Orange,0,30.0,False,,
+TCDCT,Chad,Airtel,0,0.4,False,,
+TCDML,Chad,Tigo,0,0.1,False,,
+CHLSM,Chile,Claro,0,0.02,False,"no permanent roaming, no resell on domestic market","No resell on domestic market, no permanent roaming"
+CHLMV,Chile,Entel PCS,0,0.015,False,,
+CHLTM,Chile,Telefonica,0,0.015,False,Access fee,Access fee
+CHNCT,China,China Mobile,0,0.03,False,Access fee,Access fee
+CHNCU,China,China Unicom,0,0.05,False,no permanent roaming,no permanent roaming
+COLCO,Colombia,OLA/Tigo,0,0.0102,False,Access fee,Access fee
+COLTM,Colombia,Columbia Telecomunications S.A. ESP,0,0.054,False,Access fee,Access fee
+COLCM,Colombia,Claro,0,0.06,False,"no permanent roaming, no resell on domestic market","No resell on domestic market, no permanent roaming"
+COMTM,Comoros,TELCO,0,0.0,False,,
+CODCT,Congo Democratic Rep of,Celtel Congo DRC,0,0.4,False,,
+CODOR,Congo Democratic Rep of,CCT,0,1.0,False,,
+CODSA,Congo Democratic Rep of,Orange DRC,0,1.0,False,,
+CODVC,Congo Democratic Rep of,Vodacom Congo,0,0.15,False,,
+COGCT,Congo Rep of,Airtel Congo,0,0.0,False,data not launched,data not launched
+COGLB,Congo Rep of,MTN,0,0.02,False,,
+CRITC,Costa Rica,Telefonica,0,0.02,False,Access fee,Access fee
+CRICR,Costa Rica,I.C.E.,0,0.02,False,,
+CRICL,Costa Rica,CLARO Costa Rica,0,0.054,False,"no permanent roaming, no resell on domestic market","No resell on domestic market, no permanent roaming"
+CIV02,Cote d'Ivoire,Moov CI,0,0.5,True,prohibited network,prohibited network
+CIVTL,Cote d'Ivoire,MTN,0,0.02,False,,
+HRVT2,Croatia,Tele2,0,0.006,False,,
+HRVVI,Croatia,VIPnet,0,0.01,False,,
+HRVCN,Croatia,T-Mobile Croatia,0,30.0,True,prohibited network,prohibited network
+CUB01,Cuba,CUBACEL,0,10.0,True,prohibited network,prohibited network
+ANTUT,Curacao,UTS,0,0.2,False,,
+CYPCT,Cyprus,CytaMobile,0,0.006,False,,
+CYPPT,Cyprus,PrimeTel,0,0.006,False,,
+CYPSC,Cyprus,MTN,0,0.01,False,,
+CZECM,Czech Republic,Vodafone,0,0.01,False,,
+CZEET,Czech Republic,O2,0,0.006,False,Access fee,Access fee
+CZERM,Czech Republic,T-Mobile,0,30.0,True,prohibited network,prohibited network
+DNKDM,Denmark,Telenor A/S,0,0.006,False,,
+DNKHU,Denmark,Hi3G Access AB 2,0,0.01,False,Access fee,Access fee
+DNKIA,Denmark,Telia Mobile,0,0.01,False,Access fee,Access fee
+DNKTD,Denmark,TDK-Mobil,0,0.01,False,Access fee,Access fee
+DJIDJ,Djibouti,Djibouti Telecom SA (Evatis),0,30.0,False,,
+DMACW,Dominica,Cable & Wireless,0,0.1,False,,
+DOMAC,Dominican Republic,Trilogy Dominicana S.A.,0,0.2,False,,
+DOM01,Dominican Republic,Orange,0,0.06,False,,
+DOMCL,Dominican Republic,Claro Dominicana,0,0.06,False,"no permanent roaming, no resell on domestic market","No resell on domestic market, no permanent roaming"
+TLSTC,East Timor,PT Telekomunikasi Indonesia International Networks,0,0.0,False,services not available,services not available
+ECUPG,Ecuador,Claro,0,0.1,False,"no permanent roaming, no resell on domestic market","No resell on domestic market, no permanent roaming"
+ECUOT,Ecuador,Telefonica,0,0.07,False,,
+EGYAR,Egypt,Orange Egypt,0,0.06,False,,
+EGYEM,Egypt,Etisalat,0,0.05,False,,
+EGYMS,Egypt,Vodafone Egypt,0,0.2,False,,
+SLVTM,El Salvador,Telemovil (Millicom),0,0.012,False,Access fee,Access fee
+SLVTP,El Salvador,Claro,0,0.0,False,"no permanent roaming, no resell on domestic market","No resell on domestic market, no permanent roaming"
+SLVDC,El Salvador,Digicel,0,0.1,False,Access fee,Access fee
+GNQHT,Equatorial Guinea,Green Com S.A,0,0.2,False,,
+ESTRB,Estonia,Tele2 Eesti AS,0,0.006,False,,
+ESTRE,Estonia,Elisa Eesti,0,0.01,False,Access fee,Access fee
+ESTEM,Estonia,Telia,0,0.01,False,Access fee,Access fee
+SWZMN,Eswatini,MTN,0,0.0,False,services not available,services not available
+ETH01,Ethiopia,ETC,0,30.0,False,,
+FROKA,Faroe Islands,Kall Vodafone,0,0.01,False,,
+FROFT,Faroe Islands,Faroese Telecom,0,0.06,False,,
+FJIDP,Fiji,Digicel Fiji and Nauru,0,0.5,False,,
+FIN2G,Finland,DNA,0,0.01,False,,
+FINAM,Finland,GSM Aland,0,0.01,False,,
+FINRL,Finland,Elisa,0,0.006,False,Access fee,Access fee
+FINTF,Finland,Sonera,0,0.01,False,Access fee,Access fee
+FRAF1,France,Orange,0,0.006,False,Access fee,Access fee
+FRAF2,France,SFR,0,0.01,False,,
+FRAF3,France,Bouygues Telecom,0,0.01,False,,
+FRAFM,France,Free Mobile,0,0.01,False,,
+11111,French Guiana,11111,0,0.0,False,Access fee,Access fee
+PYFVF,French Polynesia,Pacific Mobile Telecom,0,0.0,False,,
+FRATK,French Polynesia,Tikiphone,0,1.0,False,,
+GABCT,Gabon,Airtel (Zain),0,0.3,False,,
+GMB01,Gambia,Gamcel,0,0.0,False,data not launched,data not launched
+GMBCM,Gambia,GMB COMIUM,0,0.0,False,data not launched,data not launched
+GMBAC,Gambia,Africell (Gambia) Ltd,0,0.1,False,,
+GMBQC,Gambia,Qcell,0,1.0,False,,
+GEOGC,Georgia,GeoCell,0,0.06,False,,
+GEOMA,Georgia,Magti GSM,0,0.25,False,,
+GEOMT,Georgia,Beeline,0,0.02,False,Access fee,Access fee
+DEUD2,Germany,Vodafone,0,0.01,False,,
+DEUE1,Germany,E plus,0,0.01,False,,
+DEUE2,Germany,O2,0,0.006,False,Access fee,Access fee
+DEUD1,Germany,T-Mobile,0,30.0,True,prohibited network,prohibited network
+GHAGT,Ghana,Vodafone Ghana,0,0.06,False,,
+GHAMT,Ghana,Mobitel,0,0.1,False,,
+GHASC,Ghana,MTN,0,0.02,False,,
+GHAZN,Ghana,Airtel,0,0.5,False,,
+GIBGT,Gibraltar,Gibtel,0,0.01,False,,
+GRCPF,Greece,Vodafone,0,0.005,False,,
+GRCSH,Greece,Wind Hellas,0,0.00498,False,,
+GRCCO,Greece,Cosmote,0,30.0,True,prohibited network,prohibited network
+GRLTG,Greenland,Telegreenland 900,0,0.06,False,,
+GRDCW,Grenada,Cable & Wireless,0,0.1,False,,
+FRAF4,Guadeloupe,Digicel,0,0.05,False,Access fee,Access fee
+GUMHT,Guam,"Docomo Pacific, Inc",0,30.0,False,,
+GTMCM,Guatemala,Comcel (Millicom),0,0.012,False,Access fee,Access fee
+GTMTG,Guatemala,Telefonica Moviles Guatamala,0,0.02,False,"no permanent roaming, no resell on domestic market","No resell on domestic market, no permanent roaming"
+GTMSC,Guatemala,Sercom-Claro,0,0.02,False,"no permanent roaming, no resell on domestic market","No resell on domestic market, no permanent roaming"
+GBRAJ,Guernsey,Airtel Vodafone,0,0.02,False,,
+GINGS,Guinea,Orange,0,0.0,False,data not launched,data not launched
+GINAG,Guinea,Areeba/MTN-Guinea,0,0.02,False,,
+GNBSB,Guinea Bissau,MTN,0,0.02,False,,
+GUYUM,Guyana,Digicel,0,0.1,False,Access fee,Access fee
+HTICL,Haiti,ComCEL,0,0.1,False,Access fee,Access fee
+HND02,Honduras,Celtel TIGO (Millicom),0,0.012,False,Access fee,Access fee
+HNDME,Honduras,Claro,0,0.5,False,"no permanent roaming, no resell on domestic market","No resell on domestic market, no permanent roaming"
+HKGHT,Hong Kong,H3G,0,0.06,False,,
+HKGM3,Hong Kong,PCCW,0,0.06,False,,
+HKGH3,Hong Kong,H3G Hong Kong,0,0.06,False,,
+HKGPP,Hong Kong,Peoples,0,0.06,False,,
+HKGSM,Hong Kong,SMC,0,0.06,False,,
+HKGTC,Hong Kong,CWHKT,0,0.06,False,,
+HUNH1,Hungary,Telenor,0,0.006,False,Access fee,Access fee
+HUNVR,Hungary,Vodafone,0,0.01,False,,
+HUNH2,Hungary,T-Mobile,0,30.0,True,prohibited network,prohibited network
+ISLNO,Iceland,Nova,0,0.006,False,,
+ISLPS,Iceland,Siminn,0,0.01,False,,
+ISLTL,Iceland,Vodafone,0,0.01,False,,
+INDBT,India,Vodafone Cellular Limited,0,0.2,False,,
+INDCC,India,Vodafone East Limited,0,0.2,False,,
+INDE1,India,Vodafone - Dehli,0,0.2,False,,
+INDEH,India,Idea Cellular Haryana,0,1.0,False,,
+INDEK,India,Idea Cellular Kerala,0,1.0,False,,
+INDEU,India,Idea Cellular Uttar Pradesh West,0,1.0,False,,
+INDF1,India,Vodafone West Ltd,0,0.2,False,,
+INDH1,India,Airtel (Rajastan),0,0.03,False,,
+INDHM,India,Vodafone India Limited,0,0.2,False,,
+INDIB,India,Idea Cellular Bihar & Jharkhand,0,1.0,False,,
+INDID,India,Idea Cellular Dehli,0,1.0,False,,
+INDIH,India,Idea Cellular Himachal Pradesh,0,1.0,False,,
+INDIK,India,Idea Cellular Kolkata,0,1.0,False,,
+INDIM,India,Idea Cellular Mumbai,0,1.0,False,,
+INDIO,India,Idea Cellular Orissa,0,1.0,False,,
+INDIR,India,Idea Cellular Rajasthan,0,1.0,False,,
+INDIT,India,Idea Cellular Tamil Nadu & Chennai,0,1.0,False,,
+INDIU,India,Idea Cellular Uttarpradesh East,0,1.0,False,,
+INDJB,India,Airtel (Karnataka),0,0.03,False,,
+INDJH,India,Airtel (Andhra Pradesh),0,0.03,False,,
+INDMP,India,Idea Cellular MADHYA PRADESH,0,1.0,False,,
+INDMT,India,Airtel Kolkata,0,0.03,False,,
+INDSC,India,Airtel Chennai,0,0.03,False,,
+INDSK,India,Idea Cellular Karnataka,0,1.0,False,,
+INDSP,India,Idea Cellular Punjab,0,1.0,False,,
+INDMB,India,MTNL Mumbai,0,0.0,False,data not launched,data not launched
+INDA8,India,Airtel Madhya Pradesh,0,0.03,False,,
+INDA9,India,Airtel Punjab,0,0.03,False,,
+INDAT,India,Airtel (Dehli),0,0.03,False,,
+INDA6,India,Airtel Uttar Pradesh West,0,0.03,False,,
+INDA7,India,Airtel Kerala,0,0.03,False,,
+IND15,India,Airtel Assam,0,0.03,False,,
+IND16,India,Airtel North East,0,0.03,False,,
+INDIW,India,Idea Cellular West Bengal,0,1.0,False,,
+IND07,India,Idea Cellular Andhra Pradesh,0,1.0,False,,
+IND10,India,Airtel UP East,0,0.03,False,,
+IND11,India,Airtel Orissa,0,0.03,False,,
+IND12,India,Airtel Bihar,0,0.03,False,,
+IND14,India,Airtel West Bengal (incl A&N),0,0.03,False,,
+INDA1,India,Airtel Mumbai,0,0.03,False,,
+INDA2,India,Airtel Maharashtra & Goa,0,0.03,False,,
+INDA3,India,Airtel Gujarat,0,0.03,False,,
+INDA4,India,Airtel (Tamil Nadu),0,0.03,False,,
+INDA5,India,Airtel Haryana,0,0.03,False,,
+INDBI,India,Idea Cellular Gujarat,0,1.0,False,,
+INDBK,India,Vodafone Cellular Limited,0,0.2,False,,
+INDBL,India,Airtel Himachal Pradesh,0,0.03,False,,
+INDBM,India,Vodafone Cellular Limited,0,0.2,False,,
+INDBO,India,Idea cellular Maharastra,0,1.0,False,,
+IDNTS,Indonesia,Telkomsel,0,0.06,False,,
+IDN89,Indonesia,Hutchison 3,0,0.1,False,,
+IDNEX,Indonesia,XL,0,0.06,False,,
+IDNSL,Indonesia,Indosat,0,0.5,False,,
+IRN11,Iran,MCI,0,0.1,False,,
+IRNMI,Iran,Irancell,0,0.5,False,,
+IRNTT,Iran,RighTel,0,0.2,False,,
+IRQAC,Iraq,Asiacell,0,0.02,False,,
+IRQAT,Iraq,Zain IQ,0,0.02,False,,
+IRQKK,Iraq,Korek Telecom,0,0.1,False,,
+IRLEC,Ireland,Vodafone,0,0.01,False,,
+IRLDF,Ireland,Digifone,0,0.006,False,Access fee,Access fee
+IRLH3,Ireland,H3G,0,0.01,False,Access fee,Access fee
+IRLME,Ireland,Meteor,0,0.01,False,,
+GBRMT,Isle of Man,MANX,0,0.02,False,,
+ISR01,Israel,IL Orange,0,0.0135,False,,
+ISRMS,Israel,Hot Mobile,0,0.0135,False,Access fee,Access fee
+ISRCL,Israel,Cellcom,0,30.0,False,,
+ISRPL,Israel,Pelephone,0,0.018,False,Access fee,Access fee
+ITAH3,Italy,Wind Tre,0,0.006,False,Access fee,Access fee
+ITASI,Italy,Telecom Italia,0,0.01,False,Access fee,Access fee
+ITAWI,Italy,Wind Tre,0,0.006,False,Access fee,Access fee
+ITAFM,Italy,Iliad Italy,0,0.06,False,,
+ITAOM,Italy,Vodafone,0,0.01,False,,
+JAMDC,Jamaica,Digicel,0,0.1,False,Access fee,Access fee
+JAMCW,Jamaica,Cable and Wireless Jamaica Ltd,0,0.1,False,,
+JPNJP,Japan,Softbank,0,0.06,False,Access fee,Access fee
+JPNDO,Japan,DoCoMo,0,1.0,False,no permanent roaming,no permanent roaming
+GBRGT,Jersey,Sure,0,0.06,False,,
+GBRJT,Jersey,JT Gsm,0,0.02,False,Access fee,Access fee
+JORMC,Jordan,Orange,0,20.0,False,,
+JORUM,Jordan,Umniah Mobile Company,0,0.02,False,,
+JORFL,Jordan,Zain,0,0.04,False,,
+KAZ77,Kazakhstan,Mobile Telecom-Service LLP,0,0.01,False,,
+KAZKZ,Kazakhstan,K'cell,0,30.0,False,,
+KAZKT,Kazakhstan,Beeline,0,0.02,False,Access fee,Access fee
+KENKC,Kenya,Airtel,0,0.5,False,,
+KENSA,Kenya,Safaricom,0,0.1,False,,
+KENTK,Kenya,Telkom (Orange),0,0.2,False,,
+KORKF,Korea Republic of,KT,0,0.06,False,Access fee,Access fee
+KORSK,Korea Republic of,SK Telecom,0,0.06,False,,
+K0001,Kosovo,IPKO,0,0.05,False,,
+KWTKT,Kuwait,KTC,0,0.06,False,,
+KWTMT,Kuwait,Zain,0,0.06,False,,
+KWTNM,Kuwait,Wataniya Telecom,0,0.2,False,,
+KGZMC,Kyrgyzstan,MegaCom,0,0.2,False,,
+KGZNT,Kyrgyzstan,NURTelecom,0,0.06,False,,
+KGZ01,Kyrgyzstan,Sky Mobile,0,0.02,False,Access fee,Access fee
+LAOTL,Lao People's Democratic Republic,BEELINE LAO,0,0.06,False,,
+LAOAS,Lao People's Democratic Republic,Star Telecom,0,30.0,True,prohibited network,prohibited network
+LVALM,Latvia,LMT Gsm,0,0.01,False,Access fee,Access fee
+LVABC,Latvia,Tele2,0,0.006,False,,
+LVABT,Latvia,Bite,0,0.01,False,,
+LBNLC,Lebanon,touch,0,1.0,False,,
+LBNFL,Lebanon,ALFA,0,2.0,False,,
+LSOVL,Lesotho,Vodacom Lesotho (Pty) Ltd,0,0.0,False,services not available,services not available
+LBRLC,Liberia,MTN Liberia,0,0.0,False,,
+LBR07,Liberia,Orange,0,30.0,False,,
+LBY01,Libya,Al Madar Al Jadid,0,30.0,False,,
+LIEMK,Liechtenstein,Telecom Liechtenstein,0,0.01,False,,
+LIEVE,Liechtenstein,Orange,0,0.01,False,,
+LTUOM,Lithuania,Omnitel,0,0.01,False,Access fee,Access fee
+LTU03,Lithuania,UAB Tele2,0,0.006,False,,
+LTUMT,Lithuania,Bite Gsm,0,0.01,False,,
+LUXPT,Luxembourg,POST,0,0.01,False,,
+LUXTG,Luxembourg,Tango,0,0.01,False,,
+LUXVM,Luxembourg,Orange,0,0.006,False,Access fee,Access fee
+MACCT,Macao,CTM,0,0.06,False,,
+MACHT,Macao,Hutchison Htmcl,0,0.2,False,,
+MKDCC,Macedonia Republic of,ONE DOO Skopje,0,0.06,False,,
+MKDNO,Macedonia Republic of,Vip Operator,0,0.06,False,,
+MKDMM,Macedonia Republic of,MobiMak,0,0.06,False,,
+MDGCO,Madagascar,Airtel,0,0.5,False,,
+MDGTM,Madagascar,TELMA,0,30.0,False,,
+MWICP,Malawi,Callpoint900,0,30.0,False,,
+MWICT,Malawi,Airtel,0,0.5,False,,
+MYSBC,Malaysia,Maxis,0,0.06,False,,
+MYSCC,Malaysia,Celcom,0,0.06,False,,
+MYSMT,Malaysia,Digi Telecom,0,0.06,False,,
+MDV01,Maldives,DhiMobile,0,30.0,False,,
+MDVWM,Maldives,Ooredo (Wataniya),0,30.0,False,,
+MLI02,Mali,Orange Mali SA,0,1.0,False,,
+MLTGO,Malta,Go Mobile,0,0.01,False,,
+MLTMM,Malta,Melita Mobile Ltd.,0,0.01,False,,
+MLTTL,Malta,Vodafone Malta,0,0.006,False,,
+GLP01,Martinique,Orange,0,0.01,False,,
+MRTCH,Mauritania,Chinguitel,0,0.5,False,,
+MRTMM,Mauritania,Mauritel Mobiles,0,0.5,True,prohibited network,prohibited network
+MRTMT,Mauritania,Mattel,0,0.5,False,,
+MUSCP,Mauritius,Orange Mauritius,0,0.5,False,,
+MUSEM,Mauritius,Emtel,0,1.0,False,,
+MUSMT,Mauritius,Mahanagar Telephone MTML,0,1.0,False,,
+22222,Mayotte,22222,0,0.0,False,,
+MEXNC,Mexico,Nextel - Mexico,0,1.0,False,data not launched,data not launched
+MEXIU,Mexico,Iusacell,0,1.0,False,no permanent roaming,no permanent roaming
+MEXTL,Mexico,Telcel,0,0.02,False,"no permanent roaming, no resell on domestic market","No resell on domestic market, no permanent roaming"
+MEXMS,Mexico,Telefonica Moviles Mexico,0,0.04,False,Access fee,Access fee
+MDAUN,Moldova Republic of,Moldtelecom,0,0.06,False,,
+MDAVX,Moldova Republic of,ORANGE,0,0.02,False,,
+MDAMC,Moldova Republic of,Moldcell,0,0.06,False,,
+MCOM2,Monaco,Monaco Telecom,0,0.25,False,,
+MNGMN,Mongolia,UNTLMN,0,0.06,False,,
+MNGMC,Mongolia,Mobicom,0,0.1,False,,
+MNETM,Montenegro,T-mobile,0,0.0,False,,
+MNEPM,Montenegro,Telenor,0,0.006,False,,
+MNEMT,Montenegro,M.tel,0,0.02,False,,
+MSRCW,Montserrat,Cable & Wireless,0,0.1,False,,
+MARM1,Morocco,IAM,0,0.05,False,,
+MARM3,Morocco,Wana,0,30.0,False,,
+MARMT,Morocco,Orange Moroc (MediTel),0,0.05,False,,
+MOZ01,Mozambique,Mcel,0,0.2,False,,
+MOZVG,Mozambique,Movitel,0,30.0,True,prohibited network,prohibited network
+MMROM,Myanmar,Ooreedo,0,0.5,False,,
+MMRPT,Myanmar,Myanmar Posts and Telecommunications,0,0.03,False,,
+MMRTN,Myanmar,Telenor Myanmar,0,0.1,False,,
+NAM01,Namibia,MTC,0,0.0,False,data not launched,data not launched
+NAM03,Namibia,tn mobile,0,6.0,False,,
+NPLNM,Nepal,Nepal Telecommunications,0,0.0,False,,
+NPLM2,Nepal,Ncell,0,1.0,False,,
+NLDPT,Netherlands,KPN Telecom,0,0.0045,False,Access fee,Access fee
+NLDPN,Netherlands,T-Mobile NL,0,30.0,True,prohibited network,prohibited network
+NLDLT,Netherlands,Vodafone,0,0.005,False,,
+NCLPT,New Caledonia,Mobilis,0,0.0,False,,
+NZLBS,New Zealand,Vodafone New Zealand Ltd,0,0.06,False,,
+NZLNH,New Zealand,NZC,0,0.06,False,,
+NZLTM,New Zealand,Telecom Spark NZ,0,0.02,False,Access fee,Access fee
+NICMS,Nicaragua,Telefonia Celular de Nicaragua,0,0.06,False,,
+NICEN,Nicaragua,Enitel,0,0.02,False,"no permanent roaming, no resell on domestic market","No resell on domestic market, no permanent roaming"
+NERTL,Niger,Telecel Niger S.A.,0,0.0,False,data not launched,data not launched
+NERCT,Niger,Airtel,0,0.5,False,,
+NGAEM,Nigeria,Etisalat,0,0.1,False,,
+NGAET,Nigeria,Airtel Networks Limited,0,0.4,False,,
+NGAMN,Nigeria,MTN-NG,0,0.02,False,,
+NORNC,Norway,NetCom,0,0.01,False,Access fee,Access fee
+NORIC,Norway,Ice,0,0.0,False,,
+NORTM,Norway,Telenor,0,0.006,False,,
+OMNGT,Oman,OMAN MOBILE,0,0.03,False,,
+OMNNT,Oman,Ooredoo,0,0.05,False,,
+NORAM,Over the air,AeroMobile,0,0.0,False,,
+ARETH,Over the air,Thuraya,0,0.0,False,data not launched,data not launched
+CHEOA,Over the air,OnAir,0,0.0,False,,
+MLTMA,Over the sea,Vodafone Malta Maritime,0,0.0,False,,
+NORMC,Over the sea,MCP,0,0.0,False,,
+BMU01,Over the sea,Telecom,0,10.0,False,,
+AAMOM,Over the sea,Monaco maritime Services,0,0.0,False,,
+ITAGT,Over the sea,Telecom Italia,0,0.0,False,,
+PAKMK,Pakistan,Mobilink,0,0.02,False,Access fee,Access fee
+PAKTP,Pakistan,Telenor Pakistan,0,0.0,False,services not available,services not available
+PAKPL,Pakistan,Paktel Limited,0,0.0,False,data not launched,data not launched
+PAKUF,Pakistan,Ufone,0,0.0,False,,
+PSEJE,Palestine,Jawwal (Paltel),0,0.054,False,,
+PSEWM,Palestine,Wataniya Palestine Mobile,0,0.09,False,,
+PANMS,Panama,Movistar,0,0.06,False,Access fee,Access fee 
+PANDC,Panama,Digicel,0,0.1,False,Access fee,Access fee
+PANCW,Panama,Cable & Wireless Panama,0,0.5,False,,
+PANCL,Panama,Claro,0,0.06,False,"no permanent roaming, no resell on domestic market","No resell on domestic market, no permanent roaming"
+PNGDP,Papua New Guinea,Digicel PNG,0,0.5,False,,
+PRYHT,Paraguay,Claro,0,0.06,False,"no permanent roaming, no resell on domestic market","No resell on domestic market, no permanent roaming"
+PRYVX,Paraguay,Vox,0,0.0,False,data not launched,data not launched
+PRYTC,Paraguay,Telecel (Millicom),0,0.012,False,Access fee,Access fee
+PERMO,Peru,Telefonica,0,0.06,False,Access fee,Access fee
+PERTM,Peru,Claro Peru,0,0.06,False,"no permanent roaming, no resell on domestic market","No resell on domestic market, no permanent roaming"
+PERN3,Peru,Entel,0,0.0,False,,
+PHLGT,Philippines,Globe Telecom,0,0.1,False,,
+PHLSR,Philippines,Smart,0,0.06,False,,
+POL02,Poland,T-Mobile,0,30.0,True,prohibited network,prohibited network
+POL03,Poland,Orange,0,0.01,False,Access fee,Access fee
+POLKM,Poland,Plus Gsm,0,0.006,False,,
+POLP4,Poland,P4,0,0.01,False,,
+PRTOP,Portugal,Optimus,0,0.01,False,,
+PRTTL,Portugal,Vodafone,0,0.006,False,,
+PRTTM,Portugal,TMN,0,0.01,False,,
+PRICL,Puerto Rico,Puerto Rico Tele Company CLARO,0,0.1,False,"no permanent roaming, no resell on domestic market","No resell on domestic market, no permanent roaming"
+QATB1,Qatar,Vodafone,0,0.06,False,,
+QATQT,Qatar,Ooredoo,0,0.06,False,,
+FRARE,Reunion,SFR,0,0.01,False,,
+ROMCS,Romania,Cosmote,0,30.0,True,prohibited network,prohibited network
+ROM05,Romania,RCS-RDS Digimobil,0,0.01,False,,
+ROMMF,Romania,Vodafone,0,0.01,False,,
+ROMMR,Romania,Orange Romania,0,0.006,False,Access fee,Access fee
+RUS01,Russia,MTS,0,0.06,False,,
+RUST2,Russia,Tele2,0,0.02,False,,
+RUSEC,Russia,MOTIV,0,0.0,False,,
+RUSBD,Russia,BeeLine,0,0.02,False,Access fee,Access fee
+RUSNW,Russia,MegaFon,0,30.0,True,prohibited network,prohibited network
+RWAAR,Rwanda,Airtel Rwanda Limited,0,0.5,False,,
+RWAMN,Rwanda,Rwandacell,0,0.1,False,,
+RWATG,Rwanda,Tigo,0,0.4,False,,
+33333,Saint Barthelemy,333333,0,0.0,False,,
+KNACW,Saint Kitts and Nevis,Cable & Wireless,0,0.1,False,,
+LCACW,Saint Lucia,Cable & Wireless,0,0.1,False,,
+44444,Saint Martin,444444,0,0.0,False,,
+VCTCW,Saint Vincent and the Grenadines,Cable & Wireless,0,0.1,False,,
+WSMDP,Samoa,Digicel,0,0.0,False,services not available,services not available
+STPST,Sao Tome and Principe,CST,0,30.0,False,,
+STPUT,Sao Tome and Principe,Unitel,0,6.0,False,,
+SAUET,Saudi Arabia,Mobily,0,0.075,False,,
+SAUZN,Saudi Arabia,Zain MTC,0,0.075,False,,
+SAUAJ,Saudi Arabia,Al Jawwal,0,30.0,True,prohibited network,prohibited network
+SENSG,Senegal,Sentel GSM,0,0.1,False,,
+YUGTS,Serbia Republic of,Telekom Srbija (m:ts),0,0.0,False,,
+SRBNO,Serbia Republic of,Vip,0,0.06,False,,
+YUGMT,Serbia Republic of,Telenor,0,0.006,False,,
+SYCAT,Seychelles,Airtel,0,0.0,False,,
+SYCCW,Seychelles,Cable & Wireless (Seychelles),0,0.0,False,,
+SLEAC,Sierra Leone,AFR LINTEL,0,0.0,False,,
+SLECT,Sierra Leone,Orange,0,0.0,False,,
+SGPM1,Singapore,M1,0,0.06,False,,
+SGPSH,Singapore,StarHub,0,0.06,False,,
+SGPST,Singapore,SingTel Mobile,0,0.06,False,,
+ANTTC,Sint Maarten,TelCell,0,1.0,False,,
+SVKGT,Slovakia,Orange,0,0.006,False,Access fee,Access fee
+SVKO2,Slovakia,"Telefonica Slovakia, s.r.o",0,0.01,False,,
+SVKET,Slovakia,Telekom,0,30.0,True,prohibited network,prohibited network
+SVNMT,Slovenia,Mobitel,0,0.006,False,,
+SVNSM,Slovenia,SI.Mobil,0,0.01,False,,
+SVNVG,Slovenia,Telemach Mobil,0,0.01,False,,
+SOM01,Somalia,Telesom,0,0.0,False,data not launched,data not launched
+SOMGT,Somalia,Golis Telecom,0,0.0,False,data not launched,data not launched
+ZAFMN,South Africa,MTN,0,0.02,False,,
+ZAFVC,South Africa,Vodafone,0,0.03,False,,
+ZAFCC,South Africa,Cell C,0,0.0,False,,
+SSDMN,South Sudan,MTN,0,0.02,False,,
+ESPAT,Spain,Vodafone,0,0.01,False,,
+ESPRT,Spain,Orange,0,0.006,False,Access fee,Access fee
+ESPTE,Spain,Telefonica,0,0.01,False,Access fee,Access fee
+ESPXF,Spain,MasMovil,0,0.01,False,,
+LKA71,Sri Lanka,Mobitel,0,0.06,False,,
+LKACT,Sri Lanka,Etisalat,0,0.2,False,,
+LKAHT,Sri Lanka,Hutchison,0,0.2,False,,
+LKADG,Sri Lanka,Dialog Gsm,0,0.02,False,Access fee,Access fee
+SDNBT,Sudan,MTN Sudan,0,0.1,False,,
+SUDMO,Sudan,zain SD,0,0.0,False,,
+SURDC,Suriname,Digicel,0,0.1,False,Access fee,Access fee
+SURTG,Suriname,Telesur,0,0.0,False,,
+SWEIQ,Sweden,Sweden,0,0.0,False,direct roaming,direct roaming
+CHEOR,Switzerland,Salt Mobile (Orange),0,0.06,False,,
+CHEDX,Switzerland,Sunrise,0,0.02,False,Access fee,Access fee
+CHEC1,Switzerland,"Swisscom, Swissom FL",0,0.02,False,,
+SYR01,Syrian Arab Republic,Syriatel,0,0.0,False,services not available,services not available
+TWNTG,Taiwan,Taiwan Star Telecom,0,0.0,False,,
+TWNFE,Taiwan,Far EasTone,0,0.06,False,,
+TWNLD,Taiwan,Chunghwa Telecom,0,0.06,False,,
+TWNPC,Taiwan,Taiwan Mobile,0,0.06,False,,
+TJK91,Tajikistan,Tacom,0,0.06,False,,
+TJKBM,Tajikistan,Babilon-Mobile,0,0.1,False,,
+TJKIT,Tajikistan,Indigo Gsm,0,0.06,False,,
+TZACT,Tanzania United Republic of,Airtel,0,0.45,False,,
+TZAMB,Tanzania United Republic of,MIC Tanzania,0,0.09,False,,
+TZAYA,Tanzania United Republic of,Smart,0,0.45,False,,
+TZAVC,Tanzania United Republic of,Vodacom,0,0.0,False,,
+THACA,Thailand,Real Future,0,0.05,False,,
+THACT,Thailand,Real Future,0,0.05,False,,
+THADT,Thailand,dtac,0,0.05,False,,
+THAWN,Thailand,TH AIS,0,0.05,False,,
+THAWP,Thailand,DTAC,0,0.05,False,,
+TGOTC,Togo,Togo Cellulaire,0,0.5,False,,
+TGOTL,Togo,Moov (Telecel),0,0.0,True,prohibited network,prohibited network
+TONDP,Tonga,Digicel Tonga,0,0.5,False,,
+TTODL,Trinidad and Tobago,Digicel,0,0.1,False,Access fee,Access fee
+TTO12,Trinidad and Tobago,TSTT,0,0.0,False,,
+TUNOR,Tunisia,Orange,0,0.06,False,,
+TUNTA,Tunisia,Ooredoo,0,0.05,False,,
+TUNTT,Tunisia,Tunicell,0,0.0,False,,
+TURIS,Turkey,AVEA,0,0.06,False,no permanent roaming,no permanent roaming
+TURTC,Turkey,Turkcell,0,0.06,False,no permanent roaming,no permanent roaming
+TURTS,Turkey,Vodafone,0,0.06,False,no permanent roaming,no permanent roaming
+TKMAA,Turkmenistan,TM Cell,0,0.0,False,services not available,services not available
+TCACW,Turks and Caicos Islands,Cable & Wireless,0,0.1,False,,
+UGACE,Uganda,Airtel Uganda,0,0.5,False,,
+UGAMN,Uganda,MTN,0,0.02,False,,
+UGASU,Uganda,Smart,0,0.2,False,,
+UGATL,Uganda,UTL,0,0.0,False,data not launched,data not launched
+UKRAS,Ukraine,Life:-),0,0.02,False,,
+UKRUM,Ukraine,Vodafone (MTS),0,0.1,False,,
+UKRKS,Ukraine,Kyivstar,0,0.02,False,Access fee,Access fee
+AREDU,United Arab Emirates,DU,0,30.0,False,no permanent roaming,no permanent roaming
+ARETC,United Arab Emirates,Etisalat,0,0.05,False,no permanent roaming,no permanent roaming
+GBRCN,United Kingdom,O2 UK,0,0.01,False,Access fee,Access fee
+GBRVF,United Kingdom,Vodafone,0,0.01,False,,
+GBRHU,United Kingdom,Hutchison 3G,0,0.006,False,Access fee,Access fee
+GBRME,United Kingdom,T-Mobile,0,0.01,False,Access fee,Access fee
+GBROR,United Kingdom,Orange,0,0.01,False,Access fee,Access fee
+USAVZ,United States,Verizon Wireless,0,0.0,False,Network blocked,Network blocked
+USATL,United States,Telecom North America Mobile Inc.,0,0.0,False,data not launched,data not launched
+USACG,United States,AT&T,0,0.0045,False,Separate addendum - Permitted Resellers list,Separate addendum - Permitted Resellers list
+USAW6,United States,T-Mobile Denver,0,0.0045,False,Separate addendum - all IoT deployments should be agreed by TMUS,Separate addendum - all IoT deployments should be agreed by TMUS
+URYAM,Uruguay,Claro (CTI),0,0.1,False,"no permanent roaming, no resell on domestic market","No resell on domestic market, no permanent roaming"
+URYTM,Uruguay,Movistar,0,0.0,False,,
+UZB00,Uzbekistan,UzMobile,0,0.0,False,,
+UZB05,Uzbekistan,Ucell,0,0.0,False,,
+UZB07,Uzbekistan,UMS LLC,0,0.0,False,,
+UZBDU,Uzbekistan,Beeline Uz,0,0.02,False,Access fee,Access fee
+VUTDP,Vanuatu,Digicel Vanuatu,0,0.5,False,,
+VENMS,Venezuela,Movistar,0,0.2,False,,
+VENMV,Venezuela,Movilnet,0,0.0,False,,
+VNMBL,Vietnam,Beeline Vietnam,0,0.1,False,,
+VNMMO,Vietnam,Vms Mobifon,0,0.1,False,,
+VNMVI,Vietnam,Vinaphone,0,0.1,False,,
+VNMVT,Vietnam,Viettel,0,0.1,False,,
+YEMSP,Yemen,Spacetel,0,0.05,False,,
+YEMSA,Yemen,SabaFon,0,0.0,False,,
+YEMYY,Yemen,Y,0,0.0,False,data not launched,data not launched
+ZMB02,Zambia,MTN,0,0.02,False,,
+ZMBCE,Zambia,Airtel,0,0.45,False,,
+ZMBCZ,Zambia,Zamtel,0,0.4,False,,
+ZWEET,Zimbabwe,Econet,0,0.0,False,data not launched,data not launched
+ZWEN1,Zimbabwe,NetOne,0,1.0,False,,
+ZWEN3,Zimbabwe,TELECEL,0,0.2,False,,

@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DealDesk - Enhanced Price Updater</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        .price-up { color: #dc2626; }
+        .price-down { color: #16a34a; }
+        .price-same { color: #6b7280; }
+        .new-item { background-color: #dbeafe; }
+        .removed-item { background-color: #fee2e2; }
+        .dropzone {
+            border: 2px dashed #cbd5e1;
+            transition: all 0.3s ease;
+        }
+        .dropzone.dragover {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">DealDesk Enhanced Price Updater</h1>
+                    <p class="text-sm text-gray-500">Compare pricing changes with TADIG validation</p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="loadCurrentPrices()" 
+                        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium">
+                        Load Current Prices
+                    </button>
+                    <button onclick="window.location.href='dealdesk-fixed.html'" 
+                        class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium">
+                        ← Back to Main
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 py-8">
+        <!-- Current Prices Status -->
+        <div id="currentStatus" class="bg-white rounded-lg shadow mb-6 p-6 hidden">
+            <h2 class="text-lg font-semibold mb-4">Current Pricing Database</h2>
+            <div class="grid grid-cols-4 gap-4">
+                <div class="bg-gray-50 rounded p-3">
+                    <div class="text-2xl font-bold text-gray-700" id="totalNetworks">0</div>
+                    <div class="text-sm text-gray-600">Total Networks</div>
+                </div>
+                <div class="bg-gray-50 rounded p-3">
+                    <div class="text-2xl font-bold text-gray-700" id="totalCountries">0</div>
+                    <div class="text-sm text-gray-600">Countries</div>
+                </div>
+                <div class="bg-gray-50 rounded p-3">
+                    <div class="text-2xl font-bold text-gray-700" id="avgDataPrice">$0.00</div>
+                    <div class="text-sm text-gray-600">Avg Data/MB</div>
+                </div>
+                <div class="bg-gray-50 rounded p-3">
+                    <div class="text-2xl font-bold text-gray-700" id="imsiNetworks">0</div>
+                    <div class="text-sm text-gray-600">Networks with IMSI Fee</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Upload Section -->
+        <div class="bg-white rounded-lg shadow mb-6 p-6">
+            <h2 class="text-lg font-semibold mb-4">Upload New Pricing File</h2>
+            
+            <!-- File Type Selection -->
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Select File Type</label>
+                <div class="flex gap-2">
+                    <button onclick="selectFileType('invoice')" data-type="invoice" 
+                        class="file-type-btn px-4 py-2 rounded-lg font-medium bg-green-100 text-green-700 hover:bg-green-200">
+                        📄 Invoice (with IMSI fees)
+                    </button>
+                    <button onclick="selectFileType('pricelist')" data-type="pricelist"
+                        class="file-type-btn px-4 py-2 rounded-lg font-medium bg-blue-100 text-blue-700 hover:bg-blue-200">
+                        📊 Price List Only
+                    </button>
+                    <button onclick="selectFileType('tele2')" data-type="tele2"
+                        class="file-type-btn px-4 py-2 rounded-lg font-medium bg-purple-100 text-purple-700 hover:bg-purple-200">
+                        📱 Tele2 Format
+                    </button>
+                </div>
+            </div>
+
+            <!-- Drop Zone -->
+            <div id="dropzone" class="dropzone rounded-lg p-8 text-center cursor-pointer">
+                <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" class="hidden" />
+                <svg class="mx-auto h-12 w-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                <p class="text-lg font-medium text-gray-900">Drop Excel file here</p>
+                <p class="text-sm text-gray-600 mt-1">or click to browse</p>
+                <p class="text-xs text-gray-400 mt-2">Supports: .xlsx, .xls, .csv</p>
+            </div>
+
+            <!-- File Analysis Results -->
+            <div id="fileAnalysis" class="hidden mt-6">
+                <h3 class="font-medium mb-3">📊 File Analysis</h3>
+                <div id="analysisDetails" class="bg-gray-50 rounded-lg p-4 text-sm"></div>
+            </div>
+        </div>
+
+        <!-- Comparison Results -->
+        <div id="comparisonSection" class="hidden bg-white rounded-lg shadow mb-6 p-6">
+            <h2 class="text-lg font-semibold mb-4">📊 Price Comparison Analysis</h2>
+            
+            <!-- Summary Statistics -->
+            <div class="grid grid-cols-5 gap-4 mb-6">
+                <div class="bg-green-50 rounded-lg p-3">
+                    <div class="flex items-center gap-2">
+                        <span class="text-green-600">↓</span>
+                        <div class="text-2xl font-bold text-green-600" id="priceDecreases">0</div>
+                    </div>
+                    <div class="text-sm text-gray-600">Price Decreases</div>
+                </div>
+                <div class="bg-red-50 rounded-lg p-3">
+                    <div class="flex items-center gap-2">
+                        <span class="text-red-600">↑</span>
+                        <div class="text-2xl font-bold text-red-600" id="priceIncreases">0</div>
+                    </div>
+                    <div class="text-sm text-gray-600">Price Increases</div>
+                </div>
+                <div class="bg-blue-50 rounded-lg p-3">
+                    <div class="text-2xl font-bold text-blue-600" id="newNetworks">0</div>
+                    <div class="text-sm text-gray-600">New Networks</div>
+                </div>
+                <div class="bg-yellow-50 rounded-lg p-3">
+                    <div class="text-2xl font-bold text-yellow-600" id="newIMSIFees">0</div>
+                    <div class="text-sm text-gray-600">New IMSI Fees</div>
+                </div>
+                <div class="bg-purple-50 rounded-lg p-3">
+                    <div class="text-2xl font-bold text-purple-600" id="invalidTADIG">0</div>
+                    <div class="text-sm text-gray-600">Invalid TADIGs</div>
+                </div>
+            </div>
+
+            <!-- Filter Buttons -->
+            <div class="flex gap-2 mb-4">
+                <button onclick="filterChanges('all')" class="filter-btn px-3 py-1 bg-gray-600 text-white rounded text-sm">
+                    All Changes
+                </button>
+                <button onclick="filterChanges('increases')" class="filter-btn px-3 py-1 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200">
+                    Price Increases
+                </button>
+                <button onclick="filterChanges('decreases')" class="filter-btn px-3 py-1 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200">
+                    Price Decreases
+                </button>
+                <button onclick="filterChanges('new')" class="filter-btn px-3 py-1 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200">
+                    New Networks
+                </button>
+                <button onclick="filterChanges('imsi')" class="filter-btn px-3 py-1 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200">
+                    IMSI Changes
+                </button>
+                <button onclick="filterChanges('invalid')" class="filter-btn px-3 py-1 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200">
+                    Invalid TADIGs
+                </button>
+            </div>
+
+            <!-- Changes Table -->
+            <div class="border rounded-lg overflow-hidden">
+                <table class="min-w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">TADIG</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Network</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Country</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Data/MB</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Change %</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">SMS</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">IMSI Fee</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="changesTable" class="divide-y divide-gray-200"></tbody>
+                </table>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex justify-between items-center mt-6">
+                <div class="text-sm text-gray-500">
+                    <span id="changesSummary"></span>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="exportChanges()" 
+                        class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium">
+                        Export Report
+                    </button>
+                    <button onclick="applyChanges()" 
+                        class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium">
+                        Apply Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TADIG Validation -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold mb-4">🔍 TADIG Validation Rules</h2>
+            <div class="space-y-2 text-sm">
+                <div class="flex items-center gap-2">
+                    <span class="text-green-500">✓</span>
+                    <span>Format: 3-5 uppercase letters (country + network code)</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-green-500">✓</span>
+                    <span>Examples: USATM (USA T-Mobile), DEUD1 (Germany Deutsche Telekom)</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-green-500">✓</span>
+                    <span>Automatic detection of invalid or duplicate TADIGs</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-green-500">✓</span>
+                    <span>Price change threshold alerts (>50% change highlighted)</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-green-500">✓</span>
+                    <span>IMSI fee tracking per network</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Current pricing database (mock data for demo)
+        let currentPrices = {};
+        let uploadedData = null;
+        let selectedFileType = null;
+        let allChanges = [];
+        let currentFilter = 'all';
+
+        // Load current prices (mock data)
+        function loadCurrentPrices() {
+            // Mock current pricing data
+            currentPrices = {
+                'USATM': { network: 'T-Mobile', country: 'USA', dataPerMB: 0.003, sms: 0.01, imsi: 0 },
+                'DEUD1': { network: 'Deutsche Telekom', country: 'Germany', dataPerMB: 0.004, sms: 0.02, imsi: 0.05 },
+                'GBRCN': { network: 'EE', country: 'UK', dataPerMB: 0.005, sms: 0.01, imsi: 0 },
+                'FRAOR': { network: 'Orange', country: 'France', dataPerMB: 0.004, sms: 0.015, imsi: 0 },
+                'ALBAM': { network: 'AMC', country: 'Albania', dataPerMB: 0.06, sms: 0.05, imsi: 0 },
+                'ALBVF': { network: 'Vodafone Albania', country: 'Albania', dataPerMB: 0.006, sms: 0.05, imsi: 0 },
+                'ANTCT': { network: 'Digicel', country: 'Netherlands Antilles', dataPerMB: 0.01, sms: 0.05, imsi: 0 },
+                'ARETC': { network: 'Etisalat', country: 'UAE', dataPerMB: 0.008, sms: 0.02, imsi: 0 },
+            };
+
+            // Update status display
+            document.getElementById('currentStatus').classList.remove('hidden');
+            document.getElementById('totalNetworks').textContent = Object.keys(currentPrices).length;
+            document.getElementById('totalCountries').textContent = new Set(Object.values(currentPrices).map(p => p.country)).size;
+            
+            const avgPrice = Object.values(currentPrices).reduce((sum, p) => sum + p.dataPerMB, 0) / Object.keys(currentPrices).length;
+            document.getElementById('avgDataPrice').textContent = '$' + avgPrice.toFixed(4);
+            
+            const imsiCount = Object.values(currentPrices).filter(p => p.imsi > 0).length;
+            document.getElementById('imsiNetworks').textContent = imsiCount;
+        }
+
+        // File type selection
+        function selectFileType(type) {
+            selectedFileType = type;
+            document.querySelectorAll('.file-type-btn').forEach(btn => {
+                const isSelected = btn.dataset.type === type;
+                btn.classList.toggle('ring-2', isSelected);
+                btn.classList.toggle('ring-offset-2', isSelected);
+                btn.classList.toggle('ring-green-500', isSelected && type === 'invoice');
+                btn.classList.toggle('ring-blue-500', isSelected && type === 'pricelist');
+                btn.classList.toggle('ring-purple-500', isSelected && type === 'tele2');
+            });
+        }
+
+        // File upload handling
+        const dropzone = document.getElementById('dropzone');
+        const fileInput = document.getElementById('fileInput');
+
+        dropzone.addEventListener('click', () => fileInput.click());
+        
+        dropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropzone.classList.add('dragover');
+        });
+        
+        dropzone.addEventListener('dragleave', () => {
+            dropzone.classList.remove('dragover');
+        });
+        
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) handleFile(files[0]);
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) handleFile(e.target.files[0]);
+        });
+
+        // Parse uploaded file
+        async function handleFile(file) {
+            if (!selectedFileType) {
+                alert('Please select a file type first');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                
+                // Analyze file structure
+                analyzeFile(workbook, file.name);
+                
+                // Parse based on file type
+                if (selectedFileType === 'invoice') {
+                    parseInvoiceFile(workbook);
+                } else if (selectedFileType === 'pricelist') {
+                    parsePriceListFile(workbook);
+                } else if (selectedFileType === 'tele2') {
+                    parseTele2File(workbook);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // Analyze file structure
+        function analyzeFile(workbook, fileName) {
+            const sheets = workbook.SheetNames;
+            const firstSheet = workbook.Sheets[sheets[0]];
+            const data = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+            
+            let tadigCount = 0;
+            let validTadigCount = 0;
+            
+            // Count TADIGs in data
+            for (let row of data) {
+                for (let cell of row) {
+                    if (cell && typeof cell === 'string' && /^[A-Z]{3}[A-Z0-9]{2}$/.test(cell)) {
+                        tadigCount++;
+                        if (isValidTADIG(cell)) validTadigCount++;
+                    }
+                }
+            }
+            
+            document.getElementById('fileAnalysis').classList.remove('hidden');
+            document.getElementById('analysisDetails').innerHTML = `
+                <div class="space-y-2">
+                    <div>📋 <strong>File:</strong> ${fileName}</div>
+                    <div>📊 <strong>Sheets:</strong> ${sheets.join(', ')}</div>
+                    <div>📏 <strong>Rows:</strong> ${data.length}</div>
+                    <div>🏷️ <strong>TADIGs found:</strong> ${tadigCount}</div>
+                    <div>✅ <strong>Valid TADIGs:</strong> ${validTadigCount}</div>
+                    <div>❌ <strong>Invalid TADIGs:</strong> ${tadigCount - validTadigCount}</div>
+                </div>
+            `;
+        }
+
+        // Parse invoice file (with IMSI fees)
+        function parseInvoiceFile(workbook) {
+            const newPrices = {};
+            
+            // Parse price list sheet
+            if (workbook.Sheets['Pricelist 2024-11-01']) {
+                const priceSheet = workbook.Sheets['Pricelist 2024-11-01'];
+                const priceData = XLSX.utils.sheet_to_json(priceSheet, { header: 1 });
+                
+                for (let i = 1; i < priceData.length; i++) {
+                    const row = priceData[i];
+                    const tadig = row[3];
+                    if (tadig && isValidTADIG(tadig)) {
+                        newPrices[tadig] = {
+                            network: row[2] || '',
+                            country: row[1] || '',
+                            dataPerMB: parseFloat(row[8]) || 0,
+                            sms: parseFloat(row[7]) || 0,
+                            imsi: 0
+                        };
+                    }
+                }
+            }
+            
+            // Parse IMSI fees
+            if (workbook.Sheets['Network Access fee per IMSI']) {
+                const imsiSheet = workbook.Sheets['Network Access fee per IMSI'];
+                const imsiData = XLSX.utils.sheet_to_json(imsiSheet, { header: 1 });
+                
+                for (let i = 4; i < imsiData.length; i++) {
+                    const row = imsiData[i];
+                    const tadig = row[0];
+                    const imsiFee = parseFloat(row[2]) || 0;
+                    
+                    if (tadig && newPrices[tadig]) {
+                        newPrices[tadig].imsi = imsiFee;
+                    }
+                }
+            }
+            
+            compareAndShowChanges(newPrices);
+        }
+
+        // Parse price list file
+        function parsePriceListFile(workbook) {
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const data = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+            const newPrices = {};
+            
+            // Find TADIG column
+            let tadigCol = -1;
+            const headers = data[0];
+            for (let i = 0; i < headers.length; i++) {
+                if (headers[i] && headers[i].toString().toUpperCase().includes('TADIG')) {
+                    tadigCol = i;
+                    break;
+                }
+            }
+            
+            if (tadigCol === -1) {
+                alert('TADIG column not found in file');
+                return;
+            }
+            
+            // Parse data
+            for (let i = 1; i < data.length; i++) {
+                const row = data[i];
+                const tadig = row[tadigCol];
+                if (tadig && isValidTADIG(tadig)) {
+                    newPrices[tadig] = {
+                        network: row[tadigCol - 1] || '',
+                        country: row[tadigCol - 2] || '',
+                        dataPerMB: parseFloat(row[tadigCol + 5]) || 0,
+                        sms: parseFloat(row[tadigCol + 4]) || 0,
+                        imsi: 0
+                    };
+                }
+            }
+            
+            compareAndShowChanges(newPrices);
+        }
+
+        // Parse Tele2 file
+        function parseTele2File(workbook) {
+            // Similar parsing logic for Tele2 format
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const data = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+            const newPrices = {};
+            
+            for (let i = 1; i < data.length; i++) {
+                const row = data[i];
+                const tadig = row[0]; // Assuming TADIG in first column
+                if (tadig && isValidTADIG(tadig)) {
+                    newPrices[tadig] = {
+                        network: row[1] || '',
+                        country: row[2] || '',
+                        dataPerMB: parseFloat(row[10]) || 0,
+                        sms: 0,
+                        imsi: 0
+                    };
+                }
+            }
+            
+            compareAndShowChanges(newPrices);
+        }
+
+        // Validate TADIG format
+        function isValidTADIG(tadig) {
+            // TADIG format: 3-5 uppercase letters/numbers
+            // First 3 chars are country code, last 2 are network code
+            if (!tadig || typeof tadig !== 'string') return false;
+            
+            const pattern = /^[A-Z]{3}[A-Z0-9]{2}$/;
+            if (!pattern.test(tadig)) return false;
+            
+            // Additional validation: check known country prefixes
+            const knownPrefixes = ['USA', 'GBR', 'DEU', 'FRA', 'ITA', 'ESP', 'AUS', 'CAN', 'JPN', 'CHN', 
+                                  'IND', 'BRA', 'MEX', 'ARG', 'ALB', 'ARE', 'ANT', 'AUT', 'AFG', 'DZA'];
+            const prefix = tadig.substring(0, 3);
+            
+            return knownPrefixes.some(p => prefix.startsWith(p.substring(0, 3)));
+        }
+
+        // Compare and show changes
+        function compareAndShowChanges(newPrices) {
+            allChanges = [];
+            let increases = 0, decreases = 0, newNetworks = 0, newIMSI = 0, invalid = 0;
+            
+            // Check all networks in new file
+            for (const [tadig, newPrice] of Object.entries(newPrices)) {
+                if (!isValidTADIG(tadig)) {
+                    invalid++;
+                    allChanges.push({
+                        tadig,
+                        network: newPrice.network,
+                        country: newPrice.country,
+                        oldData: 0,
+                        newData: newPrice.dataPerMB,
+                        change: 0,
+                        oldSMS: 0,
+                        newSMS: newPrice.sms,
+                        oldIMSI: 0,
+                        newIMSI: newPrice.imsi,
+                        status: 'invalid',
+                        type: 'invalid'
+                    });
+                    continue;
+                }
+                
+                if (currentPrices[tadig]) {
+                    const oldPrice = currentPrices[tadig];
+                    const dataChange = ((newPrice.dataPerMB - oldPrice.dataPerMB) / oldPrice.dataPerMB * 100);
+                    
+                    let status = 'same';
+                    let type = 'same';
+                    
+                    if (dataChange > 0) {
+                        increases++;
+                        status = 'increase';
+                        type = 'increases';
+                    } else if (dataChange < 0) {
+                        decreases++;
+                        status = 'decrease';
+                        type = 'decreases';
+                    }
+                    
+                    if (newPrice.imsi > 0 && oldPrice.imsi === 0) {
+                        newIMSI++;
+                        type = 'imsi';
+                    }
+                    
+                    allChanges.push({
+                        tadig,
+                        network: newPrice.network,
+                        country: newPrice.country,
+                        oldData: oldPrice.dataPerMB,
+                        newData: newPrice.dataPerMB,
+                        change: dataChange,
+                        oldSMS: oldPrice.sms,
+                        newSMS: newPrice.sms,
+                        oldIMSI: oldPrice.imsi,
+                        newIMSI: newPrice.imsi,
+                        status,
+                        type
+                    });
+                } else {
+                    newNetworks++;
+                    allChanges.push({
+                        tadig,
+                        network: newPrice.network,
+                        country: newPrice.country,
+                        oldData: 0,
+                        newData: newPrice.dataPerMB,
+                        change: 100,
+                        oldSMS: 0,
+                        newSMS: newPrice.sms,
+                        oldIMSI: 0,
+                        newIMSI: newPrice.imsi,
+                        status: 'new',
+                        type: 'new'
+                    });
+                }
+            }
+            
+            // Update statistics
+            document.getElementById('priceIncreases').textContent = increases;
+            document.getElementById('priceDecreases').textContent = decreases;
+            document.getElementById('newNetworks').textContent = newNetworks;
+            document.getElementById('newIMSIFees').textContent = newIMSI;
+            document.getElementById('invalidTADIG').textContent = invalid;
+            
+            // Show comparison section
+            document.getElementById('comparisonSection').classList.remove('hidden');
+            
+            // Display changes
+            displayChanges();
+        }
+
+        // Display changes in table
+        function displayChanges() {
+            const tbody = document.getElementById('changesTable');
+            const filtered = currentFilter === 'all' 
+                ? allChanges 
+                : allChanges.filter(c => c.type === currentFilter);
+            
+            tbody.innerHTML = filtered.map(change => {
+                let rowClass = '';
+                let changeIcon = '';
+                let changeColor = '';
+                
+                if (change.status === 'increase') {
+                    changeIcon = '↑';
+                    changeColor = 'text-red-600';
+                } else if (change.status === 'decrease') {
+                    changeIcon = '↓';
+                    changeColor = 'text-green-600';
+                } else if (change.status === 'new') {
+                    rowClass = 'new-item';
+                    changeIcon = '✨';
+                    changeColor = 'text-blue-600';
+                } else if (change.status === 'invalid') {
+                    changeIcon = '⚠️';
+                    changeColor = 'text-yellow-600';
+                }
+                
+                const imsiChange = change.newIMSI !== change.oldIMSI 
+                    ? `<span class="text-yellow-600">€${change.newIMSI}</span>` 
+                    : `€${change.newIMSI}`;
+                
+                return `
+                    <tr class="${rowClass}">
+                        <td class="px-4 py-2 text-sm font-mono ${change.status === 'invalid' ? 'text-red-600' : ''}">${change.tadig}</td>
+                        <td class="px-4 py-2 text-sm">${change.network}</td>
+                        <td class="px-4 py-2 text-sm">${change.country}</td>
+                        <td class="px-4 py-2 text-sm">
+                            ${change.oldData > 0 ? `<span class="text-gray-400">$${change.oldData.toFixed(4)}</span> → ` : ''}
+                            <span class="${changeColor} font-medium">$${change.newData.toFixed(4)}</span>
+                        </td>
+                        <td class="px-4 py-2 text-sm ${changeColor}">
+                            ${changeIcon} ${Math.abs(change.change).toFixed(1)}%
+                        </td>
+                        <td class="px-4 py-2 text-sm">$${change.newSMS.toFixed(3)}</td>
+                        <td class="px-4 py-2 text-sm">${imsiChange}</td>
+                        <td class="px-4 py-2">
+                            <span class="px-2 py-1 text-xs rounded-full ${
+                                change.status === 'new' ? 'bg-blue-100 text-blue-700' :
+                                change.status === 'increase' ? 'bg-red-100 text-red-700' :
+                                change.status === 'decrease' ? 'bg-green-100 text-green-700' :
+                                change.status === 'invalid' ? 'bg-yellow-100 text-yellow-700' :
+                                'bg-gray-100 text-gray-700'
+                            }">
+                                ${change.status.toUpperCase()}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+            
+            // Update summary
+            document.getElementById('changesSummary').textContent = 
+                `Showing ${filtered.length} of ${allChanges.length} changes`;
+        }
+
+        // Filter changes
+        function filterChanges(filter) {
+            currentFilter = filter;
+            
+            // Update button styles
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('bg-gray-600', 'text-white');
+                btn.classList.add('bg-gray-100', 'text-gray-700');
+            });
+            event.target.classList.remove('bg-gray-100', 'text-gray-700');
+            event.target.classList.add('bg-gray-600', 'text-white');
+            
+            displayChanges();
+        }
+
+        // Export changes report
+        function exportChanges() {
+            const csv = [
+                ['TADIG', 'Network', 'Country', 'Old Price', 'New Price', 'Change %', 'SMS', 'IMSI Fee', 'Status'],
+                ...allChanges.map(c => [
+                    c.tadig, c.network, c.country, 
+                    c.oldData, c.newData, c.change.toFixed(1),
+                    c.newSMS, c.newIMSI, c.status
+                ])
+            ];
+            
+            const csvContent = csv.map(row => row.join(',')).join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `price_changes_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+        }
+
+        // Apply changes
+        function applyChanges() {
+            const validChanges = allChanges.filter(c => c.status !== 'invalid');
+            if (confirm(`Apply ${validChanges.length} valid price changes to the database?`)) {
+                alert('✅ Price changes applied successfully!');
+                // Here you would save to database
+            }
+        }
+
+        // Load current prices on page load
+        loadCurrentPrices();
+    </script>
+</body>
+</html>

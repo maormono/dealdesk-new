@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Password Reset</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Debug Password Reset Error</h1>
+    <input type="email" id="email" value="maor@monogoto.io" />
+    <button onclick="testReset()">Test Password Reset</button>
+    <div id="result"></div>
+
+    <script>
+        const SUPABASE_URL = 'https://uddmjjgnexdazfedrytt.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVkZG1qamduZXhkYXpmZWRyeXR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjQwNTYxNzYsImV4cCI6MjAzOTYzMjE3Nn0.BszjNpPapFQk6jXeMVqmu0n50_VOrbvdUGfXBOF0Xbg';
+        
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        async function testReset() {
+            const email = document.getElementById('email').value;
+            const result = document.getElementById('result');
+            
+            result.innerHTML = 'Testing...';
+            
+            try {
+                // Test with different redirect URLs
+                const tests = [
+                    { redirectTo: 'https://deal-desk.netlify.app/auth/callback' },
+                    { redirectTo: 'https://deal-desk.netlify.app/' },
+                    { redirectTo: undefined }
+                ];
+                
+                for (const test of tests) {
+                    console.log('Testing with:', test);
+                    
+                    const { data, error } = await supabase.auth.resetPasswordForEmail(email, test.redirectTo ? test : {});
+                    
+                    if (error) {
+                        result.innerHTML += `<p style="color: red;">Error with ${JSON.stringify(test)}: ${error.message}</p>`;
+                        console.error('Error details:', error);
+                    } else {
+                        result.innerHTML += `<p style="color: green;">Success with ${JSON.stringify(test)}</p>`;
+                        break;
+                    }
+                }
+                
+            } catch (err) {
+                result.innerHTML = `<p style="color: red;">Exception: ${err.message}</p>`;
+                console.error('Exception:', err);
+            }
+        }
+    </script>
+</body>
+</html>

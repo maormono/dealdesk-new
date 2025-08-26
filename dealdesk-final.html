@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DealDesk - Comprehensive Network Pricing Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="network_data.js"></script>
+    <style>
+        .source-a1 { background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); }
+        .source-telefonica { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
+        .source-tele2 { background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%); }
+        .highlight { background-color: #fef3c7; }
+        @keyframes slideIn {
+            from { transform: translateY(-10px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .slide-in { animation: slideIn 0.3s ease-out; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div id="root"></div>
+
+    <script>
+        // Global data from network_data.js (REAL_NETWORK_DATA)
+        const networkData = typeof REAL_NETWORK_DATA !== 'undefined' ? REAL_NETWORK_DATA : [];
+        
+        // Format network names properly
+        function formatNetworkName(network) {
+            if (!network) return 'Unknown';
+            
+            // Remove country prefix if it exists
+            network = network.replace(/^[A-Za-z\s]+ - /, '');
+            
+            // Common replacements
+            const replacements = {
+                'Communications': '',
+                'Telecommunications': 'Telecom',
+                'Limited': '',
+                'Ltd.': '',
+                'Inc.': '',
+                'Corporation': 'Corp',
+                'Company': 'Co',
+                'Mobile': '',
+                'Cellular': '',
+                'Wireless': ''
+            };
+            
+            for (const [from, to] of Object.entries(replacements)) {
+                network = network.replace(new RegExp(from, 'gi'), to);
+            }
+            
+            return network.trim().replace(/\s+/g, ' ');
+        }
+        
+        // Process data
+        const processedData = networkData.map(item => ({
+            ...item,
+            networkFormatted: formatNetworkName(item.network),
+            searchText: `${item.country} ${item.network} ${item.tadig}`.toLowerCase()
+        }));
+        
+        // Group by unique network
+        const groupedNetworks = {};
+        processedData.forEach(item => {
+            const key = `${item.networkFormatted}-${item.country}`;
+            if (!groupedNetworks[key]) {
+                groupedNetworks[key] = {
+                    network: item.networkFormatted,
+                    country: item.country,
+                    tadig: item.tadig,
+                    sources: []
+                };
+            }
+            groupedNetworks[key].sources.push(item);
+        });
+        
+        const uniqueNetworks = Object.values(groupedNetworks);
+        
+        // Intelligent search function
+        function intelligentSearch(query) {
+            if (!query) return uniqueNetworks;
+            
+            const searchTerms = query.toLowerCase().split(' ').filter(t => t.length > 0);
+            
+            return uniqueNetworks.filter(network => {
+                const searchText = `${network.country} ${network.network} ${network.tadig}`.toLowerCase();
+                return searchTerms.every(term => searchText.includes(term));
+            });
+        }
+        
+        // React-like component rendering
+        function render() {
+            const app = document.getElementById('root');
+            
+            let searchTerm = '';
+            let selectedSource = null;
+            let selectedNetwork = null;
+            let filteredNetworks = uniqueNetworks;
+            
+            function updateView() {
+                // Apply filters
+                let filtered = uniqueNetworks;
+                
+                if (selectedSource) {
+                    filtered = filtered.filter(n => 
+                        n.sources.some(s => s.source === selectedSource)
+                    );
+                }
+                
+                if (searchTerm) {
+                    filtered = intelligentSearch(searchTerm);
+                }
+                
+                filteredNetworks = filtered;
+                
+                // Statistics
+                const stats = {
+                    total: networkData.length,
+                    a1: networkData.filter(d => d.source === 'A1').length,
+                    telefonica: networkData.filter(d => d.source === 'Telefonica').length,
+                    tele2: networkData.filter(d => d.source === 'Tele2').length,
+                    filtered: filteredNetworks.length,
+                    withImsi: networkData.filter(d => d.imsiCost > 0).length
+                };
+                
+                app.innerHTML = `
+                    <!-- Header -->
+                    <header class="bg-white shadow-sm sticky top-0 z-20">
+                        <div class="max-w-7xl mx-auto px-4 py-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h1 class="text-2xl font-bold text-gray-900">DealDesk</h1>
+                                    <p class="text-sm text-gray-500">Comprehensive Network Pricing Analysis</p>
+                                </div>
+                                <div class="flex items-center space-x-6">
+                                    <div class="text-sm text-gray-600">
+                                        <span class="font-medium">${stats.total}</span> total records
+                                    </div>
+                                    <div class="text-sm text-gray-600">
+                                        <span class="font-medium">${stats.withImsi}</span> with IMSI fees
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </header>
+
+                    <!-- Search and Filters -->
+                    <div class="bg-white border-b sticky top-16 z-10">
+                        <div class="max-w-7xl mx-auto px-4 py-4">
+                            <div class="flex flex-col lg:flex-row gap-4">
+                                <!-- Intelligent Search -->
+                                <div class="flex-1">
+                                    <div class="relative">
+                                        <input
+                                            type="text"
+                                            id="searchInput"
+                                            placeholder="🔍 Intelligent search: Try 'United States', 'Vodafone', 'Germany T-Mobile', etc..."
+                                            value="${searchTerm}"
+                                            class="w-full px-4 py-3 pr-10 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
+                                        />
+                                        ${searchTerm ? `
+                                            <button
+                                                onclick="clearSearch()"
+                                                class="absolute right-3 top-3.5 text-gray-400 hover:text-gray-600"
+                                            >
+                                                ✕
+                                            </button>
+                                        ` : ''}
+                                    </div>
+                                    ${searchTerm ? `
+                                        <div class="mt-2 text-sm text-gray-600">
+                                            Found <span class="font-medium">${filteredNetworks.length}</span> networks
+                                        </div>
+                                    ` : ''}
+                                </div>
+                                
+                                <!-- Source Filters -->
+                                <div class="flex gap-2">
+                                    <button
+                                        onclick="setSource(null)"
+                                        class="px-4 py-2 rounded-lg font-medium transition ${
+                                            !selectedSource 
+                                                ? 'bg-gray-800 text-white' 
+                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                        }"
+                                    >
+                                        All Sources
+                                    </button>
+                                    <button
+                                        onclick="setSource('A1')"
+                                        class="px-4 py-2 rounded-lg font-medium transition text-white ${
+                                            selectedSource === 'A1'
+                                                ? 'source-a1'
+                                                : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                                        }"
+                                    >
+                                        A1 (${stats.a1})
+                                    </button>
+                                    <button
+                                        onclick="setSource('Telefonica')"
+                                        class="px-4 py-2 rounded-lg font-medium transition text-white ${
+                                            selectedSource === 'Telefonica'
+                                                ? 'source-telefonica'
+                                                : 'bg-red-100 text-red-700 hover:bg-red-200'
+                                        }"
+                                    >
+                                        Telefonica (${stats.telefonica})
+                                    </button>
+                                    <button
+                                        onclick="setSource('Tele2')"
+                                        class="px-4 py-2 rounded-lg font-medium transition text-white ${
+                                            selectedSource === 'Tele2'
+                                                ? 'source-tele2'
+                                                : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                                        }"
+                                    >
+                                        Tele2 (${stats.tele2})
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Selected Network Details -->
+                    ${selectedNetwork ? `
+                        <div class="bg-gradient-to-r from-blue-50 to-green-50 border-b">
+                            <div class="max-w-7xl mx-auto px-4 py-6">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div>
+                                        <h2 class="text-xl font-bold text-gray-900">${selectedNetwork.network}</h2>
+                                        <p class="text-gray-600">${selectedNetwork.country}</p>
+                                    </div>
+                                    <button
+                                        onclick="selectNetwork(null)"
+                                        class="text-gray-500 hover:text-gray-700 text-2xl"
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-${selectedNetwork.sources.length} gap-4">
+                                    ${selectedNetwork.sources.map(source => {
+                                        const bgClass = source.source === 'A1' ? 'bg-blue-50' : 
+                                                       source.source === 'Telefonica' ? 'bg-red-50' : 'bg-purple-50';
+                                        const borderClass = source.source === 'A1' ? 'border-blue-200' : 
+                                                           source.source === 'Telefonica' ? 'border-red-200' : 'border-purple-200';
+                                        return `
+                                            <div class="${bgClass} ${borderClass} border rounded-lg p-4">
+                                                <div class="flex items-center justify-between mb-3">
+                                                    <span class="font-bold text-lg ${
+                                                        source.source === 'A1' ? 'text-blue-700' :
+                                                        source.source === 'Telefonica' ? 'text-red-700' : 'text-purple-700'
+                                                    }">${source.source}</span>
+                                                    <span class="text-xs text-gray-500">TADIG: ${source.tadig}</span>
+                                                </div>
+                                                
+                                                <div class="space-y-2">
+                                                    <div class="flex justify-between">
+                                                        <span class="text-sm text-gray-600">Data/MB:</span>
+                                                        <span class="font-bold text-lg">
+                                                            ${source.currency === 'EUR' ? '€' : '$'}${source.dataPerMB.toFixed(4)}
+                                                        </span>
+                                                    </div>
+                                                    
+                                                    ${source.imsiCost > 0 ? `
+                                                        <div class="flex justify-between">
+                                                            <span class="text-sm text-gray-600">IMSI Fee:</span>
+                                                            <span class="font-medium">
+                                                                ${source.currency === 'EUR' ? '€' : '$'}${source.imsiCost.toFixed(2)}
+                                                            </span>
+                                                        </div>
+                                                    ` : ''}
+                                                    
+                                                    ${source.technologies && source.technologies.length > 0 ? `
+                                                        <div class="flex gap-1 mt-2">
+                                                            ${source.technologies.map(tech => `
+                                                                <span class="px-2 py-1 bg-white rounded text-xs font-medium">
+                                                                    ${tech}
+                                                                </span>
+                                                            `).join('')}
+                                                        </div>
+                                                    ` : ''}
+                                                    
+                                                    ${source.restrictions ? `
+                                                        <div class="mt-2 pt-2 border-t">
+                                                            <p class="text-xs text-gray-600">⚠️ ${source.restrictions.substring(0, 100)}</p>
+                                                        </div>
+                                                    ` : ''}
+                                                </div>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    <!-- Main Table -->
+                    <main class="max-w-7xl mx-auto px-4 py-6">
+                        <div class="bg-white rounded-lg shadow overflow-hidden">
+                            <table class="min-w-full">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Network</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Country</th>
+                                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Sources</th>
+                                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Best Price</th>
+                                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">IMSI</th>
+                                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200">
+                                    ${filteredNetworks.slice(0, 100).map((network, idx) => {
+                                        const prices = network.sources.map(s => {
+                                            const rate = s.currency === 'EUR' ? 1.1 : 1;
+                                            return s.dataPerMB * rate;
+                                        });
+                                        const bestPrice = Math.min(...prices);
+                                        const hasImsi = network.sources.some(s => s.imsiCost > 0);
+                                        
+                                        return `
+                                            <tr class="hover:bg-gray-50 cursor-pointer slide-in" 
+                                                style="animation-delay: ${idx * 0.01}s"
+                                                onclick="selectNetwork(${idx})">
+                                                <td class="px-6 py-4">
+                                                    <div class="text-sm font-medium text-gray-900">${network.network}</div>
+                                                </td>
+                                                <td class="px-6 py-4">
+                                                    <div class="text-sm text-gray-600">${network.country}</div>
+                                                </td>
+                                                <td class="px-6 py-4">
+                                                    <div class="flex justify-center gap-1">
+                                                        ${network.sources.map(s => {
+                                                            const color = s.source === 'A1' ? 'source-a1' :
+                                                                         s.source === 'Telefonica' ? 'source-telefonica' : 'source-tele2';
+                                                            return `<span class="${color} text-white px-2 py-1 rounded text-xs font-medium">
+                                                                ${s.source === 'Telefonica' ? 'TEL' : s.source === 'Tele2' ? 'T2' : 'A1'}
+                                                            </span>`;
+                                                        }).join('')}
+                                                    </div>
+                                                </td>
+                                                <td class="px-6 py-4 text-right">
+                                                    <div class="text-sm font-bold text-green-600">
+                                                        $${bestPrice.toFixed(4)}/MB
+                                                    </div>
+                                                </td>
+                                                <td class="px-6 py-4 text-center">
+                                                    ${hasImsi ? '<span class="text-yellow-500">✓</span>' : '-'}
+                                                </td>
+                                                <td class="px-6 py-4 text-center">
+                                                    <button class="text-blue-600 hover:text-blue-800 font-medium text-sm">
+                                                        Details
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        `;
+                                    }).join('')}
+                                </tbody>
+                            </table>
+                            
+                            ${filteredNetworks.length > 100 ? `
+                                <div class="bg-gray-50 px-6 py-3 text-center text-sm text-gray-600">
+                                    Showing 100 of ${filteredNetworks.length} networks. Refine your search to see more specific results.
+                                </div>
+                            ` : ''}
+                        </div>
+                    </main>
+                `;
+                
+                // Attach event listeners
+                const searchInput = document.getElementById('searchInput');
+                if (searchInput) {
+                    searchInput.addEventListener('input', (e) => {
+                        searchTerm = e.target.value;
+                        updateView();
+                    });
+                }
+            }
+            
+            // Global functions
+            window.setSource = (source) => {
+                selectedSource = source;
+                updateView();
+            };
+            
+            window.clearSearch = () => {
+                searchTerm = '';
+                updateView();
+            };
+            
+            window.selectNetwork = (index) => {
+                if (index === null) {
+                    selectedNetwork = null;
+                } else {
+                    selectedNetwork = filteredNetworks[index];
+                }
+                updateView();
+            };
+            
+            // Initial render
+            updateView();
+        }
+        
+        // Start the app
+        render();
+    </script>
+</body>
+</html>

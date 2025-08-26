@@ -1,0 +1,25 @@
+/*.js
+  Content-Type: text/javascript; charset=UTF-8
+  Cache-Control: public, max-age=3600
+
+/**/*.js
+  Content-Type: text/javascript; charset=UTF-8
+  Cache-Control: public, max-age=3600
+
+/*.css
+  Content-Type: text/css; charset=UTF-8
+
+/**/*.css
+  Content-Type: text/css; charset=UTF-8
+
+/*.html
+  Content-Type: text/html; charset=UTF-8
+
+/**/*.html
+  Content-Type: text/html; charset=UTF-8
+
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  X-XSS-Protection: 1; mode=block
+  Referrer-Policy: strict-origin-when-cross-origin

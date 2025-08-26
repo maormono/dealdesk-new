@@ -1,0 +1,129 @@
+<svg width="200" height="80" viewBox="0 0 200 80" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Main gradient -->
+    <linearGradient id="subtleMainGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- AI gradient -->
+    <linearGradient id="subtleAiGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Subtle star pattern -->
+    <pattern id="starPattern" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+      <!-- Tiny star of david -->
+      <g transform="translate(20, 20) scale(0.3)" opacity="0.1">
+        <path d="M 0,-10 L -8.5,5 L 8.5,5 Z" fill="#3b82f6"/>
+        <path d="M 0,10 L -8.5,-5 L 8.5,-5 Z" fill="#3b82f6"/>
+      </g>
+    </pattern>
+    
+    <!-- Glow -->
+    <filter id="subtleGlow">
+      <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    
+    <!-- Shadow -->
+    <filter id="subtleShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-opacity="0.1"/>
+    </filter>
+  </defs>
+  
+  <!-- Subtle background with star pattern -->
+  <rect x="0" y="0" width="200" height="80" fill="url(#starPattern)" opacity="0.5"/>
+  
+  <!-- I-A-I Design -->
+  <g transform="translate(100, 40)">
+    
+    <!-- Connection lines forming subtle star shape -->
+    <g opacity="0.15">
+      <!-- Upper triangle hint -->
+      <line x1="-40" y1="-15" x2="0" y2="15" stroke="url(#subtleMainGrad)" stroke-width="0.5"/>
+      <line x1="40" y1="-15" x2="0" y2="15" stroke="url(#subtleMainGrad)" stroke-width="0.5"/>
+      <line x1="-40" y1="-15" x2="40" y2="-15" stroke="url(#subtleMainGrad)" stroke-width="0.5"/>
+      <!-- Lower triangle hint -->
+      <line x1="-40" y1="15" x2="0" y2="-15" stroke="url(#subtleMainGrad)" stroke-width="0.5"/>
+      <line x1="40" y1="15" x2="0" y2="-15" stroke="url(#subtleMainGrad)" stroke-width="0.5"/>
+      <line x1="-40" y1="15" x2="40" y2="15" stroke="url(#subtleMainGrad)" stroke-width="0.5"/>
+    </g>
+    
+    <!-- First I -->
+    <g transform="translate(-40, 0)" filter="url(#subtleShadow)">
+      <rect x="-3" y="-18" width="6" height="36" fill="url(#subtleMainGrad)" rx="3"/>
+      <rect x="-8" y="-18" width="16" height="5" fill="url(#subtleMainGrad)" rx="2.5"/>
+      <rect x="-8" y="13" width="16" height="5" fill="url(#subtleMainGrad)" rx="2.5"/>
+      
+      <!-- Hidden star node -->
+      <g transform="scale(0.15)" opacity="0.3">
+        <path d="M 0,-20 L -17,10 L 17,10 Z" fill="#ffffff"/>
+        <path d="M 0,20 L -17,-10 L 17,-10 Z" fill="#ffffff"/>
+      </g>
+    </g>
+    
+    <!-- A with subtle AI -->
+    <g transform="translate(0, 0)" filter="url(#subtleGlow)">
+      <!-- A shape -->
+      <path d="M -8,15 L 0,-15 L 8,15 M -5,5 L 5,5" 
+            stroke="url(#subtleAiGrad)" stroke-width="3.5" stroke-linecap="round" 
+            stroke-linejoin="round" fill="none"/>
+      
+      <!-- AI neural network -->
+      <g opacity="0.8">
+        <!-- Central node -->
+        <circle cx="0" cy="-8" r="3" fill="#ffffff"/>
+        
+        <!-- Six nodes arranged in star pattern (subtle reference) -->
+        <circle cx="0" cy="-12" r="1.5" fill="#ffffff" opacity="0.6"/>
+        <circle cx="-4" cy="-6" r="1.5" fill="#ffffff" opacity="0.6"/>
+        <circle cx="4" cy="-6" r="1.5" fill="#ffffff" opacity="0.6"/>
+        <circle cx="-4" cy="2" r="1.5" fill="#ffffff" opacity="0.6"/>
+        <circle cx="4" cy="2" r="1.5" fill="#ffffff" opacity="0.6"/>
+        <circle cx="0" cy="8" r="1.5" fill="#ffffff" opacity="0.6"/>
+        
+        <!-- Neural connections forming subtle star -->
+        <g stroke="#ffffff" stroke-width="0.3" opacity="0.4">
+          <line x1="0" y1="-8" x2="0" y2="-12"/>
+          <line x1="0" y1="-8" x2="-4" y2="-6"/>
+          <line x1="0" y1="-8" x2="4" y2="-6"/>
+          <line x1="0" y1="-8" x2="-4" y2="2"/>
+          <line x1="0" y1="-8" x2="4" y2="2"/>
+          <line x1="0" y1="-8" x2="0" y2="8"/>
+        </g>
+      </g>
+      
+      <!-- Subtle pulse -->
+      <circle cx="0" cy="-8" r="3" fill="none" stroke="#ffffff" stroke-width="0.5" opacity="0.3">
+        <animate attributeName="r" from="3" to="10" dur="3s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" from="0.3" to="0" dur="3s" repeatCount="indefinite"/>
+      </circle>
+    </g>
+    
+    <!-- Last I -->
+    <g transform="translate(40, 0)" filter="url(#subtleShadow)">
+      <rect x="-3" y="-18" width="6" height="36" fill="url(#subtleMainGrad)" rx="3"/>
+      <rect x="-8" y="-18" width="16" height="5" fill="url(#subtleMainGrad)" rx="2.5"/>
+      <rect x="-8" y="13" width="16" height="5" fill="url(#subtleMainGrad)" rx="2.5"/>
+      
+      <!-- Hidden star node -->
+      <g transform="scale(0.15)" opacity="0.3">
+        <path d="M 0,-20 L -17,10 L 17,10 Z" fill="#ffffff"/>
+        <path d="M 0,20 L -17,-10 L 17,-10 Z" fill="#ffffff"/>
+      </g>
+    </g>
+    
+  </g>
+  
+  <!-- Tagline -->
+  <text x="100" y="70" font-family="system-ui, -apple-system, sans-serif" 
+        font-size="9" fill="#64748b" text-anchor="middle" letter-spacing="2">
+    INTELLIGENT PRICING PLATFORM
+  </text>
+</svg>

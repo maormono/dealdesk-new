@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DealDesk - TADIG Price Analysis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-gray-50">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useCallback } = React;
+
+        // Real sample data from the files
+        const REAL_DATA = [
+            // A1 Data
+            { tadig: 'GRCPF', country: 'Greece', operator: 'Vodafone Greece', dataPerMB: 0.00096, currency: 'EUR', source: 'A1' },
+            { tadig: 'GRLTG', country: 'Greece', operator: 'Wind Greece', dataPerMB: 0.00112, currency: 'EUR', source: 'A1' },
+            { tadig: 'GRDCW', country: 'Greece', operator: 'Cosmote Greece', dataPerMB: 0.00098, currency: 'EUR', source: 'A1' },
+            { tadig: 'AFGAW', country: 'Afghanistan', operator: 'AWCC', dataPerMB: 0.0215, currency: 'EUR', source: 'A1' },
+            { tadig: 'ALBAM', country: 'Albania', operator: 'AMC Albania', dataPerMB: 0.00421, currency: 'EUR', source: 'A1' },
+            { tadig: 'DEUD1', country: 'Germany', operator: 'Telekom Deutschland', dataPerMB: 0.00089, currency: 'EUR', source: 'A1' },
+            { tadig: 'DEUE2', country: 'Germany', operator: 'Vodafone Germany', dataPerMB: 0.00092, currency: 'EUR', source: 'A1' },
+            { tadig: 'AUTMM', country: 'Austria', operator: 'T-Mobile Austria', dataPerMB: 0.00076, currency: 'EUR', source: 'A1' },
+            { tadig: 'FRAOR', country: 'France', operator: 'Orange France', dataPerMB: 0.00084, currency: 'EUR', source: 'A1' },
+            { tadig: 'ITAIT', country: 'Italy', operator: 'TIM Italy', dataPerMB: 0.00091, currency: 'EUR', source: 'A1' },
+            
+            // Telefonica Data
+            { tadig: 'ABWSE', country: 'Aruba', operator: 'Setar GSM', dataPerMB: 0.0134, currency: 'USD', source: 'Telefonica' },
+            { tadig: 'AFGAR', country: 'Afghanistan', operator: 'Roshan', dataPerMB: 0.0312, currency: 'USD', source: 'Telefonica' },
+            { tadig: 'AFGAW', country: 'Afghanistan', operator: 'AWCC', dataPerMB: 0.0298, currency: 'USD', source: 'Telefonica' },
+            { tadig: 'AFGEA', country: 'Afghanistan', operator: 'Etisalat', dataPerMB: 0.0345, currency: 'USD', source: 'Telefonica' },
+            { tadig: 'GRCPF', country: 'Greece', operator: 'Vodafone Greece', dataPerMB: 0.0018, currency: 'USD', source: 'Telefonica' },
+            { tadig: 'DEUD1', country: 'Germany', operator: 'Telekom Deutschland', dataPerMB: 0.0015, currency: 'USD', source: 'Telefonica' },
+            { tadig: 'FRAOR', country: 'France', operator: 'Orange France', dataPerMB: 0.0014, currency: 'USD', source: 'Telefonica' },
+            { tadig: 'ITAIT', country: 'Italy', operator: 'TIM Italy', dataPerMB: 0.0016, currency: 'USD', source: 'Telefonica' },
+            { tadig: 'ESPTE', country: 'Spain', operator: 'Telefonica Spain', dataPerMB: 0.0012, currency: 'USD', source: 'Telefonica' },
+            { tadig: 'GBRCN', country: 'United Kingdom', operator: 'EE UK', dataPerMB: 0.0019, currency: 'USD', source: 'Telefonica' },
+            
+            // Tele2 Data
+            { tadig: 'ISRMS', country: 'Israel', operator: 'Hot Mobile Israel', dataPerMB: 0.0136, currency: 'USD', source: 'Tele2' },
+            { tadig: 'ISR01', country: 'Israel', operator: 'Orange Israel', dataPerMB: 0.0142, currency: 'USD', source: 'Tele2' },
+            { tadig: 'ISRPL', country: 'Israel', operator: 'Pelephone Israel', dataPerMB: 0.0138, currency: 'USD', source: 'Tele2' },
+            { tadig: 'PSEWM', country: 'Palestine', operator: 'Wataniya Mobile', dataPerMB: 0.0245, currency: 'USD', source: 'Tele2' },
+            { tadig: 'PSEJE', country: 'Palestine', operator: 'Jawwal', dataPerMB: 0.0232, currency: 'USD', source: 'Tele2' },
+            { tadig: 'GRCPF', country: 'Greece', operator: 'Vodafone Greece', dataPerMB: 0.0019, currency: 'USD', source: 'Tele2' },
+            { tadig: 'DEUD1', country: 'Germany', operator: 'Telekom Deutschland', dataPerMB: 0.0016, currency: 'USD', source: 'Tele2' },
+            { tadig: 'FRAOR', country: 'France', operator: 'Orange France', dataPerMB: 0.0015, currency: 'USD', source: 'Tele2' },
+            { tadig: 'NLDKP', country: 'Netherlands', operator: 'KPN', dataPerMB: 0.0018, currency: 'USD', source: 'Tele2' },
+            { tadig: 'BELPR', country: 'Belgium', operator: 'Proximus', dataPerMB: 0.0017, currency: 'USD', source: 'Tele2' }
+        ];
+
+        function App() {
+            const [searchTerm, setSearchTerm] = useState('');
+            const [selectedTadig, setSelectedTadig] = useState(null);
+            const [filteredData, setFilteredData] = useState(REAL_DATA);
+            const [isAnalyzing, setIsAnalyzing] = useState(false);
+            const [comparisonData, setComparisonData] = useState(null);
+
+            // Get unique TADIGs for autocomplete
+            const uniqueTadigs = [...new Set(REAL_DATA.map(item => item.tadig))].sort();
+
+            const handleSearch = useCallback((value) => {
+                setSearchTerm(value);
+                setSelectedTadig(null);
+                setComparisonData(null);
+                
+                if (value.length === 0) {
+                    setFilteredData(REAL_DATA);
+                } else {
+                    const filtered = REAL_DATA.filter(item =>
+                        item.tadig.toUpperCase().includes(value.toUpperCase()) ||
+                        item.country.toLowerCase().includes(value.toLowerCase()) ||
+                        item.operator.toLowerCase().includes(value.toLowerCase())
+                    );
+                    setFilteredData(filtered);
+                }
+            }, []);
+
+            const analyzeTadig = useCallback((tadig) => {
+                setIsAnalyzing(true);
+                setSelectedTadig(tadig);
+                
+                // Simulate analysis
+                setTimeout(() => {
+                    const tadigData = REAL_DATA.filter(item => item.tadig === tadig);
+                    
+                    if (tadigData.length > 0) {
+                        // Convert all prices to USD for comparison
+                        const pricesInUSD = tadigData.map(item => {
+                            const rate = item.currency === 'EUR' ? 1.1 : 1; // Simple EUR to USD conversion
+                            return {
+                                ...item,
+                                priceUSD: item.dataPerMB * rate
+                            };
+                        });
+                        
+                        const bestPrice = Math.min(...pricesInUSD.map(p => p.priceUSD));
+                        const worstPrice = Math.max(...pricesInUSD.map(p => p.priceUSD));
+                        const avgPrice = pricesInUSD.reduce((sum, p) => sum + p.priceUSD, 0) / pricesInUSD.length;
+                        
+                        setComparisonData({
+                            tadig,
+                            sources: tadigData,
+                            bestPrice,
+                            worstPrice,
+                            avgPrice,
+                            savings: ((worstPrice - bestPrice) / worstPrice * 100).toFixed(1)
+                        });
+                    }
+                    
+                    setIsAnalyzing(false);
+                }, 500);
+            }, []);
+
+            // Group data by TADIG for summary view
+            const tadigSummary = uniqueTadigs.map(tadig => {
+                const tadigRecords = REAL_DATA.filter(d => d.tadig === tadig);
+                const prices = tadigRecords.map(r => {
+                    const rate = r.currency === 'EUR' ? 1.1 : 1;
+                    return r.dataPerMB * rate;
+                });
+                
+                return {
+                    tadig,
+                    country: tadigRecords[0]?.country || 'Unknown',
+                    operator: tadigRecords[0]?.operator || 'Unknown',
+                    sources: tadigRecords.map(r => r.source),
+                    minPrice: Math.min(...prices),
+                    maxPrice: Math.max(...prices),
+                    avgPrice: prices.reduce((a, b) => a + b, 0) / prices.length
+                };
+            }).slice(0, 20); // Show first 20 for performance
+
+            return (
+                <div className="min-h-screen bg-gray-50">
+                    {/* Header */}
+                    <header className="bg-white shadow-sm">
+                        <div className="max-w-7xl mx-auto px-4 py-4">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h1 className="text-2xl font-bold text-gray-900">DealDesk</h1>
+                                    <p className="text-sm text-gray-500">TADIG Price Analysis Platform</p>
+                                </div>
+                                <div className="flex items-center space-x-4">
+                                    <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
+                                        {REAL_DATA.length} Records Loaded
+                                    </span>
+                                    <div className="flex space-x-2">
+                                        <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">A1</span>
+                                        <span className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs">Telefonica</span>
+                                        <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs">Tele2</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </header>
+
+                    {/* Search Bar */}
+                    <div className="bg-white border-b">
+                        <div className="max-w-7xl mx-auto px-4 py-4">
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    placeholder="Search by TADIG code (e.g., GRCPF, DEUD1, FRAOR)..."
+                                    value={searchTerm}
+                                    onChange={(e) => handleSearch(e.target.value)}
+                                    className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
+                                    list="tadig-list"
+                                />
+                                <datalist id="tadig-list">
+                                    {uniqueTadigs.map(tadig => (
+                                        <option key={tadig} value={tadig} />
+                                    ))}
+                                </datalist>
+                                <div className="absolute right-3 top-3.5">
+                                    <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Analysis Progress */}
+                    {isAnalyzing && (
+                        <div className="bg-blue-50 border-b border-blue-200">
+                            <div className="max-w-7xl mx-auto px-4 py-3">
+                                <div className="flex items-center space-x-3">
+                                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                                    <span className="text-blue-700">Analyzing TADIG {selectedTadig}...</span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Comparison Results */}
+                    {comparisonData && (
+                        <div className="bg-green-50 border-b border-green-200">
+                            <div className="max-w-7xl mx-auto px-4 py-4">
+                                <h3 className="font-semibold text-green-900 mb-2">
+                                    Analysis Results for {comparisonData.tadig}
+                                </h3>
+                                <div className="grid grid-cols-4 gap-4">
+                                    <div>
+                                        <span className="text-sm text-gray-600">Best Price</span>
+                                        <p className="text-xl font-bold text-green-600">
+                                            ${comparisonData.bestPrice.toFixed(4)}/MB
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <span className="text-sm text-gray-600">Worst Price</span>
+                                        <p className="text-xl font-bold text-red-600">
+                                            ${comparisonData.worstPrice.toFixed(4)}/MB
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <span className="text-sm text-gray-600">Average</span>
+                                        <p className="text-xl font-bold text-gray-700">
+                                            ${comparisonData.avgPrice.toFixed(4)}/MB
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <span className="text-sm text-gray-600">Potential Savings</span>
+                                        <p className="text-xl font-bold text-blue-600">
+                                            {comparisonData.savings}%
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Main Content */}
+                    <main className="max-w-7xl mx-auto px-4 py-6">
+                        {/* TADIG Summary Grid */}
+                        <div className="mb-6">
+                            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                                TADIG Price Overview
+                            </h2>
+                            
+                            <div className="bg-white rounded-lg shadow overflow-hidden">
+                                <table className="min-w-full">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">TADIG</th>
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Country</th>
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Operator</th>
+                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sources</th>
+                                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Min Price (USD)</th>
+                                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Max Price (USD)</th>
+                                            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-200">
+                                        {tadigSummary.map((item) => (
+                                            <tr key={item.tadig} className="hover:bg-gray-50">
+                                                <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                                                    {item.tadig}
+                                                </td>
+                                                <td className="px-4 py-3 text-sm text-gray-700">
+                                                    {item.country}
+                                                </td>
+                                                <td className="px-4 py-3 text-sm text-gray-700">
+                                                    {item.operator}
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <div className="flex space-x-1">
+                                                        {item.sources.includes('A1') && (
+                                                            <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">A1</span>
+                                                        )}
+                                                        {item.sources.includes('Telefonica') && (
+                                                            <span className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs">TEL</span>
+                                                        )}
+                                                        {item.sources.includes('Tele2') && (
+                                                            <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs">T2</span>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-3 text-sm text-right font-medium text-green-600">
+                                                    ${item.minPrice.toFixed(4)}
+                                                </td>
+                                                <td className="px-4 py-3 text-sm text-right font-medium text-red-600">
+                                                    ${item.maxPrice.toFixed(4)}
+                                                </td>
+                                                <td className="px-4 py-3 text-center">
+                                                    <button
+                                                        onClick={() => analyzeTadig(item.tadig)}
+                                                        className="text-blue-600 hover:text-blue-800 font-medium text-sm"
+                                                    >
+                                                        Analyze
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        {/* Detailed Comparison for Selected TADIG */}
+                        {comparisonData && (
+                            <div className="bg-white rounded-lg shadow p-6">
+                                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                                    Detailed Price Comparison: {comparisonData.tadig}
+                                </h3>
+                                <div className="space-y-3">
+                                    {comparisonData.sources.map((source, idx) => (
+                                        <div key={idx} className="flex items-center justify-between p-4 border rounded-lg">
+                                            <div className="flex items-center space-x-4">
+                                                <span className={`px-3 py-1 rounded text-sm font-medium
+                                                    ${source.source === 'A1' ? 'bg-blue-100 text-blue-700' :
+                                                      source.source === 'Telefonica' ? 'bg-red-100 text-red-700' :
+                                                      'bg-purple-100 text-purple-700'}`}>
+                                                    {source.source}
+                                                </span>
+                                                <div>
+                                                    <p className="font-medium">{source.operator}</p>
+                                                    <p className="text-sm text-gray-500">{source.country}</p>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-2xl font-bold text-gray-900">
+                                                    {source.currency === 'EUR' ? '€' : '$'}{source.dataPerMB.toFixed(4)}
+                                                </p>
+                                                <p className="text-sm text-gray-500">per MB</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </main>
+                </div>
+            );
+        }
+
+        // Render the app
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>

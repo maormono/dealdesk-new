@@ -1,0 +1,6 @@
+{
+  "Invite User": "<h2>Welcome to DealDesk!</h2>\n<p>You have been invited to join the DealDesk platform.</p>\n<p><a href=\"https://deal-desk.netlify.app/auth/callback?token_hash={{ .TokenHash }}&type=invite\">Accept Invitation</a></p>",
+  "Magic Link": "<h2>Your Magic Link</h2>\n<p>Click to sign in to DealDesk:</p>\n<p><a href=\"https://deal-desk.netlify.app/auth/callback?token_hash={{ .TokenHash }}&type=magiclink\">Sign In</a></p>",
+  "Confirm Signup": "<h2>Confirm Your Email</h2>\n<p>Please confirm your email for DealDesk:</p>\n<p><a href=\"https://deal-desk.netlify.app/auth/callback?token_hash={{ .TokenHash }}&type=email\">Confirm Email</a></p>",
+  "Reset Password": "<h2>Reset Your Password</h2>\n<p>Click to reset your DealDesk password:</p>\n<p><a href=\"https://deal-desk.netlify.app/auth/callback?token_hash={{ .TokenHash }}&type=recovery\">Reset Password</a></p>"
+}

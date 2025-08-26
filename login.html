@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>I-A-I - Intelligent Pricing Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen flex items-center justify-center p-4">
+    <div class="glass-effect rounded-2xl shadow-2xl p-8 w-full max-w-md">
+        <!-- Logo and Title -->
+        <div class="text-center mb-8">
+            <!-- Animated Logo Container -->
+            <div class="inline-block mb-6 relative">
+                <div class="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full blur-2xl opacity-15 animate-pulse"></div>
+                <div class="relative bg-white rounded-2xl p-6 shadow-xl">
+                    <!-- I-A-I Logo with subtle Star of David -->
+                    <svg width="200" height="80" viewBox="0 0 200 80" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="loginMainGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+                                <stop offset="50%" style="stop-color:#6366f1;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
+                            </linearGradient>
+                            <linearGradient id="loginAiGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:1" />
+                            </linearGradient>
+                            <pattern id="loginStarPattern" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+                                <g transform="translate(20, 20) scale(0.3)" opacity="0.08">
+                                    <path d="M 0,-10 L -8.5,5 L 8.5,5 Z" fill="#3b82f6"/>
+                                    <path d="M 0,10 L -8.5,-5 L 8.5,-5 Z" fill="#3b82f6"/>
+                                </g>
+                            </pattern>
+                            <filter id="loginGlow">
+                                <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
+                                <feMerge>
+                                    <feMergeNode in="coloredBlur"/>
+                                    <feMergeNode in="SourceGraphic"/>
+                                </feMerge>
+                            </filter>
+                            <filter id="loginShadow" x="-50%" y="-50%" width="200%" height="200%">
+                                <feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-opacity="0.1"/>
+                            </filter>
+                        </defs>
+                        
+                        <!-- Subtle star pattern background -->
+                        <rect x="0" y="0" width="200" height="80" fill="url(#loginStarPattern)" opacity="0.4"/>
+                        
+                        <!-- I-A-I Design -->
+                        <g transform="translate(100, 40)">
+                            
+                            <!-- Very subtle connection lines hinting at star shape -->
+                            <g opacity="0.1">
+                                <line x1="-40" y1="-15" x2="0" y2="15" stroke="url(#loginMainGrad)" stroke-width="0.5"/>
+                                <line x1="40" y1="-15" x2="0" y2="15" stroke="url(#loginMainGrad)" stroke-width="0.5"/>
+                                <line x1="-40" y1="15" x2="0" y2="-15" stroke="url(#loginMainGrad)" stroke-width="0.5"/>
+                                <line x1="40" y1="15" x2="0" y2="-15" stroke="url(#loginMainGrad)" stroke-width="0.5"/>
+                            </g>
+                            
+                            <!-- First I -->
+                            <g transform="translate(-40, 0)" filter="url(#loginShadow)">
+                                <rect x="-3" y="-18" width="6" height="36" fill="url(#loginMainGrad)" rx="3"/>
+                                <rect x="-8" y="-18" width="16" height="5" fill="url(#loginMainGrad)" rx="2.5"/>
+                                <rect x="-8" y="13" width="16" height="5" fill="url(#loginMainGrad)" rx="2.5"/>
+                            </g>
+                            
+                            <!-- A with AI -->
+                            <g transform="translate(0, 0)" filter="url(#loginGlow)">
+                                <path d="M -8,15 L 0,-15 L 8,15 M -5,5 L 5,5" 
+                                      stroke="url(#loginAiGrad)" stroke-width="3.5" stroke-linecap="round" 
+                                      stroke-linejoin="round" fill="none"/>
+                                
+                                <!-- Six AI nodes arranged subtly in star pattern -->
+                                <g opacity="0.9">
+                                    <circle cx="0" cy="-8" r="3" fill="#ffffff"/>
+                                    <!-- Six points forming subtle star -->
+                                    <circle cx="0" cy="-12" r="1.5" fill="#ffffff" opacity="0.7"/>
+                                    <circle cx="-4" cy="-6" r="1.5" fill="#ffffff" opacity="0.7"/>
+                                    <circle cx="4" cy="-6" r="1.5" fill="#ffffff" opacity="0.7"/>
+                                    <circle cx="-4" cy="2" r="1.5" fill="#ffffff" opacity="0.7"/>
+                                    <circle cx="4" cy="2" r="1.5" fill="#ffffff" opacity="0.7"/>
+                                    <circle cx="0" cy="8" r="1.5" fill="#ffffff" opacity="0.7"/>
+                                    
+                                    <!-- Connections -->
+                                    <g stroke="#ffffff" stroke-width="0.3" opacity="0.5">
+                                        <line x1="0" y1="-8" x2="0" y2="-12"/>
+                                        <line x1="0" y1="-8" x2="-4" y2="-6"/>
+                                        <line x1="0" y1="-8" x2="4" y2="-6"/>
+                                        <line x1="0" y1="-8" x2="-4" y2="2"/>
+                                        <line x1="0" y1="-8" x2="4" y2="2"/>
+                                        <line x1="0" y1="-8" x2="0" y2="8"/>
+                                    </g>
+                                </g>
+                                
+                                <!-- Pulse -->
+                                <circle cx="0" cy="-8" r="3" fill="none" stroke="#ffffff" stroke-width="0.5" opacity="0.3">
+                                    <animate attributeName="r" from="3" to="10" dur="3s" repeatCount="indefinite"/>
+                                    <animate attributeName="opacity" from="0.3" to="0" dur="3s" repeatCount="indefinite"/>
+                                </circle>
+                            </g>
+                            
+                            <!-- Last I -->
+                            <g transform="translate(40, 0)" filter="url(#loginShadow)">
+                                <rect x="-3" y="-18" width="6" height="36" fill="url(#loginMainGrad)" rx="3"/>
+                                <rect x="-8" y="-18" width="16" height="5" fill="url(#loginMainGrad)" rx="2.5"/>
+                                <rect x="-8" y="13" width="16" height="5" fill="url(#loginMainGrad)" rx="2.5"/>
+                            </g>
+                            
+                        </g>
+                        
+                        <!-- Tagline -->
+                        <text x="100" y="70" font-family="system-ui, -apple-system, sans-serif" 
+                              font-size="9" fill="#64748b" text-anchor="middle" letter-spacing="2">
+                            INTELLIGENT PRICING PLATFORM
+                        </text>
+                    </svg>
+                </div>
+            </div>
+            
+            <p class="text-sm text-gray-600 mt-2">Powered by Monogoto</p>
+        </div>
+
+        <!-- Login Form -->
+        <form id="loginForm" class="space-y-6">
+            <!-- Email Field -->
+            <div>
+                <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
+                    Email Address
+                </label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                    </div>
+                    <input 
+                        type="email" 
+                        id="email" 
+                        name="email"
+                        required
+                        autocomplete="email"
+                        class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                        placeholder="your@email.com"
+                    />
+                </div>
+            </div>
+
+            <!-- Password Field -->
+            <div>
+                <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
+                    Password
+                </label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                    </div>
+                    <input 
+                        type="password" 
+                        id="password" 
+                        name="password"
+                        required
+                        autocomplete="current-password"
+                        class="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                        placeholder="Enter your password"
+                    />
+                    <button type="button" onclick="togglePassword()" class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                        <svg id="eyeIcon" class="h-5 w-5 text-gray-400 hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Remember Me -->
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <input 
+                        id="remember" 
+                        name="remember" 
+                        type="checkbox" 
+                        class="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                    />
+                    <label for="remember" class="ml-2 block text-sm text-gray-700">
+                        Remember me
+                    </label>
+                </div>
+                <a href="#" class="text-sm text-purple-600 hover:text-purple-500">
+                    Forgot password?
+                </a>
+            </div>
+
+            <!-- Error Message -->
+            <div id="errorMessage" class="hidden">
+                <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                    <span id="errorText">Invalid email or password</span>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <button 
+                type="submit" 
+                class="w-full py-2 px-4 border border-transparent rounded-lg shadow-sm text-white bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 font-medium transition-all duration-200"
+            >
+                Sign In
+            </button>
+        </form>
+
+        <!-- Footer -->
+        <div class="mt-6 text-center">
+            <p class="text-xs text-gray-500">
+                © 2025 Monogoto. All rights reserved.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Authentication credentials
+        const AUTH = {
+            email: 'israel@monogoto.io',
+            password: 'dealdesk123$'
+        };
+
+        // Toggle password visibility
+        function togglePassword() {
+            const passwordInput = document.getElementById('password');
+            const eyeIcon = document.getElementById('eyeIcon');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                eyeIcon.innerHTML = `
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                        d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                `;
+            } else {
+                passwordInput.type = 'password';
+                eyeIcon.innerHTML = `
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                `;
+            }
+        }
+
+        // Handle login form submission
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const remember = document.getElementById('remember').checked;
+            
+            // Validate credentials
+            if (email === AUTH.email && password === AUTH.password) {
+                // Create session
+                const session = {
+                    authenticated: true,
+                    email: email,
+                    timestamp: Date.now(),
+                    expires: remember ? Date.now() + (30 * 24 * 60 * 60 * 1000) : Date.now() + (24 * 60 * 60 * 1000) // 30 days or 1 day
+                };
+                
+                // Store session
+                sessionStorage.setItem('dealdesk_session', JSON.stringify(session));
+                if (remember) {
+                    localStorage.setItem('dealdesk_session', JSON.stringify(session));
+                }
+                
+                // Redirect to main app
+                window.location.href = 'dealdesk-fixed.html';
+            } else {
+                // Show error
+                const errorDiv = document.getElementById('errorMessage');
+                const errorText = document.getElementById('errorText');
+                
+                errorDiv.classList.remove('hidden');
+                errorText.textContent = 'Invalid email or password. Please try again.';
+                
+                // Shake animation
+                errorDiv.classList.add('animate-pulse');
+                setTimeout(() => {
+                    errorDiv.classList.remove('animate-pulse');
+                }, 1000);
+                
+                // Clear password
+                document.getElementById('password').value = '';
+            }
+        });
+
+        // Check if already logged in
+        window.addEventListener('load', function() {
+            const session = JSON.parse(sessionStorage.getItem('dealdesk_session') || localStorage.getItem('dealdesk_session') || '{}');
+            
+            if (session.authenticated && session.expires > Date.now()) {
+                window.location.href = 'dealdesk-fixed.html';
+            }
+        });
+    </script>
+</body>
+</html>

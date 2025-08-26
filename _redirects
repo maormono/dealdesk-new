@@ -1,0 +1,3 @@
+# Netlify redirects configuration
+# Default route to index.html
+/  /index.html  200

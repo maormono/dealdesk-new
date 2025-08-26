@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DealDesk - Dynamic Pricing Upload & Analysis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        .price-up { color: #dc2626; }
+        .price-down { color: #16a34a; }
+        .price-same { color: #6b7280; }
+        .new-network { background: #dbeafe; }
+        .removed-network { background: #fee2e2; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-20">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">DealDesk Dynamic Upload</h1>
+                    <p class="text-sm text-gray-500">Upload new pricing files to track changes</p>
+                </div>
+                <div id="connectionStatus" class="flex items-center gap-2">
+                    <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span class="text-sm text-gray-600">Connected to Supabase</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Upload Section -->
+    <div class="max-w-7xl mx-auto px-4 py-6">
+        <div class="bg-white rounded-lg shadow-sm p-6">
+            <h2 class="text-lg font-semibold mb-4">Upload New Pricing File</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- Source Selection -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Select Source</label>
+                    <select id="sourceSelect" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">-- Select Source --</option>
+                        <option value="Tele2">Tele2 (Invoice)</option>
+                        <option value="A1">A1</option>
+                        <option value="Telefonica">Telefonica</option>
+                        <option value="new">+ Add New Source</option>
+                    </select>
+                </div>
+
+                <!-- File Upload -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Upload File</label>
+                    <input 
+                        type="file" 
+                        id="fileInput" 
+                        accept=".xlsx,.xls,.csv"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                </div>
+
+                <!-- Upload Button -->
+                <div class="flex items-end">
+                    <button 
+                        onclick="processUpload()"
+                        class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                        Process & Compare
+                    </button>
+                </div>
+            </div>
+
+            <!-- Comparison Date Range -->
+            <div class="mt-4 flex items-center gap-4">
+                <label class="text-sm font-medium text-gray-700">Compare with data from:</label>
+                <input 
+                    type="date" 
+                    id="compareDate" 
+                    class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                <button 
+                    onclick="loadHistoricalData()"
+                    class="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                >
+                    Load Historical
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analysis Results -->
+    <div class="max-w-7xl mx-auto px-4 pb-8">
+        <!-- Summary Cards -->
+        <div id="summaryCards" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 hidden">
+            <div class="bg-white rounded-lg shadow-sm p-4">
+                <div class="text-sm text-gray-500">Total Networks</div>
+                <div class="text-2xl font-bold text-gray-900" id="totalNetworks">0</div>
+                <div class="text-xs text-gray-500" id="networkChange"></div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-sm p-4">
+                <div class="text-sm text-gray-500">Price Increases</div>
+                <div class="text-2xl font-bold text-red-600" id="priceIncreases">0</div>
+                <div class="text-xs text-gray-500">Networks with higher rates</div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-sm p-4">
+                <div class="text-sm text-gray-500">Price Decreases</div>
+                <div class="text-2xl font-bold text-green-600" id="priceDecreases">0</div>
+                <div class="text-xs text-gray-500">Networks with lower rates</div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-sm p-4">
+                <div class="text-sm text-gray-500">IMSI Fee Changes</div>
+                <div class="text-2xl font-bold text-purple-600" id="imsiFeeChanges">0</div>
+                <div class="text-xs text-gray-500">Access fee modifications</div>
+            </div>
+        </div>
+
+        <!-- Changes Report -->
+        <div id="changesReport" class="bg-white rounded-lg shadow-sm hidden">
+            <div class="p-4 border-b">
+                <h3 class="text-lg font-semibold">Price Movement Report</h3>
+                <div class="flex gap-4 mt-2">
+                    <button onclick="filterChanges('all')" class="text-sm px-3 py-1 bg-gray-100 rounded-lg">All Changes</button>
+                    <button onclick="filterChanges('up')" class="text-sm px-3 py-1 bg-red-100 text-red-700 rounded-lg">↑ Increases</button>
+                    <button onclick="filterChanges('down')" class="text-sm px-3 py-1 bg-green-100 text-green-700 rounded-lg">↓ Decreases</button>
+                    <button onclick="filterChanges('new')" class="text-sm px-3 py-1 bg-blue-100 text-blue-700 rounded-lg">+ New</button>
+                    <button onclick="filterChanges('removed')" class="text-sm px-3 py-1 bg-gray-100 text-gray-700 rounded-lg">- Removed</button>
+                </div>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50 border-b">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">TADIG</th>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Network</th>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Country</th>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Change Type</th>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Data/MB</th>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">IMSI Fee</th>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody id="changesTableBody">
+                        <!-- Dynamic content -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Export Options -->
+        <div id="exportOptions" class="mt-6 flex gap-4 hidden">
+            <button 
+                onclick="exportReport('excel')"
+                class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+            >
+                Export to Excel
+            </button>
+            <button 
+                onclick="exportReport('csv')"
+                class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+            >
+                Export to CSV
+            </button>
+            <button 
+                onclick="saveToDatabase()"
+                class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
+            >
+                Save to Database
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Supabase configuration
+        const SUPABASE_URL = 'https://uddmjjgnexdazfedrytt.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVkZG1qamduZXhkYXpmZWRyeXR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3NjQ2OTUsImV4cCI6MjA2MzM0MDY5NX0.A_034WOQ-JJ3DDvMux5fLXayJ4pUk3_WXnVTJI-wSL0';
+        
+        let currentData = {};
+        let historicalData = {};
+        let changes = [];
+
+        async function processUpload() {
+            const source = document.getElementById('sourceSelect').value;
+            const file = document.getElementById('fileInput').files[0];
+            
+            if (!source || !file) {
+                alert('Please select a source and upload a file');
+                return;
+            }
+            
+            // Read the file
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                
+                // Parse based on source type
+                const parsedData = parseFileBySource(workbook, source);
+                
+                // Load current data from database
+                await loadCurrentData(source);
+                
+                // Compare and analyze
+                analyzeChanges(parsedData, source);
+                
+                // Display results
+                displayResults();
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function parseFileBySource(workbook, source) {
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(sheet);
+            const parsedNetworks = {};
+            
+            jsonData.forEach(row => {
+                let tadig, network, country, dataRate, imsiRate;
+                
+                // Dynamic parsing based on source
+                if (source === 'Tele2') {
+                    tadig = row['TADIG'];
+                    network = row['Network'];
+                    country = row['Country'];
+                    dataRate = parseFloat(row['Data/MB'] || 0);
+                    imsiRate = parseFloat(row['Access fee per IMSI, EUR/month'] || 0);
+                } else if (source === 'A1') {
+                    tadig = row['TADIG'];
+                    network = row['Network'] || row.iloc?.[1];
+                    country = row['Country'] || row.iloc?.[0];
+                    dataRate = parseFloat(row['price/MB'] || 0);
+                    imsiRate = parseFloat(row['General'] || 0);
+                } else if (source === 'Telefonica') {
+                    tadig = row['Tadig'] || row['TADIG'];
+                    network = row['Operator'] || row['Name'];
+                    country = row['Country'];
+                    dataRate = parseFloat(row['Data per MB'] || row['DATA'] || 0);
+                    imsiRate = 0; // Telefonica doesn't have IMSI fees
+                }
+                
+                if (tadig && tadig !== 'TADIG') {
+                    parsedNetworks[tadig] = {
+                        tadig,
+                        network: network || 'Unknown',
+                        country: country || 'Unknown',
+                        dataRate,
+                        imsiRate,
+                        source
+                    };
+                }
+            });
+            
+            return parsedNetworks;
+        }
+
+        async function loadCurrentData(source) {
+            // Load current data from Supabase
+            const response = await fetch(
+                `${SUPABASE_URL}/rest/v1/networks?select=*,network_pricing(*,pricing_sources(*))`,
+                {
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`
+                    }
+                }
+            );
+            
+            if (response.ok) {
+                const networks = await response.json();
+                historicalData = {};
+                
+                networks.forEach(network => {
+                    network.network_pricing?.forEach(pricing => {
+                        if (pricing.pricing_sources?.source_name === source) {
+                            historicalData[network.tadig] = {
+                                tadig: network.tadig,
+                                network: network.network_name,
+                                country: network.country,
+                                dataRate: pricing.data_per_mb || 0,
+                                imsiRate: pricing.imsi_access_fee || 0,
+                                source
+                            };
+                        }
+                    });
+                });
+            }
+        }
+
+        function analyzeChanges(newData, source) {
+            changes = [];
+            let priceUp = 0, priceDown = 0, newNetworks = 0, removedNetworks = 0, imsiChanges = 0;
+            
+            // Check for changes and new networks
+            Object.keys(newData).forEach(tadig => {
+                const newNet = newData[tadig];
+                const oldNet = historicalData[tadig];
+                
+                if (!oldNet) {
+                    // New network
+                    changes.push({
+                        ...newNet,
+                        changeType: 'new',
+                        oldDataRate: null,
+                        oldImsiRate: null,
+                        dataChange: null,
+                        imsiChange: null
+                    });
+                    newNetworks++;
+                } else {
+                    // Check for changes
+                    const dataChange = newNet.dataRate - oldNet.dataRate;
+                    const imsiChange = newNet.imsiRate - oldNet.imsiRate;
+                    
+                    if (Math.abs(dataChange) > 0.000001 || Math.abs(imsiChange) > 0.01) {
+                        changes.push({
+                            ...newNet,
+                            changeType: dataChange > 0 ? 'increase' : 'decrease',
+                            oldDataRate: oldNet.dataRate,
+                            oldImsiRate: oldNet.imsiRate,
+                            dataChange,
+                            imsiChange
+                        });
+                        
+                        if (dataChange > 0) priceUp++;
+                        if (dataChange < 0) priceDown++;
+                        if (Math.abs(imsiChange) > 0.01) imsiChanges++;
+                    }
+                }
+            });
+            
+            // Check for removed networks
+            Object.keys(historicalData).forEach(tadig => {
+                if (!newData[tadig]) {
+                    changes.push({
+                        ...historicalData[tadig],
+                        changeType: 'removed',
+                        oldDataRate: historicalData[tadig].dataRate,
+                        oldImsiRate: historicalData[tadig].imsiRate,
+                        dataChange: null,
+                        imsiChange: null
+                    });
+                    removedNetworks++;
+                }
+            });
+            
+            // Update summary
+            document.getElementById('totalNetworks').textContent = Object.keys(newData).length;
+            document.getElementById('networkChange').textContent = 
+                newNetworks > 0 ? `+${newNetworks} new` : 
+                removedNetworks > 0 ? `-${removedNetworks} removed` : 'No change';
+            document.getElementById('priceIncreases').textContent = priceUp;
+            document.getElementById('priceDecreases').textContent = priceDown;
+            document.getElementById('imsiFeeChanges').textContent = imsiChanges;
+        }
+
+        function displayResults() {
+            document.getElementById('summaryCards').classList.remove('hidden');
+            document.getElementById('changesReport').classList.remove('hidden');
+            document.getElementById('exportOptions').classList.remove('hidden');
+            
+            const tbody = document.getElementById('changesTableBody');
+            tbody.innerHTML = '';
+            
+            changes.forEach(change => {
+                const row = document.createElement('tr');
+                row.className = change.changeType === 'new' ? 'new-network' : 
+                               change.changeType === 'removed' ? 'removed-network' : '';
+                
+                row.innerHTML = `
+                    <td class="px-4 py-3 font-mono text-sm">${change.tadig}</td>
+                    <td class="px-4 py-3">${change.network}</td>
+                    <td class="px-4 py-3">${change.country}</td>
+                    <td class="px-4 py-3">
+                        <span class="px-2 py-1 text-xs rounded-full ${
+                            change.changeType === 'new' ? 'bg-blue-100 text-blue-700' :
+                            change.changeType === 'removed' ? 'bg-gray-100 text-gray-700' :
+                            change.changeType === 'increase' ? 'bg-red-100 text-red-700' :
+                            'bg-green-100 text-green-700'
+                        }">
+                            ${change.changeType}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3">
+                        ${change.oldDataRate !== null ? 
+                            `<div class="text-xs text-gray-500">was: $${change.oldDataRate.toFixed(6)}</div>` : ''}
+                        <div class="${
+                            change.dataChange > 0 ? 'price-up' : 
+                            change.dataChange < 0 ? 'price-down' : ''
+                        }">
+                            $${change.dataRate.toFixed(6)}
+                            ${change.dataChange ? 
+                                `<span class="text-xs ml-1">(${change.dataChange > 0 ? '+' : ''}${(change.dataChange * 100 / (change.oldDataRate || 1)).toFixed(1)}%)</span>` 
+                                : ''}
+                        </div>
+                    </td>
+                    <td class="px-4 py-3">
+                        ${change.oldImsiRate !== null ? 
+                            `<div class="text-xs text-gray-500">was: €${change.oldImsiRate.toFixed(2)}</div>` : ''}
+                        <div class="${
+                            change.imsiChange > 0 ? 'price-up' : 
+                            change.imsiChange < 0 ? 'price-down' : ''
+                        }">
+                            €${change.imsiRate.toFixed(2)}
+                            ${change.imsiChange ? 
+                                `<span class="text-xs ml-1">(${change.imsiChange > 0 ? '+' : ''}€${change.imsiChange.toFixed(2)})</span>` 
+                                : ''}
+                        </div>
+                    </td>
+                    <td class="px-4 py-3 text-sm">
+                        ${generateChangeNote(change)}
+                    </td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+
+        function generateChangeNote(change) {
+            if (change.changeType === 'new') return 'New network added';
+            if (change.changeType === 'removed') return 'Network removed';
+            
+            const notes = [];
+            if (change.dataChange > 0) notes.push('Data rate increased');
+            if (change.dataChange < 0) notes.push('Data rate decreased');
+            if (change.imsiChange > 0) notes.push('IMSI fee increased');
+            if (change.imsiChange < 0) notes.push('IMSI fee decreased');
+            
+            return notes.join(', ') || 'No significant changes';
+        }
+
+        function filterChanges(type) {
+            const tbody = document.getElementById('changesTableBody');
+            const rows = tbody.getElementsByTagName('tr');
+            
+            for (let row of rows) {
+                if (type === 'all') {
+                    row.style.display = '';
+                } else if (type === 'up' && row.innerHTML.includes('increase')) {
+                    row.style.display = '';
+                } else if (type === 'down' && row.innerHTML.includes('decrease')) {
+                    row.style.display = '';
+                } else if (type === 'new' && row.classList.contains('new-network')) {
+                    row.style.display = '';
+                } else if (type === 'removed' && row.classList.contains('removed-network')) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            }
+        }
+
+        async function saveToDatabase() {
+            if (!changes.length) {
+                alert('No changes to save');
+                return;
+            }
+            
+            const source = document.getElementById('sourceSelect').value;
+            
+            // Get source ID
+            const sourcesResponse = await fetch(`${SUPABASE_URL}/rest/v1/pricing_sources`, {
+                headers: {
+                    'apikey': SUPABASE_KEY,
+                    'Authorization': `Bearer ${SUPABASE_KEY}`
+                }
+            });
+            const sources = await sourcesResponse.json();
+            const sourceId = sources.find(s => s.source_name === source)?.id;
+            
+            if (!sourceId) {
+                alert('Source not found in database');
+                return;
+            }
+            
+            // Process changes
+            for (const change of changes) {
+                if (change.changeType === 'removed') {
+                    // Mark as inactive or delete
+                    continue;
+                }
+                
+                // Get or create network
+                let networkId;
+                const networkCheck = await fetch(
+                    `${SUPABASE_URL}/rest/v1/networks?tadig=eq.${change.tadig}`,
+                    {
+                        headers: {
+                            'apikey': SUPABASE_KEY,
+                            'Authorization': `Bearer ${SUPABASE_KEY}`
+                        }
+                    }
+                );
+                
+                const existingNetwork = await networkCheck.json();
+                
+                if (existingNetwork.length > 0) {
+                    networkId = existingNetwork[0].id;
+                } else {
+                    // Create new network
+                    const createResponse = await fetch(
+                        `${SUPABASE_URL}/rest/v1/networks`,
+                        {
+                            method: 'POST',
+                            headers: {
+                                'apikey': SUPABASE_KEY,
+                                'Authorization': `Bearer ${SUPABASE_KEY}`,
+                                'Content-Type': 'application/json',
+                                'Prefer': 'return=representation'
+                            },
+                            body: JSON.stringify({
+                                tadig: change.tadig,
+                                network_name: change.network,
+                                country: change.country,
+                                is_active: true
+                            })
+                        }
+                    );
+                    
+                    if (createResponse.ok) {
+                        const newNetwork = await createResponse.json();
+                        networkId = newNetwork[0].id;
+                    }
+                }
+                
+                if (networkId) {
+                    // Update or create pricing
+                    await fetch(
+                        `${SUPABASE_URL}/rest/v1/network_pricing`,
+                        {
+                            method: 'POST',
+                            headers: {
+                                'apikey': SUPABASE_KEY,
+                                'Authorization': `Bearer ${SUPABASE_KEY}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                network_id: networkId,
+                                source_id: sourceId,
+                                data_per_mb: change.dataRate,
+                                imsi_access_fee: change.imsiRate,
+                                is_current: true,
+                                effective_date: new Date().toISOString().split('T')[0]
+                            })
+                        }
+                    );
+                }
+            }
+            
+            alert(`Saved ${changes.length} changes to database`);
+        }
+
+        function exportReport(format) {
+            if (format === 'excel') {
+                const ws = XLSX.utils.json_to_sheet(changes);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Price Changes');
+                XLSX.writeFile(wb, `price_changes_${new Date().toISOString().split('T')[0]}.xlsx`);
+            } else if (format === 'csv') {
+                const csv = XLSX.utils.sheet_to_csv(XLSX.utils.json_to_sheet(changes));
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `price_changes_${new Date().toISOString().split('T')[0]}.csv`;
+                a.click();
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>I-A-I Platform - Smart Pricing Intelligence</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="auth-check.js"></script>
+    <script src="network_data.js"></script>
+    <script src="normalize-networks.js"></script>
+    <style>
+        .source-a1 { background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); }
+        .source-telefonica { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
+        .source-tele2 { background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%); }
+        @keyframes slideIn {
+            from { transform: translateY(-10px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .slide-in { animation: slideIn 0.3s ease-out; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Fixed Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-20">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <!-- I-A-I Logo with subtle Star of David -->
+                    <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-1.5">
+                        <svg width="110" height="45" viewBox="0 0 200 80" xmlns="http://www.w3.org/2000/svg">
+                            <defs>
+                                <linearGradient id="hdrMainGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+                                    <stop offset="50%" style="stop-color:#6366f1;stop-opacity:1" />
+                                    <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
+                                </linearGradient>
+                                <linearGradient id="hdrAiGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+                                    <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:1" />
+                                </linearGradient>
+                            </defs>
+                            
+                            <!-- Compact I-A-I with subtle star hints -->
+                            <g transform="translate(100, 40) scale(0.7)">
+                                <!-- First I -->
+                                <g transform="translate(-38, 0)">
+                                    <rect x="-2.5" y="-16" width="5" height="32" fill="url(#hdrMainGrad)" rx="2.5"/>
+                                    <rect x="-5" y="-16" width="10" height="4" fill="url(#hdrMainGrad)" rx="2"/>
+                                    <rect x="-5" y="12" width="10" height="4" fill="url(#hdrMainGrad)" rx="2"/>
+                                </g>
+                                
+                                <!-- A with subtle AI star -->
+                                <g transform="translate(0, 0)">
+                                    <path d="M -7,13 L 0,-13 L 7,13 M -4,4 L 4,4" 
+                                          stroke="url(#hdrAiGrad)" stroke-width="3" stroke-linecap="round" 
+                                          stroke-linejoin="round" fill="none"/>
+                                    
+                                    <!-- 6 AI nodes in star formation (subtle) -->
+                                    <circle cx="0" cy="-6" r="2.5" fill="#ffffff" opacity="0.9"/>
+                                    <circle cx="0" cy="-10" r="1" fill="#ffffff" opacity="0.6"/>
+                                    <circle cx="-3" cy="-4" r="1" fill="#ffffff" opacity="0.6"/>
+                                    <circle cx="3" cy="-4" r="1" fill="#ffffff" opacity="0.6"/>
+                                    <circle cx="-3" cy="1" r="1" fill="#ffffff" opacity="0.6"/>
+                                    <circle cx="3" cy="1" r="1" fill="#ffffff" opacity="0.6"/>
+                                    <circle cx="0" cy="6" r="1" fill="#ffffff" opacity="0.6"/>
+                                </g>
+                                
+                                <!-- Last I -->
+                                <g transform="translate(38, 0)">
+                                    <rect x="-2.5" y="-16" width="5" height="32" fill="url(#hdrMainGrad)" rx="2.5"/>
+                                    <rect x="-5" y="-16" width="10" height="4" fill="url(#hdrMainGrad)" rx="2"/>
+                                    <rect x="-5" y="12" width="10" height="4" fill="url(#hdrMainGrad)" rx="2"/>
+                                </g>
+                            </g>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-bold text-gray-800">I-A-I Platform</p>
+                        <p class="text-xs text-gray-500">Smart Pricing Intelligence</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-6">
+                    <div class="text-sm">
+                        <span class="font-bold text-lg" id="uniqueCount">0</span>
+                        <span class="text-gray-600"> unique networks</span>
+                    </div>
+                    <div class="text-sm">
+                        <span class="font-bold text-lg" id="totalCount">0</span>
+                        <span class="text-gray-600"> total records</span>
+                    </div>
+                    <div class="text-sm">
+                        <span class="font-bold text-lg" id="imsiCount">0</span>
+                        <span class="text-gray-600"> with IMSI fees</span>
+                    </div>
+                    <button onclick="window.location.href='price-updater.html'" 
+                        class="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition">
+                        ⚙️ Update Prices
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Fixed Search Bar -->
+    <div class="bg-white border-b sticky top-16 z-10">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="flex flex-col lg:flex-row gap-4">
+                <!-- Search Input (Never Re-renders) -->
+                <div class="flex-1">
+                    <div class="relative">
+                        <input
+                            type="text"
+                            id="searchInput"
+                            placeholder="🔍 Smart search: Try 'Israel', 'Vodafone', 'Partner', 'United States'..."
+                            class="w-full px-4 py-3 pr-10 border rounded-lg focus:ring-2 focus:ring-blue-500 text-lg"
+                        />
+                        <button 
+                            id="clearBtn"
+                            onclick="clearSearch()" 
+                            class="absolute right-3 top-3.5 text-gray-400 hover:text-gray-600 hidden"
+                        >✕</button>
+                    </div>
+                    <div id="searchResults" class="mt-2 text-sm text-gray-600"></div>
+                </div>
+                
+                <!-- Source Filter Buttons -->
+                <div class="flex gap-2" id="sourceButtons">
+                    <button onclick="setSource(null)" data-source="all"
+                        class="px-4 py-2 rounded-lg font-medium transition bg-gray-800 text-white">
+                        All Sources
+                    </button>
+                    <button onclick="setSource('A1')" data-source="A1"
+                        class="px-4 py-2 rounded-lg font-medium transition bg-blue-100 text-blue-700 hover:bg-blue-200">
+                        A1 (<span id="a1Count">0</span>)
+                    </button>
+                    <button onclick="setSource('Telefonica')" data-source="Telefonica"
+                        class="px-4 py-2 rounded-lg font-medium transition bg-red-100 text-red-700 hover:bg-red-200">
+                        Telefonica (<span id="telCount">0</span>)
+                    </button>
+                    <button onclick="setSource('Tele2')" data-source="Tele2"
+                        class="px-4 py-2 rounded-lg font-medium transition bg-purple-100 text-purple-700 hover:bg-purple-200">
+                        Tele2 (<span id="t2Count">0</span>)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dynamic Content Area -->
+    <div id="networkDetails"></div>
+    <main id="mainContent" class="max-w-7xl mx-auto px-4 py-6"></main>
+
+    <script>
+        // Process and normalize all network data
+        const networkData = typeof REAL_NETWORK_DATA !== 'undefined' ? REAL_NETWORK_DATA : [];
+        const processedNetworks = processNetworkData(networkData);
+        
+        // State management
+        let searchTerm = '';
+        let selectedSource = null;
+        let selectedNetwork = null;
+        let filteredNetworks = processedNetworks;
+        
+        // Initialize statistics (only once)
+        const stats = {
+            total: networkData.length,
+            uniqueNetworks: processedNetworks.length,
+            a1: networkData.filter(d => d.source === 'A1').length,
+            telefonica: networkData.filter(d => d.source === 'Telefonica').length,
+            tele2: networkData.filter(d => d.source === 'Tele2').length,
+            withImsi: networkData.filter(d => d.imsiCost > 0).length
+        };
+        
+        // Update static counts
+        document.getElementById('uniqueCount').textContent = stats.uniqueNetworks;
+        document.getElementById('totalCount').textContent = stats.total;
+        document.getElementById('imsiCount').textContent = stats.withImsi;
+        document.getElementById('a1Count').textContent = stats.a1;
+        document.getElementById('telCount').textContent = stats.telefonica;
+        document.getElementById('t2Count').textContent = stats.tele2;
+        
+        // Intelligent search
+        function search(query) {
+            if (!query) return processedNetworks;
+            
+            const terms = query.toLowerCase().split(' ').filter(t => t.length > 0);
+            return processedNetworks.filter(network => 
+                terms.every(term => network.searchText.includes(term))
+            );
+        }
+        
+        // Update only the table content (not the search box)
+        function updateTable() {
+            // Apply filters
+            let filtered = processedNetworks;
+            
+            if (selectedSource) {
+                filtered = filtered.filter(n => 
+                    n.sources.some(s => s.source === selectedSource)
+                );
+            }
+            
+            if (searchTerm) {
+                filtered = search(searchTerm);
+            }
+            
+            filteredNetworks = filtered;
+            
+            // Update search results count
+            const searchResults = document.getElementById('searchResults');
+            if (searchTerm) {
+                searchResults.innerHTML = `Found <span class="font-bold">${filteredNetworks.length}</span> networks`;
+            } else {
+                searchResults.innerHTML = '';
+            }
+            
+            // Update main table
+            const mainContent = document.getElementById('mainContent');
+            mainContent.innerHTML = `
+                <div class="bg-white rounded-lg shadow overflow-hidden">
+                    <table class="min-w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Network</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Country</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">TADIG</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Sources</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Price/MB</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">IMSI</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            ${filteredNetworks.slice(0, 100).map((network, idx) => `
+                                <tr class="hover:bg-gray-50 cursor-pointer slide-in" 
+                                    style="animation-delay: ${idx * 0.01}s"
+                                    onclick="selectNetwork(${idx})">
+                                    <td class="px-6 py-4">
+                                        <div class="text-sm font-medium text-gray-900">${network.networkName}</div>
+                                        ${network.originalNames.length > 1 ? `
+                                            <div class="text-xs text-gray-500">${network.originalNames.length} name variations</div>
+                                        ` : ''}
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="text-sm text-gray-600">${network.country}</div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="text-sm font-mono text-gray-700">${network.tadig}</div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex justify-center gap-1">
+                                            ${[...new Set(network.sources.map(s => s.source))].map(source => {
+                                                const color = source === 'A1' ? 'source-a1' :
+                                                             source === 'Telefonica' ? 'source-telefonica' : 'source-tele2';
+                                                const label = source === 'Telefonica' ? 'TEL' : source === 'Tele2' ? 'T2' : 'A1';
+                                                return `<span class="${color} text-white px-2 py-1 rounded text-xs font-medium">${label}</span>`;
+                                            }).join('')}
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex flex-col items-end gap-1">
+                                            ${network.sources
+                                                .sort((a, b) => {
+                                                    const aRate = a.currency === 'EUR' ? 1.1 : a.currency === 'GBP' ? 1.25 : 1;
+                                                    const bRate = b.currency === 'EUR' ? 1.1 : b.currency === 'GBP' ? 1.25 : 1;
+                                                    return (a.dataPerMB * aRate) - (b.dataPerMB * bRate);
+                                                })
+                                                .map((s, index) => {
+                                                    const color = s.source === 'A1' ? 'text-blue-600' :
+                                                                 s.source === 'Telefonica' ? 'text-red-600' : 'text-purple-600';
+                                                    const bgColor = s.source === 'A1' ? 'bg-blue-50' :
+                                                                   s.source === 'Telefonica' ? 'bg-red-50' : 'bg-purple-50';
+                                                    const rate = s.currency === 'EUR' ? 1.1 : s.currency === 'GBP' ? 1.25 : 1;
+                                                    const priceUSD = s.dataPerMB * rate;
+                                                    const isBest = index === 0;
+                                                    const fontWeight = isBest ? 'font-bold' : 'font-normal';
+                                                    const label = s.source === 'Telefonica' ? 'TEL' : s.source === 'Tele2' ? 'T2' : 'A1';
+                                                    return `<div class="flex items-center gap-1 ${bgColor} px-1 rounded">
+                                                        <span class="${color} text-xs">${label}:</span>
+                                                        <span class="${color} text-sm ${fontWeight}">$${priceUSD.toFixed(4)}</span>
+                                                    </div>`;
+                                                }).join('')}
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-center">
+                                        <div class="flex flex-col items-center gap-1">
+                                            ${network.sources
+                                                .filter(s => s.imsiCost > 0)
+                                                .map(s => {
+                                                    const color = s.source === 'A1' ? 'text-blue-600' :
+                                                                 s.source === 'Telefonica' ? 'text-red-600' : 'text-purple-600';
+                                                    const currency = s.currency === 'EUR' ? '€' : s.currency === 'GBP' ? '£' : '$';
+                                                    return `<span class="${color} text-xs font-medium">${currency}${s.imsiCost.toFixed(2)}</span>`;
+                                                }).join('') || '-'}
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-center">
+                                        <button class="text-blue-600 hover:text-blue-800 font-medium text-sm">Details</button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                    
+                    ${filteredNetworks.length > 100 ? `
+                        <div class="bg-gray-50 px-6 py-3 text-center text-sm text-gray-600">
+                            Showing 100 of ${filteredNetworks.length} networks. Refine your search to see more.
+                        </div>
+                    ` : ''}
+                    
+                    ${filteredNetworks.length === 0 ? `
+                        <div class="p-12 text-center text-gray-500">
+                            No networks found matching "${searchTerm}"
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+        
+        // Update network details
+        function updateNetworkDetails() {
+            const detailsDiv = document.getElementById('networkDetails');
+            
+            if (!selectedNetwork) {
+                detailsDiv.innerHTML = '';
+                return;
+            }
+            
+            detailsDiv.innerHTML = `
+                <div class="bg-gradient-to-r from-blue-50 to-green-50 border-b">
+                    <div class="max-w-7xl mx-auto px-4 py-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <div>
+                                <h2 class="text-xl font-bold text-gray-900">${selectedNetwork.networkName}</h2>
+                                <p class="text-gray-600">${selectedNetwork.country} · TADIG: ${selectedNetwork.tadig}</p>
+                                ${selectedNetwork.originalNames.length > 1 ? `
+                                    <p class="text-sm text-gray-500 mt-1">
+                                        Also appears as: ${selectedNetwork.originalNames.join(', ')}
+                                    </p>
+                                ` : ''}
+                            </div>
+                            <button onclick="selectNetwork(null)" class="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-${selectedNetwork.sources.length} gap-4">
+                            ${selectedNetwork.sources.map(source => `
+                                <div class="${source.source === 'A1' ? 'bg-blue-50 border-blue-200' : source.source === 'Telefonica' ? 'bg-red-50 border-red-200' : 'bg-purple-50 border-purple-200'} border rounded-lg p-4">
+                                    <div class="flex items-center justify-between mb-3">
+                                        <span class="font-bold text-lg ${source.source === 'A1' ? 'text-blue-700' : source.source === 'Telefonica' ? 'text-red-700' : 'text-purple-700'}">
+                                            ${source.source}
+                                        </span>
+                                        <span class="text-xs text-gray-500">${normalizeBasic(source.network)}</span>
+                                    </div>
+                                    
+                                    <div class="space-y-2">
+                                        <div class="flex justify-between">
+                                            <span class="text-sm text-gray-600">Data/MB:</span>
+                                            <span class="font-bold text-lg">
+                                                ${source.currency === 'EUR' ? '€' : source.currency === 'GBP' ? '£' : '$'}${source.dataPerMB.toFixed(4)}
+                                            </span>
+                                        </div>
+                                        
+                                        ${source.imsiCost > 0 ? `
+                                            <div class="flex justify-between">
+                                                <span class="text-sm text-gray-600">IMSI Fee:</span>
+                                                <span class="font-medium">
+                                                    ${source.currency === 'EUR' ? '€' : source.currency === 'GBP' ? '£' : '$'}${source.imsiCost.toFixed(2)}
+                                                </span>
+                                            </div>
+                                        ` : ''}
+                                        
+                                        ${source.technologies && source.technologies.length > 0 ? `
+                                            <div class="flex gap-1 mt-2">
+                                                ${source.technologies.map(tech => `
+                                                    <span class="px-2 py-1 bg-white rounded text-xs font-medium">${tech}</span>
+                                                `).join('')}
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        
+                        ${selectedNetwork.bestPrice !== selectedNetwork.worstPrice ? `
+                            <div class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                <p class="text-sm">
+                                    💡 Price variance: <span class="font-bold">$${selectedNetwork.bestPrice.toFixed(4)}</span> to 
+                                    <span class="font-bold">$${selectedNetwork.worstPrice.toFixed(4)}</span> per MB
+                                    (${((selectedNetwork.worstPrice - selectedNetwork.bestPrice) / selectedNetwork.bestPrice * 100).toFixed(0)}% difference)
+                                </p>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Source filter update (only updates button styles)
+        function updateSourceButtons() {
+            const buttons = document.querySelectorAll('#sourceButtons button');
+            buttons.forEach(btn => {
+                const source = btn.dataset.source;
+                
+                if (source === 'all') {
+                    if (!selectedSource) {
+                        btn.className = 'px-4 py-2 rounded-lg font-medium transition bg-gray-800 text-white';
+                    } else {
+                        btn.className = 'px-4 py-2 rounded-lg font-medium transition bg-gray-100 text-gray-700 hover:bg-gray-200';
+                    }
+                } else if (source === selectedSource) {
+                    const colorClass = source === 'A1' ? 'source-a1' :
+                                      source === 'Telefonica' ? 'source-telefonica' : 'source-tele2';
+                    btn.className = `px-4 py-2 rounded-lg font-medium transition ${colorClass} text-white`;
+                } else {
+                    const colorClass = source === 'A1' ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' :
+                                      source === 'Telefonica' ? 'bg-red-100 text-red-700 hover:bg-red-200' : 
+                                      'bg-purple-100 text-purple-700 hover:bg-purple-200';
+                    btn.className = `px-4 py-2 rounded-lg font-medium transition ${colorClass}`;
+                }
+            });
+        }
+        
+        // Global functions
+        window.setSource = (source) => {
+            selectedSource = source;
+            updateSourceButtons();
+            updateTable();
+        };
+        
+        window.clearSearch = () => {
+            searchTerm = '';
+            document.getElementById('searchInput').value = '';
+            document.getElementById('clearBtn').classList.add('hidden');
+            updateTable();
+        };
+        
+        window.selectNetwork = (index) => {
+            selectedNetwork = index === null ? null : filteredNetworks[index];
+            updateNetworkDetails();
+        };
+        
+        // Setup search input listener (only once)
+        const searchInput = document.getElementById('searchInput');
+        const clearBtn = document.getElementById('clearBtn');
+        
+        searchInput.addEventListener('input', (e) => {
+            searchTerm = e.target.value;
+            
+            // Show/hide clear button
+            if (searchTerm) {
+                clearBtn.classList.remove('hidden');
+            } else {
+                clearBtn.classList.add('hidden');
+            }
+            
+            // Update table without losing focus
+            updateTable();
+        });
+        
+        // Prevent form submission on Enter
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+            }
+        });
+        
+        // Initial render
+        updateTable();
+    </script>
+</body>
+</html>
