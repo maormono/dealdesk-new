@@ -16,9 +16,6 @@
     "lint": "npm run lint --workspaces"
   },
   "dependencies": {
-    "@monogoto/auth": "file:../monogoto-os/packages/auth",
-    "@monogoto/types": "file:../monogoto-os/packages/types",
-    "@monogoto/parsers": "file:../monogoto-os/packages/parsers"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
