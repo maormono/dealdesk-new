@@ -1,14 +1,17 @@
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { useUser } from '../contexts/UserContext'
+import { AccessDenied } from '../pages/AccessDenied'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
 }
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user, loading, isAuthorized } = useAuth()
+  const { user, loading: authLoading, isAuthorized } = useAuth()
+  const { userRole, loading: userLoading } = useUser()
 
-  if (loading) {
+  if (authLoading || userLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -21,6 +24,11 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   if (!user || !isAuthorized) {
     return <Navigate to="/login" replace />
+  }
+
+  // Check if user has DealDesk permissions
+  if (!userRole) {
+    return <AccessDenied />
   }
 
   return <>{children}</>

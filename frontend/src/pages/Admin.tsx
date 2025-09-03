@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, DollarSign, Database, Shield, ChevronLeft, Calculator, FileText } from 'lucide-react';
+import { Settings, Users, DollarSign, Database, Shield, ChevronLeft, Calculator } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { DealRules } from '../components/admin/DealRules';
+import { UserManagement } from './UserManagement';
 import { TestWeightedPricing } from '../components/TestWeightedPricing';
 import { supabase } from '../lib/supabase';
+import { getUserDealDeskPermissions } from '../lib/permissions';
+import { AccessDenied } from './AccessDenied';
 
-type AdminTab = 'rules' | 'operators' | 'templates' | 'test';
+type AdminTab = 'rules' | 'users' | 'operators' | 'security' | 'test';
 
 export const Admin: React.FC = () => {
   const [activeTab, setActiveTab] = useState<AdminTab>('rules');
@@ -26,31 +29,13 @@ export const Admin: React.FC = () => {
         return;
       }
 
-      // Check if user has admin role
-      // First try user_profiles with user_id field
-      let { data: profile, error: profileError } = await supabase
-        .from('user_profiles')
-        .select('role')
-        .eq('user_id', user.id)
-        .single();
-      
-      // If that fails, try with id field
-      if (profileError) {
-        const result = await supabase
-          .from('user_profiles')
-          .select('role')
-          .eq('id', user.id)
-          .single();
-        profile = result.data;
-      }
+      // Check if user has admin role in DealDesk
+      const permissions = await getUserDealDeskPermissions(user.id);
+      const hasAdminAccess = permissions.role === 'admin';
 
-      // Also check hardcoded admin list (matching UserContext)
-      const adminEmails = ['maor@monogoto.io', 'israel@monogoto.io', 'asaf@monogoto.io', 'itamar@monogoto.io'];
-      const isHardcodedAdmin = adminEmails.includes(user.email || '');
-
-      if (profile?.role !== 'admin' && !isHardcodedAdmin) {
-        console.log('Access denied - not admin. User:', user.email, 'Role:', profile?.role);
-        navigate('/');
+      if (!hasAdminAccess) {
+        console.log('Access denied - not DealDesk admin. User:', user.email);
+        setIsAdmin(false);
         return;
       }
 
@@ -73,13 +58,14 @@ export const Admin: React.FC = () => {
   }
 
   if (!isAdmin) {
-    return null;
+    return <AccessDenied />;
   }
 
   const tabs = [
     { id: 'rules' as AdminTab, label: 'Deal Rules', icon: DollarSign },
-    { id: 'operators' as AdminTab, label: 'Operator Settings', icon: Database },
-    { id: 'templates' as AdminTab, label: 'Deal Templates', icon: FileText },
+    { id: 'users' as AdminTab, label: 'Users', icon: Users },
+    { id: 'operators' as AdminTab, label: 'Operators', icon: Database },
+    { id: 'security' as AdminTab, label: 'Security', icon: Shield },
     { id: 'test' as AdminTab, label: 'Test Pricing', icon: Calculator },
   ];
 
@@ -101,8 +87,8 @@ export const Admin: React.FC = () => {
                   <Settings className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-semibold text-gray-900">DealDesk Admin</h1>
-                  <p className="text-sm text-gray-500 mt-0.5">DealDesk configuration and settings</p>
+                  <h1 className="text-2xl font-semibold text-gray-900">Admin Panel</h1>
+                  <p className="text-sm text-gray-500 mt-0.5">System configuration and management</p>
                 </div>
               </div>
             </div>
@@ -137,47 +123,26 @@ export const Admin: React.FC = () => {
       <div className="py-8">
         {activeTab === 'rules' && <DealRules />}
         
+        {activeTab === 'users' && (
+          <div className="max-w-7xl mx-auto">
+            <UserManagement />
+          </div>
+        )}
+        
         {activeTab === 'operators' && (
           <div className="max-w-4xl mx-auto p-6">
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Operator Settings</h3>
-              <p className="text-gray-500 mb-4">Configure operator-specific pricing rules and preferences.</p>
-              <div className="space-y-4">
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <h4 className="font-medium text-gray-900 mb-2">Default Markup Rules</h4>
-                  <p className="text-sm text-gray-600">Set default markup percentages by operator tier</p>
-                </div>
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <h4 className="font-medium text-gray-900 mb-2">Preferred Operators</h4>
-                  <p className="text-sm text-gray-600">Mark operators as preferred for better deal scoring</p>
-                </div>
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <h4 className="font-medium text-gray-900 mb-2">Blacklist Management</h4>
-                  <p className="text-sm text-gray-600">Manage operators to exclude from deals</p>
-                </div>
-              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Operator Configuration</h3>
+              <p className="text-gray-500">Operator pricing and configuration coming soon...</p>
             </div>
           </div>
         )}
         
-        {activeTab === 'templates' && (
+        {activeTab === 'security' && (
           <div className="max-w-4xl mx-auto p-6">
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Deal Templates</h3>
-              <p className="text-gray-500 mb-4">Create and manage reusable deal templates for common scenarios.</p>
-              <div className="space-y-4">
-                <div className="p-4 bg-blue-50 rounded-lg">
-                  <h4 className="font-medium text-blue-900 mb-2">IoT Device Template</h4>
-                  <p className="text-sm text-blue-700">Standard template for IoT device deployments</p>
-                </div>
-                <div className="p-4 bg-green-50 rounded-lg">
-                  <h4 className="font-medium text-green-900 mb-2">Enterprise Mobility Template</h4>
-                  <p className="text-sm text-green-700">Template for enterprise mobility solutions</p>
-                </div>
-                <button className="w-full p-4 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-blue-500 hover:text-blue-600 transition-colors">
-                  + Create New Template
-                </button>
-              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Security Settings</h3>
+              <p className="text-gray-500">Security configuration coming soon...</p>
             </div>
           </div>
         )}

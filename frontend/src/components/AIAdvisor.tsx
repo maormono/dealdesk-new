@@ -29,7 +29,11 @@ interface QueryResult {
   suggestions?: string[];
 }
 
-export const AIAdvisor: React.FC = () => {
+interface AIAdvisorProps {
+  currency?: 'EUR' | 'USD';
+}
+
+export const AIAdvisor: React.FC<AIAdvisorProps> = ({ currency = 'USD' }) => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -40,171 +44,24 @@ export const AIAdvisor: React.FC = () => {
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const messagesContainerRef = React.useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    // Use setTimeout to ensure DOM is updated before scrolling
+    setTimeout(() => {
+      if (messagesContainerRef.current) {
+        messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+      }
+    }, 100);
+  };
+
+  // Only scroll when user explicitly submits - no automatic scrolling
 
   const processQuery = async (query: string): Promise<QueryResult> => {
     // Parse the query to extract key information
     const lowerQuery = query.toLowerCase();
     
-    // Country abbreviations and common names - comprehensive list
-    const countryMappings: Record<string, string[]> = {
-      // United Kingdom variations
-      'uk': ['United Kingdom', 'UK', 'Great Britain', 'Britain', 'England'],
-      'gb': ['United Kingdom', 'UK', 'Great Britain', 'Britain'],
-      'england': ['United Kingdom', 'UK', 'England'],
-      'britain': ['United Kingdom', 'UK', 'Great Britain', 'Britain'],
-      
-      // USA variations
-      'us': ['USA', 'United States', 'United States of America', 'US'],
-      'usa': ['USA', 'United States', 'United States of America', 'US'],
-      'states': ['USA', 'United States', 'United States of America'],
-      'america': ['USA', 'United States', 'United States of America'],
-      'united states': ['USA', 'United States', 'United States of America', 'US'],
-      
-      // Germany variations
-      'de': ['Germany', 'Deutschland', 'DE'],
-      'germany': ['Germany', 'Deutschland', 'DE'],
-      'deutschland': ['Germany', 'Deutschland', 'DE'],
-      
-      // France variations
-      'fr': ['France', 'FR'],
-      'france': ['France', 'FR'],
-      
-      // Spain variations
-      'es': ['Spain', 'España', 'ES'],
-      'spain': ['Spain', 'España', 'ES'],
-      'españa': ['Spain', 'España', 'ES'],
-      
-      // Italy variations
-      'it': ['Italy', 'Italia', 'IT'],
-      'italy': ['Italy', 'Italia', 'IT'],
-      'italia': ['Italy', 'Italia', 'IT'],
-      
-      // Netherlands variations
-      'nl': ['Netherlands', 'Holland', 'NL'],
-      'netherlands': ['Netherlands', 'Holland', 'NL'],
-      'holland': ['Netherlands', 'Holland', 'NL'],
-      
-      // Belgium variations
-      'be': ['Belgium', 'België', 'Belgique', 'BE'],
-      'belgium': ['Belgium', 'België', 'Belgique', 'BE'],
-      
-      // Switzerland variations
-      'ch': ['Switzerland', 'Swiss', 'Schweiz', 'Suisse', 'CH'],
-      'switzerland': ['Switzerland', 'Swiss', 'Schweiz', 'Suisse', 'CH'],
-      'swiss': ['Switzerland', 'Swiss', 'Schweiz', 'Suisse', 'CH'],
-      
-      // Japan variations
-      'jp': ['Japan', 'JP', '日本'],
-      'japan': ['Japan', 'JP', '日本'],
-      
-      // China variations
-      'cn': ['China', 'CN', '中国'],
-      'china': ['China', 'CN', '中国'],
-      
-      // Singapore variations
-      'sg': ['Singapore', 'SG'],
-      'singapore': ['Singapore', 'SG'],
-      
-      // South Korea variations
-      'kr': ['South Korea', 'Korea', 'KR', '한국'],
-      'korea': ['South Korea', 'Korea', 'KR', '한국'],
-      'south korea': ['South Korea', 'Korea', 'KR'],
-      
-      // Canada variations
-      'ca': ['Canada', 'CA'],
-      'canada': ['Canada', 'CA'],
-      
-      // Australia variations
-      'au': ['Australia', 'AU', 'Oz'],
-      'australia': ['Australia', 'AU', 'Oz'],
-      'oz': ['Australia', 'AU', 'Oz'],
-      
-      // India variations
-      'in': ['India', 'IN', 'Bharat'],
-      'india': ['India', 'IN', 'Bharat'],
-      
-      // Brazil variations
-      'br': ['Brazil', 'Brasil', 'BR'],
-      'brazil': ['Brazil', 'Brasil', 'BR'],
-      'brasil': ['Brazil', 'Brasil', 'BR'],
-      
-      // Mexico variations
-      'mx': ['Mexico', 'México', 'MX'],
-      'mexico': ['Mexico', 'México', 'MX'],
-      'méxico': ['Mexico', 'México', 'MX'],
-      
-      // Russia variations
-      'ru': ['Russia', 'Russian Federation', 'RU', 'Россия'],
-      'russia': ['Russia', 'Russian Federation', 'RU', 'Россия'],
-      
-      // UAE variations
-      'ae': ['UAE', 'United Arab Emirates', 'AE', 'Emirates'],
-      'uae': ['UAE', 'United Arab Emirates', 'AE', 'Emirates'],
-      'emirates': ['UAE', 'United Arab Emirates', 'AE', 'Emirates'],
-      
-      // Saudi Arabia variations
-      'sa': ['Saudi Arabia', 'SA', 'KSA'],
-      'saudi': ['Saudi Arabia', 'SA', 'KSA'],
-      'ksa': ['Saudi Arabia', 'SA', 'KSA']
-    };
-    
-    // Extract region/country filters
-    const regions: Record<string, string[]> = {
-      'europe': ['Germany', 'France', 'Italy', 'Spain', 'United Kingdom', 'Netherlands', 'Belgium', 'Poland', 'Austria', 'Switzerland'],
-      'asia': ['Japan', 'China', 'India', 'Singapore', 'South Korea', 'Thailand', 'Indonesia', 'Malaysia'],
-      'americas': ['USA', 'Canada', 'Mexico', 'Brazil', 'Argentina', 'Chile'],
-      'africa': ['South Africa', 'Nigeria', 'Kenya', 'Egypt', 'Morocco']
-    };
-
-    let countryFilter: string[] = [];
-    
-    // Check for specific country mentions first
-    for (const [key, countryNames] of Object.entries(countryMappings)) {
-      // More precise matching for abbreviations
-      const regex = new RegExp(`\\b${key}\\b`, 'i');
-      if (regex.test(query)) {
-        countryFilter = countryNames;
-        break;
-      }
-      // Also check if query contains any of the country name variations
-      for (const name of countryNames) {
-        if (lowerQuery.includes(name.toLowerCase())) {
-          countryFilter = countryNames;
-          break;
-        }
-      }
-      if (countryFilter.length > 0) break;
-    }
-    
-    // If no specific country, check for regions
-    if (countryFilter.length === 0) {
-      for (const [region, countries] of Object.entries(regions)) {
-        if (lowerQuery.includes(region)) {
-          countryFilter = countries;
-          break;
-        }
-      }
-    }
-
-    // Extract price filters
-    const priceMatch = lowerQuery.match(/less than \$?(\d+(?:\.\d+)?)|under \$?(\d+(?:\.\d+)?)|below \$?(\d+(?:\.\d+)?)/);
-    const maxPrice = priceMatch ? parseFloat(priceMatch[1] || priceMatch[2] || priceMatch[3]) : null;
-
-    // Extract service type
-    const isDataQuery = lowerQuery.includes('data') || lowerQuery.includes('gb') || lowerQuery.includes('gigabyte');
-    const isSmsQuery = lowerQuery.includes('sms');
-    const isIoTQuery = lowerQuery.includes('iot') || lowerQuery.includes('cat-m') || lowerQuery.includes('nb-iot');
-    const isImsiQuery = lowerQuery.includes('imsi');
-    const isBestPriceQuery = lowerQuery.includes('best') || lowerQuery.includes('cheapest') || lowerQuery.includes('lowest') || lowerQuery.includes('deal');
-    
-    console.log('Query analysis:', {
-      query: lowerQuery,
-      countryFilter,
-      isBestPriceQuery,
-      isDataQuery
-    });
-
-    // Build and execute the query - use the same structure as PricingTable
+    // Build and execute the query first to get all available data
     const { data: networksData, error } = await supabase
       .from('networks')
       .select(`
@@ -231,7 +88,7 @@ export const AIAdvisor: React.FC = () => {
       throw error;
     }
     
-    // Transform the data to match our interface (same as PricingTable)
+    // Transform the data to match our interface
     const transformedData: NetworkData[] = [];
     
     networksData?.forEach(network => {
@@ -254,31 +111,80 @@ export const AIAdvisor: React.FC = () => {
     
     const data = transformedData;
     
-    console.log('Fetched networks from database:', data?.length || 0);
+    // Get unique countries from actual database
+    const availableCountries = [...new Set(data.map(n => n.country))].filter(Boolean);
+    console.log('Available countries in database:', availableCountries.length, 'countries');
+    
+    // Dynamic country detection from query
+    let detectedCountry: string | null = null;
+    
+    // Check if any country from the database is mentioned in the query
+    for (const country of availableCountries) {
+      // Check for exact match or partial match (case-insensitive)
+      const countryLower = country.toLowerCase();
+      if (lowerQuery.includes(countryLower) || 
+          // Also check if country name is at word boundary
+          new RegExp(`\\b${countryLower}\\b`).test(lowerQuery)) {
+        detectedCountry = country;
+        break;
+      }
+    }
+    
+    // Also check for common country codes (2-letter ISO codes)
+    const countryCodeMatch = lowerQuery.match(/\b([a-z]{2})\b/);
+    if (!detectedCountry && countryCodeMatch) {
+      const code = countryCodeMatch[1].toUpperCase();
+      // Try to find a country that starts with or contains this code
+      detectedCountry = availableCountries.find(c => 
+        c.toUpperCase().startsWith(code) || 
+        c.toUpperCase().includes(code)
+      ) || null;
+    }
+
+    // Extract price filters
+    const priceMatch = lowerQuery.match(/less than \$?(\d+(?:\.\d+)?)|under \$?(\d+(?:\.\d+)?)|below \$?(\d+(?:\.\d+)?)/);
+    const maxPrice = priceMatch ? parseFloat(priceMatch[1] || priceMatch[2] || priceMatch[3]) : null;
+
+    // Extract service type
+    const isDataQuery = lowerQuery.includes('data') || lowerQuery.includes('gb') || lowerQuery.includes('gigabyte');
+    const isSmsQuery = lowerQuery.includes('sms');
+    const isIoTQuery = lowerQuery.includes('iot') || lowerQuery.includes('cat-m') || lowerQuery.includes('nb-iot') || lowerQuery.includes('lte-m');
+    const isImsiQuery = lowerQuery.includes('imsi');
+    const isBestPriceQuery = lowerQuery.includes('best') || lowerQuery.includes('cheapest') || lowerQuery.includes('lowest') || lowerQuery.includes('deal');
+    
+    // Technology detection
+    const technologies = {
+      '2g': lowerQuery.includes('2g') || lowerQuery.includes('gsm') || lowerQuery.includes('gprs'),
+      '3g': lowerQuery.includes('3g') || lowerQuery.includes('umts'),
+      '4g': lowerQuery.includes('4g') || lowerQuery.includes('lte'),
+      '5g': lowerQuery.includes('5g'),
+      'catm': lowerQuery.includes('cat-m') || lowerQuery.includes('lte-m'),
+      'nbiot': lowerQuery.includes('nb-iot') || lowerQuery.includes('nbiot')
+    };
+    
+    console.log('Query analysis:', {
+      query: lowerQuery,
+      detectedCountry,
+      isBestPriceQuery,
+      isDataQuery,
+      technologies
+    });
 
     // Filter and process results based on price criteria
     let filteredData = data || [];
     let answer = '';
-    
-    // Debug: Log unique countries
-    const uniqueCountries = [...new Set(filteredData.map(n => n.country))];
-    console.log('Unique countries in data:', uniqueCountries);
 
     // Handle "best price" queries for specific countries
-    if (isBestPriceQuery && countryFilter.length > 0) {
-      console.log('Looking for best price in:', countryFilter);
-      // Use partial matching for any of the country name variations
-      const countryNetworks = filteredData.filter(n => {
-        const countryLower = n.country.toLowerCase();
-        // Check if the network's country matches any of our search variations
-        return countryFilter.some(searchCountry => 
-          countryLower.includes(searchCountry.toLowerCase()) ||
-          searchCountry.toLowerCase().includes(countryLower)
-        );
-      });
+    if (isBestPriceQuery && detectedCountry) {
+      console.log('Looking for best price in:', detectedCountry);
+      
+      // Filter networks for the detected country
+      const countryNetworks = filteredData.filter(n => 
+        n.country?.toLowerCase() === detectedCountry.toLowerCase()
+      );
       console.log('Found networks:', countryNetworks.length);
       
-      const displayCountry = countryFilter[0]; // Use first variation for display
+      const displayCountry = detectedCountry;
       
       if (countryNetworks.length === 0) {
         answer = `No networks found for ${displayCountry}. Available data shows ${filteredData.length} total networks. Try searching without country filter to see all available networks.`;
@@ -290,19 +196,26 @@ export const AIAdvisor: React.FC = () => {
         
         if (sortedByData.length > 0) {
           const best = sortedByData[0];
-          const bestPriceGB = (best.data_cost || 0) * 1024;
+          const currencySymbol = currency === 'EUR' ? '€' : '$';
+          // Convert EUR to USD if needed (assuming 1.1 exchange rate)
+          const exchangeRate = currency === 'USD' ? 1.1 : 1;
+          const convertedDataCost = (best.data_cost || 0) * exchangeRate;
+          const convertedPriceGB = convertedDataCost * 1024;
           
           answer = `📍 **Best prices in ${displayCountry}:**\n\n`;
           answer += `🏆 **Cheapest data**: ${best.network_name} (${best.operator})\n`;
-          answer += `   • €${(best.data_cost || 0).toFixed(4)}/MB (€${bestPriceGB.toFixed(2)}/GB)\n`;
+          answer += `   • ${currencySymbol}${convertedDataCost.toFixed(4)}/MB (${currencySymbol}${convertedPriceGB.toFixed(2)}/GB)\n`;
           answer += `   • TADIG: ${best.tadig}\n\n`;
           
           // Show top 3 for comparison
           if (sortedByData.length > 1) {
             answer += `**Other competitive options:**\n`;
             sortedByData.slice(1, 4).forEach((network, idx) => {
-              const priceGB = (network.data_cost || 0) * 1024;
-              answer += `${idx + 2}. ${network.network_name} (${network.operator}): €${priceGB.toFixed(2)}/GB\n`;
+              const exchangeRate = currency === 'USD' ? 1.1 : 1;
+              const convertedDataCost = (network.data_cost || 0) * exchangeRate;
+              const priceGB = convertedDataCost * 1024;
+              const currencySymbol = currency === 'EUR' ? '€' : '$';
+              answer += `${idx + 2}. ${network.network_name} (${network.operator}): ${currencySymbol}${priceGB.toFixed(2)}/GB\n`;
             });
           }
           
@@ -316,11 +229,17 @@ export const AIAdvisor: React.FC = () => {
             .sort((a, b) => (a.imsi_cost || 0) - (b.imsi_cost || 0))[0];
           
           if (bestSMS) {
-            answer += `\n📱 **Cheapest SMS**: ${bestSMS.network_name} (${bestSMS.operator}) - €${(bestSMS.sms_cost || 0).toFixed(3)}\n`;
+            const exchangeRate = currency === 'USD' ? 1.1 : 1;
+            const convertedSMS = (bestSMS.sms_cost || 0) * exchangeRate;
+            const currencySymbol = currency === 'EUR' ? '€' : '$';
+            answer += `\n📱 **Cheapest SMS**: ${bestSMS.network_name} (${bestSMS.operator}) - ${currencySymbol}${convertedSMS.toFixed(3)}\n`;
           }
           
           if (bestIMSI) {
-            answer += `💳 **Lowest IMSI fee**: ${bestIMSI.network_name} (${bestIMSI.operator}) - €${(bestIMSI.imsi_cost || 0).toFixed(2)}\n`;
+            const exchangeRate = currency === 'USD' ? 1.1 : 1;
+            const convertedIMSI = (bestIMSI.imsi_cost || 0) * exchangeRate;
+            const currencySymbol = currency === 'EUR' ? '€' : '$';
+            answer += `💳 **Lowest IMSI fee**: ${bestIMSI.network_name} (${bestIMSI.operator}) - ${currencySymbol}${convertedIMSI.toFixed(2)}\n`;
           }
           
           answer += `\n📊 Total networks analyzed in ${displayCountry}: ${countryNetworks.length}`;
@@ -328,26 +247,6 @@ export const AIAdvisor: React.FC = () => {
           answer = `Found ${countryNetworks.length} networks in ${displayCountry}, but no data pricing available.`;
         }
       }
-    } else if (isDataQuery && maxPrice !== null) {
-      // Convert price per MB to price per GB (multiply by 1024)
-      const maxPricePerMB = maxPrice / 1024;
-      filteredData = filteredData.filter(n => n.data_cost && n.data_cost <= maxPricePerMB);
-      
-      const uniqueCountries = [...new Set(filteredData.map(n => n.country))];
-      answer = `Found ${uniqueCountries.length} countries with data costs under $${maxPrice}/GB:\n\n`;
-      
-      uniqueCountries.forEach(country => {
-        const networks = filteredData.filter(n => n.country === country);
-        const avgPrice = networks.reduce((sum, n) => sum + (n.data_cost || 0) * 1024, 0) / networks.length;
-        answer += `• **${country}**: Average $${avgPrice.toFixed(2)}/GB (${networks.length} networks)\n`;
-      });
-    } else if (isSmsQuery) {
-      filteredData = filteredData.filter(n => n.sms_cost !== null && n.sms_cost !== undefined)
-        .sort((a, b) => (a.sms_cost || 0) - (b.sms_cost || 0)).slice(0, 10);
-      answer = `Top 10 cheapest SMS rates:\n\n`;
-      filteredData.forEach(n => {
-        answer += `• **${n.network_name}** (${n.country}): €${(n.sms_cost || 0).toFixed(3)} per SMS\n`;
-      });
     } else if (isIoTQuery) {
       const catMNetworks = filteredData.filter(n => n.lte_m);
       const nbIotNetworks = filteredData.filter(n => n.nb_iot);
@@ -355,28 +254,106 @@ export const AIAdvisor: React.FC = () => {
       answer += `**CAT-M/LTE-M**: ${catMNetworks.length} networks across ${[...new Set(catMNetworks.map(n => n.country))].length} countries\n`;
       answer += `**NB-IoT**: ${nbIotNetworks.length} networks across ${[...new Set(nbIotNetworks.map(n => n.country))].length} countries\n\n`;
       
-      const topCountries = [...new Set(filteredData.map(n => n.country))].slice(0, 5);
-      answer += `Top IoT countries: ${topCountries.join(', ')}`;
+      if (detectedCountry) {
+        const countryIoT = filteredData.filter(n => 
+          n.country?.toLowerCase() === detectedCountry.toLowerCase() && 
+          (n.lte_m || n.nb_iot)
+        );
+        if (countryIoT.length > 0) {
+          answer += `\n**IoT in ${detectedCountry}**:\n`;
+          countryIoT.forEach(n => {
+            const techs = [];
+            if (n.lte_m) techs.push('LTE-M');
+            if (n.nb_iot) techs.push('NB-IoT');
+            answer += `• ${n.network_name}: ${techs.join(', ')}\n`;
+          });
+        }
+      } else {
+        const topCountries = [...new Set([...catMNetworks, ...nbIotNetworks].map(n => n.country))].slice(0, 5);
+        answer += `Top IoT countries: ${topCountries.join(', ')}`;
+      }
+    } else if (isDataQuery && maxPrice !== null) {
+      // Convert price per MB to price per GB (multiply by 1024)
+      const maxPricePerMB = maxPrice / 1024;
+      filteredData = filteredData.filter(n => n.data_cost && n.data_cost <= maxPricePerMB);
+      
+      const uniqueCountries = [...new Set(filteredData.map(n => n.country))];
+      const currencySymbol = currency === 'EUR' ? '€' : '$';
+      const exchangeRate = currency === 'USD' ? 1.1 : 1;
+      answer = `Found ${uniqueCountries.length} countries with data costs under ${currencySymbol}${maxPrice}/GB:\n\n`;
+      
+      uniqueCountries.slice(0, 10).forEach(country => {
+        const networks = filteredData.filter(n => n.country === country);
+        const avgPrice = networks.reduce((sum, n) => sum + (n.data_cost || 0) * 1024 * exchangeRate, 0) / networks.length;
+        answer += `• **${country}**: Average ${currencySymbol}${avgPrice.toFixed(2)}/GB (${networks.length} networks)\n`;
+      });
+      
+      if (uniqueCountries.length > 10) {
+        answer += `\n... and ${uniqueCountries.length - 10} more countries`;
+      }
+    } else if (isSmsQuery) {
+      filteredData = filteredData.filter(n => n.sms_cost !== null && n.sms_cost !== undefined)
+        .sort((a, b) => (a.sms_cost || 0) - (b.sms_cost || 0)).slice(0, 10);
+      const currencySymbol = currency === 'EUR' ? '€' : '$';
+      const exchangeRate = currency === 'USD' ? 1.1 : 1;
+      answer = `Top 10 cheapest SMS rates:\n\n`;
+      filteredData.forEach(n => {
+        const convertedSMS = (n.sms_cost || 0) * exchangeRate;
+        answer += `• **${n.network_name}** (${n.country}): ${currencySymbol}${convertedSMS.toFixed(3)} per SMS\n`;
+      });
     } else if (isImsiQuery) {
       filteredData = filteredData.filter(n => n.imsi_cost !== null && n.imsi_cost !== undefined)
         .sort((a, b) => (a.imsi_cost || 0) - (b.imsi_cost || 0)).slice(0, 10);
+      const currencySymbol = currency === 'EUR' ? '€' : '$';
+      const exchangeRate = currency === 'USD' ? 1.1 : 1;
       answer = `Top 10 lowest IMSI fees:\n\n`;
       filteredData.forEach(n => {
-        answer += `• **${n.network_name}** (${n.country}): €${(n.imsi_cost || 0).toFixed(2)}\n`;
+        const convertedIMSI = (n.imsi_cost || 0) * exchangeRate;
+        answer += `• **${n.network_name}** (${n.country}): ${currencySymbol}${convertedIMSI.toFixed(2)}\n`;
       });
-    } else {
-      // General query response - show what countries are available
-      const uniqueCountries = [...new Set(filteredData.map(n => n.country))].sort();
-      answer = `Found ${filteredData.length} networks across ${uniqueCountries.length} countries.\n\n`;
+    } else if (detectedCountry && !isBestPriceQuery) {
+      // Handle general country queries
+      const countryNetworks = filteredData.filter(n => 
+        n.country?.toLowerCase() === detectedCountry.toLowerCase()
+      );
       
-      if (countryFilter.length > 0 && filteredData.length === 0) {
-        answer += `⚠️ No data found for "${countryFilter.join(', ')}". This might be because:\n`;
-        answer += `• The country name doesn't match the database\n`;
-        answer += `• No networks are available for this country\n\n`;
+      if (countryNetworks.length > 0) {
+        answer = `📍 **${detectedCountry} Network Information:**\n\n`;
+        answer += `• Total networks: ${countryNetworks.length}\n`;
+        
+        const avgDataCost = countryNetworks
+          .filter(n => n.data_cost > 0)
+          .reduce((sum, n) => sum + n.data_cost, 0) / countryNetworks.filter(n => n.data_cost > 0).length;
+        
+        if (avgDataCost) {
+          const exchangeRate = currency === 'USD' ? 1.1 : 1;
+          const convertedDataCost = avgDataCost * exchangeRate;
+          const currencySymbol = currency === 'EUR' ? '€' : '$';
+          answer += `• Average data cost: ${currencySymbol}${convertedDataCost.toFixed(4)}/MB (${currencySymbol}${(convertedDataCost * 1024).toFixed(2)}/GB)\n`;
+        }
+        
+        const iotNetworks = countryNetworks.filter(n => n.lte_m || n.nb_iot);
+        if (iotNetworks.length > 0) {
+          answer += `• IoT-enabled networks: ${iotNetworks.length}\n`;
+        }
+        
+        const operators = [...new Set(countryNetworks.map(n => n.operator))];
+        answer += `• Operators: ${operators.slice(0, 5).join(', ')}${operators.length > 5 ? '...' : ''}`;
+      } else {
+        answer = `No networks found for ${detectedCountry} in the database.`;
       }
+    } else {
+      // General query response
+      const uniqueCountries = [...new Set(filteredData.map(n => n.country))].sort();
+      answer = `I can help you analyze pricing data across ${filteredData.length} networks in ${uniqueCountries.length} countries.\n\n`;
       
-      answer += `Available countries include: ${uniqueCountries.slice(0, 10).join(', ')}${uniqueCountries.length > 10 ? '...' : ''}\n\n`;
-      answer += `Please be more specific about what you'd like to know, or try searching for one of the available countries.`;
+      answer += `**Try asking about:**\n`;
+      answer += `• Specific countries (e.g., "What's the best price in Germany?")\n`;
+      answer += `• Technologies (e.g., "Which networks support NB-IoT?")\n`;
+      answer += `• Price comparisons (e.g., "Show data costs under $1/GB")\n`;
+      answer += `• Service types (SMS, IMSI, data rates)\n\n`;
+      
+      answer += `**Available countries include:** ${uniqueCountries.slice(0, 15).join(', ')}${uniqueCountries.length > 15 ? '...' : ''}`;
     }
 
     const suggestions = [
@@ -414,6 +391,8 @@ export const AIAdvisor: React.FC = () => {
       };
 
       setMessages(prev => [...prev, assistantMessage]);
+      // Only scroll after the full conversation is complete
+      setTimeout(() => scrollToBottom(), 200);
     } catch (error) {
       console.error('Error processing query:', error);
       const errorMessage: Message = {
@@ -423,6 +402,7 @@ export const AIAdvisor: React.FC = () => {
         timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMessage]);
+      setTimeout(() => scrollToBottom(), 200);
     } finally {
       setLoading(false);
     }
@@ -444,7 +424,7 @@ export const AIAdvisor: React.FC = () => {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((message) => (
           <div
             key={message.id}

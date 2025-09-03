@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { IoTBadgesModern } from './IoTBadgesModern';
-import { NotesDisplay, NotesDictionary } from './NotesDisplay';
+import { NotesDisplay } from './NotesDisplay';
 import { supabase } from '../lib/supabase';
 import { useUser } from '../contexts/UserContext';
-import { ChevronDown, ChevronUp, Info, Wifi, Smartphone, Globe, DollarSign, Euro, Lock } from 'lucide-react';
+import { ChevronDown, ChevronUp, Wifi, Smartphone, Globe, DollarSign, Euro, Lock, Download, Eye, EyeOff, Filter } from 'lucide-react';
 import '../styles/monogoto-theme.css';
 
 interface NetworkData {
@@ -63,16 +62,23 @@ const operatorConfig = {
   }
 };
 
-export const PricingTable: React.FC = () => {
+interface PricingTableProps {
+  currency?: 'EUR' | 'USD';
+  onCurrencyChange?: (currency: 'EUR' | 'USD') => void;
+}
+
+export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurrency, onCurrencyChange }) => {
   const { userRole, getPriceLabel, formatPrice: formatRolePrice, isSales } = useUser();
   const [networks, setNetworks] = useState<NetworkData[]>([]);
+  const [allNetworks, setAllNetworks] = useState<NetworkData[]>([]); // Store all networks including hidden ones
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [currency, setCurrency] = useState<'EUR' | 'USD'>('USD');
+  const [currency, setCurrency] = useState<'EUR' | 'USD'>(propCurrency || 'USD');
   const [dataUnit, setDataUnit] = useState<'MB' | 'GB'>('MB');
   const [exchangeRate, setExchangeRate] = useState(1.1); // Default EUR to USD rate
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
-  const [showDictionary, setShowDictionary] = useState(false);
+  const [selectedOperators, setSelectedOperators] = useState<Set<string>>(new Set());
+  const [showHiddenNetworks, setShowHiddenNetworks] = useState(false);
   
   // Price threshold: $1/MB = approximately €0.90/MB at 1.1 exchange rate
   const MAX_REASONABLE_PRICE_EUR_MB = 0.90;
@@ -81,6 +87,12 @@ export const PricingTable: React.FC = () => {
     loadNetworks();
     fetchExchangeRate();
   }, []);
+
+  useEffect(() => {
+    if (propCurrency && propCurrency !== currency) {
+      setCurrency(propCurrency);
+    }
+  }, [propCurrency]);
 
   const fetchExchangeRate = async () => {
     try {
@@ -129,45 +141,13 @@ export const PricingTable: React.FC = () => {
 
   const loadNetworks = async () => {
     try {
-      // Always try to use the role-based pricing RPC function first
+      // Use the role-based pricing view/function
       const { data: pricingData, error: pricingError } = await supabase
         .rpc('get_role_based_pricing');
 
-      if (!pricingError && pricingData) {
-        console.log(`Loaded ${pricingData.length} networks with role-based pricing (Sales mode: ${isSales})`);
-        
-        // Transform role-based pricing data
-        const transformedData: NetworkData[] = pricingData.map((item: any) => ({
-          network_name: item.network_name,
-          country: item.country,
-          tadig: item.tadig,
-          operator: 'Monogoto',
-          data_cost: (item.data_price_cents_per_mb || 0) / 100, // Convert cents to euros
-          sms_cost: (item.sms_price_cents || 0) / 100,
-          imsi_cost: (item.imsi_price_cents || 0) / 100,
-          notes: '',
-          lte_m: false,
-          nb_iot: false,
-          restrictions: '',
-          is_actual_cost: item.is_actual_cost,
-          markup_applied: item.markup_applied
-        }));
-
-        // Filter out unrealistic prices
-        const filteredData = transformedData.filter(network => {
-          const maxPrice = MAX_REASONABLE_PRICE_EUR_MB * (network.is_actual_cost ? 1 : 1.5);
-          if (network.data_cost > maxPrice) {
-            console.log(`Skipping unrealistic price: ${network.network_name} - ${network.country} - €${network.data_cost}/MB`);
-            return false;
-          }
-          return true;
-        });
-
-        setNetworks(filteredData);
-      } else {
-        // Fallback: Load networks with client-side markup application
-        console.log('Role-based pricing failed, using fallback with client-side markup');
-        
+      if (pricingError) {
+        console.error('Error fetching role-based pricing:', pricingError);
+        // Fallback to regular pricing if role-based fails
         const { data: networksData, error: networksError } = await supabase
           .from('networks')
           .select(`
@@ -193,25 +173,19 @@ export const PricingTable: React.FC = () => {
 
         if (networksError) throw networksError;
 
-        // Transform the data with client-side markup
+        // Transform the data to match our interface
         const transformedData: NetworkData[] = [];
         
         networksData?.forEach(network => {
           network.network_pricing?.forEach((pricing: any) => {
             const dataPrice = pricing.data_per_mb || 0;
             
-            // Apply role-based markup if user is sales (1.5x = 50% markup)
-            const markupMultiplier = isSales ? 1.5 : 1.0;
-            const adjustedDataPrice = dataPrice * markupMultiplier;
-            const adjustedSmsPrice = (pricing.sms_mo || pricing.sms_mt || 0) * markupMultiplier;
-            const adjustedImsiPrice = (pricing.imsi_access_fee || 0) * markupMultiplier;
+            // Apply role-based markup if user is sales
+            const adjustedDataPrice = isSales ? dataPrice * 1.5 : dataPrice;
+            const adjustedSmsPrice = isSales ? (pricing.sms_mo || pricing.sms_mt || 0) * 1.5 : (pricing.sms_mo || pricing.sms_mt || 0);
+            const adjustedImsiPrice = isSales ? (pricing.imsi_access_fee || 0) * 1.5 : (pricing.imsi_access_fee || 0);
             
-            // Skip networks with unrealistic pricing
-            if (adjustedDataPrice > MAX_REASONABLE_PRICE_EUR_MB * markupMultiplier) {
-              console.log(`Skipping unrealistic price: ${network.network_name} - ${network.country} - €${adjustedDataPrice}/MB`);
-              return;
-            }
-            
+            // Don't skip networks, but mark them for filtering
             transformedData.push({
               network_name: network.network_name,
               country: network.country,
@@ -223,13 +197,36 @@ export const PricingTable: React.FC = () => {
               notes: pricing.notes,
               lte_m: pricing.lte_m || false,
               nb_iot: pricing.nb_iot || false,
-              restrictions: pricing.notes,
-              is_actual_cost: !isSales,
-              markup_applied: isSales ? 50.0 : 0.0
+              restrictions: pricing.notes
             });
           });
         });
 
+        // Store all networks and filter hidden ones
+        setAllNetworks(transformedData);
+        const visibleNetworks = transformedData.filter(n => {
+          const price = n.data_cost;
+          return price <= MAX_REASONABLE_PRICE_EUR_MB * (isSales ? 1.5 : 1);
+        });
+        setNetworks(visibleNetworks);
+      } else {
+        // Use role-based pricing data
+        const transformedData: NetworkData[] = pricingData?.map((item: any) => ({
+          network_name: item.network_name,
+          country: item.country,
+          tadig: item.tadig,
+          operator: 'Monogoto',
+          data_cost: (item.data_price_cents_per_mb || 0) / 100, // Convert cents to euros
+          sms_cost: (item.sms_price_cents || 0) / 100,
+          imsi_cost: (item.imsi_price_cents || 0) / 100,
+          notes: '',
+          lte_m: false,
+          nb_iot: false,
+          restrictions: ''
+        })) || [];
+
+        // For role-based pricing, set both
+        setAllNetworks(transformedData);
         setNetworks(transformedData);
       }
     } catch (error) {
@@ -272,7 +269,15 @@ export const PricingTable: React.FC = () => {
     return Object.values(grouped);
   };
 
-  const filteredNetworks = networks.filter(network => {
+  // Apply show/hide toggle
+  const visibleNetworks = showHiddenNetworks ? allNetworks : networks;
+  
+  const filteredNetworks = visibleNetworks.filter(network => {
+    // Apply operator filter
+    if (selectedOperators.size > 0 && !selectedOperators.has(network.operator)) {
+      return false;
+    }
+    
     if (!searchTerm) return true;
     const search = searchTerm.toLowerCase().trim();
     
@@ -300,6 +305,48 @@ export const PricingTable: React.FC = () => {
   });
 
   const groupedNetworks = groupNetworks(filteredNetworks);
+  
+  // Export functionality
+  const exportToCSV = () => {
+    const headers = ['Network', 'Country', 'TADIG', 'Operator', `Data (${currency}/${dataUnit})`, `SMS (${currency})`, `IMSI (${currency})`, 'LTE-M', 'NB-IoT', 'Notes'];
+    const rows = filteredNetworks.map(network => [
+      network.network_name,
+      network.country,
+      network.tadig,
+      network.operator,
+      formatDataPrice(network.data_cost),
+      formatCurrency(network.sms_cost, 3),
+      formatCurrency(network.imsi_cost, 2),
+      network.lte_m ? 'Yes' : 'No',
+      network.nb_iot ? 'Yes' : 'No',
+      network.notes || ''
+    ]);
+    
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `network_pricing_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+  
+  const toggleOperator = (operator: string) => {
+    const newSelected = new Set(selectedOperators);
+    if (newSelected.has(operator)) {
+      newSelected.delete(operator);
+    } else {
+      newSelected.add(operator);
+    }
+    setSelectedOperators(newSelected);
+  };
 
   const toggleRowExpansion = (index: number) => {
     const newExpanded = new Set(expandedRows);
@@ -323,45 +370,14 @@ export const PricingTable: React.FC = () => {
     <div className="w-full">
       {/* Pricing Notice for Sales Users */}
       {isSales && (
-        <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-100 rounded-full">
-              <Lock className="w-5 h-5 text-blue-600" />
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold text-blue-900">Customer Pricing View</h3>
-              <p className="text-xs text-blue-700 mt-0.5">
-                All prices shown are customer-ready with 50% markup included. Use these prices for quotes and proposals.
-              </p>
-            </div>
-          </div>
+        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
+          <Lock className="w-4 h-4 text-blue-600" />
+          <span className="text-sm text-blue-800">
+            <strong>Customer Pricing Mode:</strong> All prices shown include standard markup for customer proposals.
+          </span>
         </div>
       )}
       
-      {/* Dictionary Panel */}
-      <div className="mb-4">
-        <button
-          onClick={() => setShowDictionary(!showDictionary)}
-          className="w-full px-4 py-3 bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-200 transition-all flex items-center justify-between rounded-lg border border-gray-200"
-        >
-          <div className="flex items-center gap-2">
-            <Info className="w-5 h-5 text-gray-600" />
-            <span className="text-sm font-semibold text-gray-700">Notes Dictionary & Legend</span>
-          </div>
-          {showDictionary ? (
-            <ChevronUp className="w-4 h-4 text-gray-500" />
-          ) : (
-            <ChevronDown className="w-4 h-4 text-gray-500" />
-          )}
-        </button>
-        
-        {showDictionary && (
-          <div className="mt-4">
-            <NotesDictionary />
-          </div>
-        )}
-      </div>
-
       {/* Search Bar and Controls - Apple Style */}
       <div className="mb-6">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
@@ -375,6 +391,16 @@ export const PricingTable: React.FC = () => {
                 className="w-full px-4 py-3 bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]/50 focus:bg-white transition-all placeholder-gray-400"
               />
             </div>
+            
+            {/* Export Button */}
+            <button
+              onClick={exportToCSV}
+              className="flex items-center gap-2 px-4 py-2 bg-[#5B9BD5] text-white rounded-xl hover:bg-[#5B9BD5]/90 transition-all font-medium text-sm"
+              title="Export to CSV"
+            >
+              <Download className="w-4 h-4" />
+              Export
+            </button>
             
             {/* Data Unit Toggle - Pill Style */}
             <div className="flex items-center bg-gray-50 rounded-xl p-1">
@@ -403,7 +429,10 @@ export const PricingTable: React.FC = () => {
             {/* Currency Toggle - Pill Style */}
             <div className="flex items-center bg-gray-50 rounded-xl p-1">
               <button
-                onClick={() => setCurrency('USD')}
+                onClick={() => {
+                  setCurrency('USD');
+                  onCurrencyChange?.('USD');
+                }}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                   currency === 'USD' 
                     ? 'bg-white text-[#5B9BD5] shadow-sm' 
@@ -413,7 +442,10 @@ export const PricingTable: React.FC = () => {
                 USD $
               </button>
               <button
-                onClick={() => setCurrency('EUR')}
+                onClick={() => {
+                  setCurrency('EUR');
+                  onCurrencyChange?.('EUR');
+                }}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                   currency === 'EUR' 
                     ? 'bg-white text-[#5B9BD5] shadow-sm' 
@@ -424,16 +456,67 @@ export const PricingTable: React.FC = () => {
               </button>
             </div>
           </div>
+          
+          {/* Filter Controls Row */}
+          <div className="mt-4 flex gap-3 items-center">
+            {/* Operator Filter */}
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-gray-500" />
+              <span className="text-sm text-gray-600 mr-2">Operators:</span>
+              <div className="flex gap-2">
+                {['A1', 'Telefonica', 'Tele2'].map(operator => {
+                  const config = operatorConfig[operator as keyof typeof operatorConfig];
+                  return (
+                    <button
+                      key={operator}
+                      onClick={() => toggleOperator(operator)}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all border ${
+                        selectedOperators.has(operator)
+                          ? `${config.bgColor} ${config.color} ${config.borderColor} border-2`
+                          : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
+                      }`}
+                    >
+                      {config.label} {operator}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            
+            {/* Show Hidden Networks Toggle */}
+            <div className="flex items-center gap-2 ml-auto">
+              <button
+                onClick={() => setShowHiddenNetworks(!showHiddenNetworks)}
+                className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium transition-all border ${
+                  showHiddenNetworks
+                    ? 'bg-orange-50 text-orange-600 border-orange-200'
+                    : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
+                }`}
+              >
+                {showHiddenNetworks ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                {showHiddenNetworks ? 'Showing All' : 'Hidden Networks'}
+                <span className="px-1.5 py-0.5 bg-white rounded text-xs">
+                  {showHiddenNetworks ? allNetworks.length - networks.length : 0}
+                </span>
+              </button>
+            </div>
+          </div>
       
           {/* Active filter indicator */}
-          {searchTerm && (
+          {(searchTerm || selectedOperators.size > 0) && (
             <div className="mt-3 flex items-center gap-2 text-sm text-gray-500">
-              <span>Showing results for: <strong className="text-gray-700">{searchTerm}</strong></span>
+              <span>Active filters: 
+                {searchTerm && <strong className="text-gray-700 ml-1">"{searchTerm}"</strong>}
+                {selectedOperators.size > 0 && <strong className="text-gray-700 ml-1">{Array.from(selectedOperators).join(', ')}</strong>}
+              </span>
               <button
-                onClick={() => setSearchTerm('')}
+                onClick={() => {
+                  setSearchTerm('');
+                  setSelectedOperators(new Set());
+                }}
                 className="text-[#5B9BD5] hover:text-[#5B9BD5]/80 font-medium"
               >
-                Clear
+                Clear All
               </button>
             </div>
           )}
@@ -444,19 +527,6 @@ export const PricingTable: React.FC = () => {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-8">
         <div className="group bg-white rounded-2xl p-4 shadow-sm hover:shadow-lg transition-all duration-500 border border-gray-100">
           <div className="flex items-center justify-between mb-2">
-            <Globe className="w-5 h-5 text-[#5B9BD5] opacity-70" />
-            <span className="text-xs font-medium text-gray-400">TOTAL</span>
-          </div>
-          <div className="flex items-baseline space-x-2">
-            <div className="text-xl font-semibold text-gray-900 tracking-tight">
-              {new Set(filteredNetworks.map(n => n.tadig)).size}
-            </div>
-            <div className="text-sm text-gray-500">Networks</div>
-          </div>
-        </div>
-        
-        <div className="group bg-white rounded-2xl p-4 shadow-sm hover:shadow-lg transition-all duration-500 border border-gray-100">
-          <div className="flex items-center justify-between mb-2">
             <Globe className="w-5 h-5 text-[#9B7BB6] opacity-70" />
             <span className="text-xs font-medium text-gray-400">COVERAGE</span>
           </div>
@@ -465,6 +535,19 @@ export const PricingTable: React.FC = () => {
               {new Set(filteredNetworks.map(n => n.country)).size}
             </div>
             <div className="text-sm text-gray-500">Countries</div>
+          </div>
+        </div>
+        
+        <div className="group bg-white rounded-2xl p-4 shadow-sm hover:shadow-lg transition-all duration-500 border border-gray-100">
+          <div className="flex items-center justify-between mb-2">
+            <Globe className="w-5 h-5 text-[#5B9BD5] opacity-70" />
+            <span className="text-xs font-medium text-gray-400">TOTAL</span>
+          </div>
+          <div className="flex items-baseline space-x-2">
+            <div className="text-xl font-semibold text-gray-900 tracking-tight">
+              {new Set(filteredNetworks.map(n => n.tadig)).size}
+            </div>
+            <div className="text-sm text-gray-500">Networks</div>
           </div>
         </div>
         
@@ -568,12 +651,6 @@ export const PricingTable: React.FC = () => {
           </thead>
           <tbody className="divide-y divide-gray-200">
             {groupedNetworks.map((network, index) => {
-              const lteMOperators = [...new Set(
-                network.sources.filter(s => s.lte_m).map(s => s.operator)
-              )];
-              const nbIotOperators = [...new Set(
-                network.sources.filter(s => s.nb_iot).map(s => s.operator)
-              )];
               const isExpanded = expandedRows.has(index);
               const hasMultipleTadigs = network.tadigs.length > 1;
               const hasNotes = network.sources.some(s => s.notes);
@@ -616,17 +693,17 @@ export const PricingTable: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-2 py-2">
-                      <div className="flex flex-wrap gap-1">
+                      <div className="space-y-0.5">
                         {[...new Set(network.sources.map(s => s.operator))].map((operator, i) => {
                           const config = operatorConfig[operator as keyof typeof operatorConfig];
                           if (!config) return null;
                           return (
-                            <span
+                            <div
                               key={i}
-                              className={`inline-block px-2 py-1 text-xs font-medium ${config.bgColor} ${config.color} border ${config.borderColor} rounded-full`}
+                              className={`text-xs font-medium ${config.color}`}
                             >
                               {config.label}
-                            </span>
+                            </div>
                           );
                         })}
                       </div>
@@ -664,11 +741,29 @@ export const PricingTable: React.FC = () => {
                         ) : null;
                       }).filter(Boolean)}
                     </td>
-                    <td className="px-2 py-2 text-center">
-                      <IoTBadgesModern 
-                        lteMOperators={lteMOperators}
-                        nbIotOperators={nbIotOperators}
-                      />
+                    <td className="px-2 py-2">
+                      <div className="space-y-0.5">
+                        {network.sources.map((source, i) => {
+                          const config = operatorConfig[source.operator as keyof typeof operatorConfig];
+                          const technologies = [];
+                          if (source.lte_m) technologies.push('CAT-M');
+                          if (source.nb_iot) technologies.push('NB-IoT');
+                          
+                          if (technologies.length === 0) return null;
+                          
+                          return (
+                            <div
+                              key={i}
+                              className={`text-xs font-medium ${config?.color || 'text-gray-600'}`}
+                            >
+                              {technologies.join(', ')}
+                            </div>
+                          );
+                        }).filter(Boolean)}
+                        {network.sources.every(s => !s.lte_m && !s.nb_iot) && (
+                          <span className="text-gray-300 text-xs">—</span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-2 py-2">
                       {!isExpanded && hasNotes ? (

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
 import { FileUpload } from './components/FileUpload';
 import { PricingTable } from './components/PricingTable';
@@ -15,13 +15,30 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AuthHandler from './components/AuthHandler';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { UserProvider, useUser } from './contexts/UserContext';
-import { FileSpreadsheet, Globe, Upload, LogOut, Bot, Calculator, Shield, DollarSign } from 'lucide-react';
+import { FileSpreadsheet, Globe, Upload, LogOut, Bot, Calculator, Shield, Book, X } from 'lucide-react';
 import monogotoLogo from './assets/monogoto-logo.svg';
+import { NotesDictionary } from './components/NotesDisplay';
 
 function HomePage() {
   const { user, signOut } = useAuth();
-  const { userRole, isAdmin, isSales } = useUser();
+  const { userRole, isAdmin } = useUser();
   const [showAIAdvisor, setShowAIAdvisor] = useState(false);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const [showNotesDictionary, setShowNotesDictionary] = useState(false);
+  const [currency, setCurrency] = useState<'EUR' | 'USD'>('USD');
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowUserDropdown(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
   
   // Debug logging
   console.log('Current user:', user?.email);
@@ -78,35 +95,53 @@ function HomePage() {
                 </Link>
               )}
               {user && (
-                <div className="flex items-center space-x-3">
-                  {/* User Avatar with Role Badge */}
-                  <div className="relative">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium ${
-                      isAdmin ? 'bg-gradient-to-br from-purple-500 to-purple-600' :
-                      isSales ? 'bg-gradient-to-br from-blue-500 to-indigo-600' :
-                      'bg-gradient-to-br from-gray-500 to-gray-600'
-                    }`}>
-                      {user.email?.charAt(0).toUpperCase() || 'U'}
-                    </div>
-                    {isAdmin && (
-                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-purple-500 rounded-full flex items-center justify-center" title="Admin">
-                        <Shield className="w-2.5 h-2.5 text-white" />
-                      </div>
-                    )}
-                    {isSales && (
-                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center" title="Sales">
-                        <DollarSign className="w-2.5 h-2.5 text-white" />
-                      </div>
-                    )}
-                  </div>
-                  {/* Sign Out Button */}
+                <div className="relative" ref={dropdownRef}>
+                  {/* User Avatar */}
                   <button
-                    onClick={signOut}
-                    className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
-                    title="Sign Out"
+                    onClick={() => setShowUserDropdown(!showUserDropdown)}
+                    className="relative w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white hover:from-blue-600 hover:to-purple-700 transition-colors"
+                    title="User Menu"
                   >
-                    <LogOut className="w-4 h-4" />
+                    <span className="text-sm font-medium">
+                      {user.email?.charAt(0).toUpperCase() || 'U'}
+                    </span>
                   </button>
+                  {isAdmin && (
+                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-purple-500 rounded-full flex items-center justify-center pointer-events-none">
+                      <Shield className="w-2.5 h-2.5 text-white" />
+                    </div>
+                  )}
+                  
+                  {/* Dropdown Menu */}
+                  {showUserDropdown && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                      <div className="px-4 py-2 border-b border-gray-100">
+                        <p className="text-sm font-medium text-gray-900">{user.email}</p>
+                        <p className="text-xs text-gray-500 capitalize">{userRole?.role || 'User'}</p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setShowNotesDictionary(true);
+                          setShowUserDropdown(false);
+                        }}
+                        className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2 transition-colors"
+                      >
+                        <Book className="w-4 h-4" />
+                        <span>Notes Dictionary & Legend</span>
+                      </button>
+                      <div className="border-t border-gray-100" />
+                      <button
+                        onClick={() => {
+                          signOut();
+                          setShowUserDropdown(false);
+                        }}
+                        className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-red-50 hover:text-red-600 flex items-center space-x-2 transition-colors"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        <span>Sign Out</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -120,7 +155,7 @@ function HomePage() {
           {/* AI Advisor Panel */}
           {showAIAdvisor && (
             <div className="xl:col-span-1">
-              <AIAdvisorAdvanced />
+              <AIAdvisor currency={currency} />
             </div>
           )}
           
@@ -128,7 +163,7 @@ function HomePage() {
           <div className={showAIAdvisor ? 'xl:col-span-3' : 'w-full'}>
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
               <h2 className="text-xl font-semibold text-gray-900 tracking-tight mb-6">Network Pricing Database</h2>
-              <PricingTable />
+              <PricingTable currency={currency} onCurrencyChange={setCurrency} />
             </div>
           </div>
         </div>
@@ -146,6 +181,23 @@ function HomePage() {
           </div>
         </div>
       </footer>
+      
+      {/* Notes Dictionary Modal */}
+      {showNotesDictionary && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[80vh] overflow-y-auto relative">
+            <button
+              onClick={() => setShowNotesDictionary(false)}
+              className="absolute top-4 right-4 p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <div className="p-6">
+              <NotesDictionary />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

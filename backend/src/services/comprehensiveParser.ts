@@ -217,6 +217,21 @@ export class ComprehensiveParser {
     return countryFixes[normalized] || normalized;
   }
 
+  private isValidTadig(tadig: string): boolean {
+    // TADIG must be exactly 5 characters and alphanumeric
+    if (!tadig || tadig.length !== 5) return false;
+    
+    // Invalid test TADIGs from your list
+    const invalidTadigs = ['11111', '22222', '33333', '44444'];
+    if (invalidTadigs.includes(tadig)) return false;
+    
+    // Rule 1: TADIG cannot be all digits (must contain at least one letter)
+    if (/^[0-9]{5}$/.test(tadig)) return false;
+    
+    // Must be alphanumeric (letters and numbers only)
+    return /^[A-Z0-9]{5}$/i.test(tadig);
+  }
+
   private getFormalNetworkName(tadig: string, operatorName: string): string {
     // Check mapping first
     if (this.tadigToNetwork.has(tadig)) {
@@ -498,9 +513,9 @@ export class ComprehensiveParser {
   async parseTele2File(): Promise<NetworkPricing[]> {
     // Try multiple possible locations for the file
     const possiblePaths = [
-      path.join(process.cwd(), 'Tele2 data fee June-23 analysis.xlsx'),
-      path.join(process.cwd(), '..', 'Tele2 data fee June-23 analysis.xlsx'),
-      path.join(__dirname, '../../../', 'Tele2 data fee June-23 analysis.xlsx')
+      path.join(process.cwd(), '0- Invoice Monogoto 2025-04.xlsx'),
+      path.join(process.cwd(), '..', '0- Invoice Monogoto 2025-04.xlsx'),
+      path.join(__dirname, '../../../', '0- Invoice Monogoto 2025-04.xlsx')
     ];
     
     const filePath = possiblePaths.find(p => fs.existsSync(p)) || possiblePaths[0];
@@ -510,125 +525,114 @@ export class ComprehensiveParser {
       return [];
     }
 
-    console.log('📂 Parsing Tele2 file...');
+    console.log('📂 Parsing Tele2 file with new 5-rule validation...');
     const workbook = XLSX.readFile(filePath);
     
-    // Try multiple possible sheet names
-    const sheetNames = ['Cost DATA by customer', 'Tele2 - data 6.23', 'Summary'];
-    let sheet = null;
-    let sheetName = '';
-    
-    for (const name of sheetNames) {
-      if (workbook.Sheets[name]) {
-        sheet = workbook.Sheets[name];
-        sheetName = name;
-        break;
-      }
-    }
+    // Use the specific Pricelist 2024-11-01 sheet
+    const sheet = workbook.Sheets['Pricelist 2024-11-01'];
     
     if (!sheet) {
-      // Use first sheet if specific ones not found
-      sheetName = workbook.SheetNames[0];
-      sheet = workbook.Sheets[sheetName];
+      console.error('❌ Pricelist 2024-11-01 sheet not found in Tele2 file');
+      return [];
     }
     
-    console.log(`  Using sheet: ${sheetName}`);
+    console.log('  Using sheet: Pricelist 2024-11-01');
     
     const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' }) as any[][];
-    const tele2Data: NetworkPricing[] = [];
-    const uniqueNetworks = new Set<string>();
+    const rawNetworks: any[] = [];
     
-    // Parse based on sheet structure
-    if (sheetName === 'Cost DATA by customer') {
-      // Headers: TADIG(0), CustomerName(1), Network name(2), Active SIM amount(3),
-      // Sum of Usage(4), GB(5), MB(6), Cost per MB(7), Total Charge(8)
+    // Column mapping:
+    // Column 0: Region, Column 1: Country, Column 2: Network, Column 3: TADIG
+    // Column 7: SMS, Column 8: Data/MB, Column 10: Access fee per IMSI, Column 11: Comments
+    
+    let filteredCount = 0;
+    const filterStats = { invalidTadig: 0, noData: 0, dataNotLaunched: 0, prohibited: 0 };
+    
+    for (let i = 1; i < jsonData.length; i++) {
+      const row = jsonData[i];
+      if (!row || !row[3] || row[3] === '') continue;
       
-      for (let i = 1; i < jsonData.length; i++) {
-        const row = jsonData[i];
-        if (!row || !row[0] || row[0] === '') continue;
-        
-        const tadig = (row[0] || '').toString().trim();
-        const networkKey = `${tadig}`;
-        
-        if (uniqueNetworks.has(networkKey)) continue;
-        uniqueNetworks.add(networkKey);
-        
-        const networkInfo = (row[2] || '').toString().trim();
-        
-        // Tele2 format varies:
-        // Some entries: "Network Name - Country" (e.g., "Hot Mobile - Israel")
-        // Others: just "Network Name" without country
-        let operatorRaw = networkInfo;
-        let country = 'Unknown';
-        
-        if (networkInfo.includes(' - ')) {
-          const parts = networkInfo.split(' - ');
-          operatorRaw = parts[0];
-          const countryRaw = parts[1] || 'Unknown';
-          country = this.normalizeCountryName(countryRaw);
-        } else {
-          // Try to extract country from TADIG or network name
-          const countryRaw = this.getCountryFromTadig(tadig) || 'Unknown';
-          country = this.normalizeCountryName(countryRaw);
-          operatorRaw = networkInfo;
-        }
-        
-        const network = this.getFormalNetworkName(tadig, operatorRaw);
-        
-        const dataPerMB = parseFloat(row[7]) || 0;
-        
-        tele2Data.push({
-          tadig,
-          country,
-          network,
-          imsiCost: 0,  // Not provided in Tele2
-          dataPerMB,
-          currency: 'USD',
-          source: 'Tele2',
-          // Default to 4G/3G as Tele2 doesn't specify
-          lte4G: true,
-          umts3G: true
-        });
-      }
-    } else {
-      // Try parsing monthly sheet format
-      // Headers: PMN(0), Roaming Partner(1), Country(2), Customer(3), 
-      // Record Type(4), SubRecord Type(5), Number of calls(6), 
-      // Duration(7), Total Volume MB(8), Charge(9), Price per mb(10)
+      const tadig = (row[3] || '').toString().trim();
+      const comments = (row[11] || '').toString().toLowerCase().trim();
+      const dataPerMB = parseFloat(row[8]) || 0;
       
-      for (let i = 1; i < jsonData.length; i++) {
-        const row = jsonData[i];
-        if (!row || !row[0] || row[0] === '') continue;
-        
-        const tadig = (row[0] || '').toString().trim();
-        const networkKey = tadig;
-        
-        if (uniqueNetworks.has(networkKey)) continue;
-        uniqueNetworks.add(networkKey);
-        
-        const country = (row[2] || '').toString().trim();
-        const operatorRaw = (row[1] || '').toString().trim();
-        const network = this.getFormalNetworkName(tadig, operatorRaw);
-        
-        const dataPerMB = parseFloat(row[10]) || 0;
-        
-        if (dataPerMB > 0) {
-          tele2Data.push({
-            tadig,
-            country,
-            network,
-            imsiCost: 0,
-            dataPerMB,
-            currency: 'USD',
-            source: 'Tele2',
-            lte4G: true,
-            umts3G: true
-          });
-        }
+      // Rule 1: Skip invalid TADIGs (all digits like 11111, 22222, etc.)
+      if (!this.isValidTadig(tadig)) {
+        filterStats.invalidTadig++;
+        continue;
       }
+      
+      // Rule 2: Skip networks with no data pricing
+      if (dataPerMB <= 0) {
+        filterStats.noData++;
+        continue;
+      }
+      
+      // Rule 3: Skip networks with "data not launched" or "data don't launch"
+      if (comments.includes('data not launched') || comments.includes("data don't launch")) {
+        filterStats.dataNotLaunched++;
+        continue;
+      }
+      
+      // Rule 4: Skip networks with "prohibited network"
+      if (comments.includes('prohibited network')) {
+        filterStats.prohibited++;
+        continue;
+      }
+      
+      // Network passed all filters
+      const country = this.normalizeCountryName((row[1] || '').toString().trim());
+      const networkRaw = (row[2] || '').toString().trim();
+      const network = this.getFormalNetworkName(tadig, networkRaw);
+      
+      const smsOutgoing = parseFloat(row[7]) || 0;
+      const imsiCost = parseFloat(row[10]) || 0;
+      
+      rawNetworks.push({
+        tadig,
+        country,
+        network,
+        imsiCost,
+        dataPerMB,
+        smsOutgoing,
+        currency: 'EUR',
+        source: 'Tele2',
+        lte4G: true,
+        umts3G: true,
+        restrictions: comments
+      });
+      
+      filteredCount++;
     }
     
-    console.log(`✅ Parsed ${tele2Data.length} Tele2 records`);
+    console.log(`📊 Filter statistics:`);
+    console.log(`   Invalid TADIGs filtered: ${filterStats.invalidTadig}`);
+    console.log(`   No data pricing filtered: ${filterStats.noData}`);
+    console.log(`   Data not launched filtered: ${filterStats.dataNotLaunched}`);
+    console.log(`   Prohibited networks filtered: ${filterStats.prohibited}`);
+    console.log(`   Networks passed filters: ${filteredCount}`);
+    
+    // Rule 5: Consolidate networks by country + network name
+    const consolidated = new Map<string, any>();
+    
+    rawNetworks.forEach(network => {
+      const key = `${network.country}|${network.network}`;
+      
+      if (consolidated.has(key)) {
+        // Merge TADIGs
+        const existing = consolidated.get(key);
+        existing.tadig = `${existing.tadig}, ${network.tadig}`;
+        // Keep the first network's pricing (or you could average/min/max as needed)
+      } else {
+        consolidated.set(key, { ...network });
+      }
+    });
+    
+    const tele2Data = Array.from(consolidated.values());
+    
+    console.log(`✅ Final Tele2 networks after consolidation: ${tele2Data.length}`);
+    console.log(`   Reduction from consolidation: ${filteredCount - tele2Data.length} networks merged`);
+    
     return tele2Data;
   }
 
