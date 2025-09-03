@@ -1,6 +1,9 @@
 import { Link } from 'react-router-dom'
 import { ShieldOff, Home } from 'lucide-react'
 
+// Get Monogoto OS URL from environment or use default
+const MONOGOTO_OS_URL = import.meta.env.VITE_MONOGOTO_OS_URL || 'https://monogotoos.netlify.app'
+
 export function AccessDenied() {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
@@ -21,7 +24,7 @@ export function AccessDenied() {
         
         <div className="space-y-4">
           <a
-            href="https://monogotoos.netlify.app"
+            href={MONOGOTO_OS_URL}
             className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <Home className="w-5 h-5" />

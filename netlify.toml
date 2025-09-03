@@ -24,5 +24,6 @@
 [context.production.environment]
   VITE_DEV_MODE = "false"
   VITE_SITE_URL = "https://deal-desk.netlify.app"
+  VITE_MONOGOTO_OS_URL = "https://monogotoos.netlify.app"
   VITE_SUPABASE_URL = "https://uddmjjgnexdazfedrytt.supabase.co"
   VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVkZG1qamduZXhkYXpmZWRyeXR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3NjQ2OTUsImV4cCI6MjA2MzM0MDY5NX0.A_034WOQ-JJ3DDvMux5fLXayJ4pUk3_WXnVTJI-wSL0"
