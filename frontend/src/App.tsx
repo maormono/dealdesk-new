@@ -15,12 +15,12 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AuthHandler from './components/AuthHandler';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { UserProvider, useUser } from './contexts/UserContext';
-import { FileSpreadsheet, Globe, Upload, LogOut, Bot, Calculator, Shield } from 'lucide-react';
+import { FileSpreadsheet, Globe, Upload, LogOut, Bot, Calculator, Shield, DollarSign } from 'lucide-react';
 import monogotoLogo from './assets/monogoto-logo.svg';
 
 function HomePage() {
   const { user, signOut } = useAuth();
-  const { userRole, isAdmin } = useUser();
+  const { userRole, isAdmin, isSales } = useUser();
   const [showAIAdvisor, setShowAIAdvisor] = useState(false);
   
   // Debug logging
@@ -79,14 +79,23 @@ function HomePage() {
               )}
               {user && (
                 <div className="flex items-center space-x-3">
-                  {/* User Avatar */}
+                  {/* User Avatar with Role Badge */}
                   <div className="relative">
-                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium ${
+                      isAdmin ? 'bg-gradient-to-br from-purple-500 to-purple-600' :
+                      isSales ? 'bg-gradient-to-br from-blue-500 to-indigo-600' :
+                      'bg-gradient-to-br from-gray-500 to-gray-600'
+                    }`}>
                       {user.email?.charAt(0).toUpperCase() || 'U'}
                     </div>
                     {isAdmin && (
-                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-purple-500 rounded-full flex items-center justify-center">
+                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-purple-500 rounded-full flex items-center justify-center" title="Admin">
                         <Shield className="w-2.5 h-2.5 text-white" />
+                      </div>
+                    )}
+                    {isSales && (
+                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center" title="Sales">
+                        <DollarSign className="w-2.5 h-2.5 text-white" />
                       </div>
                     )}
                   </div>

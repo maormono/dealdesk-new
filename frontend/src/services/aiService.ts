@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { DealEvaluationService } from './dealEvaluationService';
 import { dealConfig } from '../config/dealConfig';
 import type { DealRequest } from '../config/dealConfig';
+import type { UserRole } from '../contexts/UserContext';
 
 // Initialize Gemini AI with the most capable model
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || '');
@@ -21,6 +22,11 @@ export class AIAdvisorService {
   });
   
   private dealEvaluator = new DealEvaluationService();
+  private userRole: UserRole | null = null;
+  
+  constructor(userRole?: UserRole | null) {
+    this.userRole = userRole || null;
+  }
 
   async processNaturalLanguageQuery(query: string): Promise<{
     answer: string;
@@ -91,46 +97,82 @@ export class AIAdvisorService {
         });
       });
 
-      // Create a comprehensive prompt for Gemini
-      const systemPrompt = `
-You are an expert telecom pricing advisor for Monogoto's sales team. You have access to network pricing and must apply internal pricing rules.
+      // Create a comprehensive prompt for Gemini based on user role
+      const isSales = this.userRole?.role === 'sales';
+      const canSeeCosts = this.userRole?.canSeeCosts || false;
+      
+      const systemPrompt = isSales ? `
+You are an expert telecom pricing advisor for Monogoto's sales team. You have access to customer pricing data.
 
 USER QUERY: "${query}"
 
 AVAILABLE NETWORK DATA:
 ${JSON.stringify(networks, null, 2)}
 
-PRICING RULES (CONFIDENTIAL - DO NOT SHARE COSTS):
+IMPORTANT INSTRUCTIONS FOR SALES RESPONSES:
+1. You are speaking to a sales representative
+2. The prices shown are already customer prices (with built-in margin)
+3. NEVER mention costs, margins, or markup percentages
+4. NEVER reveal that prices have been adjusted
+5. Focus on value proposition and competitive positioning
+6. Present pricing as competitive market rates
+7. Emphasize service quality and coverage benefits
+
+RESPONSE FORMAT:
+"📊 Deal Analysis: [Brief Summary]
+
+💰 Pricing Recommendation:
+• Standard Price: €X.XX per SIM/month
+• Volume Discount Available: Up to XX% for large deals
+• Total Monthly: €X,XXX
+
+📝 Value Proposition:
+• [Coverage benefit 1]
+• [Service quality benefit 2]
+• [Competitive advantage]
+
+✅ Deal Recommendation: [Highly Competitive/Competitive/Needs Review]"
+
+Focus on helping close deals by emphasizing value, not revealing internal pricing structures.
+` : `
+You are an expert telecom pricing advisor for Monogoto's operations team. You have access to network pricing and cost data.
+
+USER QUERY: "${query}"
+
+AVAILABLE NETWORK DATA:
+${JSON.stringify(networks, null, 2)}
+
+PRICING RULES (INTERNAL USE ONLY):
 - Connectivity markup: ${dealConfig.connectivityMarkup * 100}% on carrier costs
 - Platform cost: €${dealConfig.platformCosts.activeSIMCost} per active SIM
 - Minimum margin requirement: ${dealConfig.margins.minimum * 100}%
 - Target margin: ${dealConfig.margins.target * 100}%
 
-INSTRUCTIONS FOR SALES TEAM RESPONSES:
-1. NEVER reveal actual costs or margins
-2. Present pricing as discount % from list price
-3. Include reasoning for price recommendations
-4. State assumptions clearly
-5. Be concise but include justification
+INSTRUCTIONS FOR ADMIN/OPERATIONS RESPONSES:
+1. You CAN reveal actual costs and margins
+2. Show both cost and recommended customer pricing
+3. Include margin calculations
+4. Provide detailed profitability analysis
+5. Be transparent about pricing structure
 
 RESPONSE FORMAT:
 "📊 Deal Analysis: [Brief Summary]
 
-💰 Recommended Pricing:
-• List Price: €X.XX per SIM/month
-• Your Price: €X.XX per SIM/month (XX% discount)
-• Total Monthly: €X,XXX
+💰 Cost & Pricing Breakdown:
+• Carrier Cost: €X.XX per SIM/month
+• Platform Cost: €X.XX per SIM/month
+• Total Cost: €X.XX per SIM/month
+• Recommended Price: €X.XX per SIM/month
+• Margin: XX%
 
-📝 Reasoning:
-• [Key assumption 1]
-• [Key assumption 2]
-• [Justification for discount]
+📝 Profitability Analysis:
+• [Cost driver 1]
+• [Margin consideration 2]
+• [Risk factor if applicable]
 
-✅ Deal Status: [Approved/Review/Rejected]"
+✅ Deal Status: [Profitable/Marginal/Loss-making]"
 
-REMEMBER: Sales team sees discount percentages, not costs!
-
-Now provide a clear, informative response to the user's query.
+Provide full transparency on costs and margins for internal decision-making.
 `;
 
       console.log(`Processing query with ${networks.length} networks available`);
@@ -281,16 +323,19 @@ If you cannot extract clear deal parameters, return null.
   private async formatEvaluationWithAI(evaluation: any, dealParams: DealRequest, originalQuery: string): Promise<string> {
     // Format the evaluation results in a user-friendly way
     const verdict = evaluation.verdict.toUpperCase();
+    const isSales = this.userRole?.role === 'sales';
     const profitMargin = (evaluation.profitMargin * 100).toFixed(1);
     
-    // Calculate pricing details
+    // Calculate pricing details with role-aware markup
+    const markupMultiplier = isSales ? 1.5 : 1.0; // 50% markup for sales
+    
     const payAsYouGo = {
-      activeSim: evaluation.platformFees.toFixed(2),
-      dataRate: ((evaluation.carrierDataCost / dealParams.monthlyDataPerSim) / 1024 * (1 + dealConfig.connectivityMarkup)).toFixed(2),
-      total: evaluation.totalCostPerSim.toFixed(2)
+      activeSim: (evaluation.platformFees * markupMultiplier).toFixed(2),
+      dataRate: ((evaluation.carrierDataCost / dealParams.monthlyDataPerSim) / 1024 * (1 + dealConfig.connectivityMarkup) * markupMultiplier).toFixed(2),
+      total: (evaluation.totalCostPerSim * markupMultiplier).toFixed(2)
     };
     
-    const packagePrice = evaluation.revenuePerSim || evaluation.recommendedPrice || evaluation.totalCostPerSim * (1 + dealConfig.margins.target);
+    const packagePrice = (evaluation.revenuePerSim || evaluation.recommendedPrice || evaluation.totalCostPerSim * (1 + dealConfig.margins.target)) * markupMultiplier;
     
     // Get volume discount
     const volumeDiscount = this.getVolumeDiscount(dealParams.simQuantity);
@@ -309,8 +354,74 @@ If you cannot extract clear deal parameters, return null.
     const payAsYouGoTotal = (parseFloat(payAsYouGo.total) * dealParams.simQuantity).toFixed(0);
     const packageSavings = ((1 - (parseFloat(packageTotalMonthly) / parseFloat(payAsYouGoTotal))) * 100).toFixed(0);
     
-    // Format the response to match the structured output style
-    return `## Evaluation Results
+    // Format the response based on user role
+    if (isSales) {
+      // Sales-focused response - NO cost/margin information
+      return `## Deal Evaluation
+
+### ${verdict === 'APPROVED' ? '✅ DEAL APPROVED' : verdict === 'REVIEW' ? '⚠️ NEEDS REVIEW' : '❌ NOT RECOMMENDED'}
+
+## 💡 Standard Pricing Structure
+
+**ACTIVE SIM FEE**
+$${payAsYouGo.activeSim}/month
+
+**DATA RATE**
+$${payAsYouGo.dataRate}/GB
+
+**ESTIMATED MONTHLY**
+$${payAsYouGo.total}/SIM
+
+## 💳 Recommended Package Deal
+
+**MONTHLY FEE**
+$${packageMonthlyFee}/SIM
+
+**DATA INCLUDED**
+${dealParams.monthlyDataPerSim}GB
+
+**TOTAL MONTHLY**
+$${packageTotalMonthly}
+
+**VOLUME DISCOUNT**
+${(volumeDiscount * 100).toFixed(0)}% OFF list price
+
+## 📊 Coverage Summary
+
+${dealParams.countries.map(country => `**${country}:** Full Coverage ✓`).join('  ')}
+
+## 🌐 Network Coverage
+
+${evaluation.carrierOptions.map((opt: any) => `**${opt.country.toUpperCase()}**
+Premium Network Available
+✓ Full LTE/5G Coverage`).join('\n\n')}
+
+## 📝 Value Proposition
+
+✓ Volume pricing for ${dealParams.simQuantity} SIMs
+✓ ${dealParams.duration}-month commitment benefits
+✓ Multi-country roaming included
+✓ Premium network quality guaranteed
+✓ 24/7 support included
+
+## 💰 Pricing Summary
+
+**Package Price:** $${packageMonthlyFee}/SIM/month
+**Volume Discount:** ${(volumeDiscount * 100).toFixed(0)}%
+**Total Monthly Value:** $${packageTotalMonthly}
+
+## ✨ Competitive Advantages
+
+• Best-in-class network coverage across ${dealParams.countries.length} countries
+• Seamless roaming with no additional charges
+• Enterprise-grade SLAs and support
+• Flexible data pooling options available
+• Real-time usage monitoring dashboard
+
+**Next Steps:** ${verdict === 'APPROVED' ? 'Ready to proceed with contract' : 'Contact sales manager for special pricing options'}`;
+    } else {
+      // Admin/Operations response - FULL transparency
+      return `## Evaluation Results
 
 ### ${verdict}
 
@@ -383,7 +494,7 @@ ${opt.carrier} via ${opt.operator}
 
 **Network Selection Reasoning:**
 ${evaluation.carrierOptions.map((opt: any) => 
-  `• **${opt.country}:** Selected ${opt.carrier} via ${opt.operator} at €${(opt.pricePerMB * 1024).toFixed(2)}/GB (€${(opt.pricePerMB * dealParams.monthlyDataPerSim * 1024).toFixed(2)}/SIM for ${dealParams.monthlyDataPerSim}GB)
+  `• **${opt.country}:** Selected ${opt.carrier} via ${opt.operator} at €${(opt.pricePerMB * 1024 * markupMultiplier).toFixed(2)}/GB (€${(opt.pricePerMB * dealParams.monthlyDataPerSim * 1024 * markupMultiplier).toFixed(2)}/SIM for ${dealParams.monthlyDataPerSim}GB)
 → Chosen as the most cost-effective option available in ${opt.country}`
 ).join('\n')}
 
@@ -403,6 +514,7 @@ ${evaluation.carrierOptions.map((opt: any) =>
 **Risk Assessment:**
 • ${dealParams.isNewCustomer ? 'New customer - additional onboarding and credit checks required' : 'Existing customer - established relationship'}
 • ${dealParams.duration >= 24 ? 'Long contract (' + dealParams.duration + ' months) - stable revenue stream' : 'Standard contract duration'}`;
+    }
   }
 
   private getVolumeDiscount(quantity: number): number {

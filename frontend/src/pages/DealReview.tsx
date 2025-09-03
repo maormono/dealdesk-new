@@ -5,6 +5,7 @@ import type { DealRequest, DealEvaluation } from '../config/dealConfig';
 import { DealEvaluationService } from '../services/dealEvaluationService';
 import { AIAdvisorService } from '../services/aiService';
 import { supabase } from '../lib/supabase';
+import { useUser } from '../contexts/UserContext';
 
 interface Message {
   id: string;
@@ -20,11 +21,22 @@ interface DealReviewProps {
 }
 
 export const DealReview: React.FC<DealReviewProps> = ({ initialDeal }) => {
+  const { userRole, isSales } = useUser();
+  
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
       role: 'assistant',
-      content: `I'm your deal companion. Let's work together to make your deal profitable! 🤝
+      content: isSales ? 
+        `Welcome to the Deal Assistant! I'm here to help you close deals successfully. 🎯
+
+Tell me about your opportunity:
+• How many SIMs does the customer need?
+• Which countries will they operate in?
+• What's their budget or target price?
+
+I'll provide competitive pricing and highlight our value proposition to help you win the deal!` :
+        `I'm your deal companion. Let's work together to make your deal profitable! 🤝
 
 Tell me about your opportunity:
 • How many SIMs do you need?
@@ -42,7 +54,7 @@ I'll help optimize the deal - suggesting network choices, usage limits, and pric
   const [availableCountries, setAvailableCountries] = useState<string[]>([]);
   const [availableNetworks, setAvailableNetworks] = useState<string[]>([]);
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
-  const evaluationService = useRef(new DealEvaluationService());
+  const evaluationService = useRef(new DealEvaluationService(userRole));
   const aiService = useRef<AIAdvisorService | null>(null);
   
   // Load available countries and networks from database
@@ -64,12 +76,13 @@ I'll help optimize the deal - suggesting network choices, usage limits, and pric
     
     loadDatabaseData();
     
-    // Initialize AI service
+    // Initialize AI service and evaluation service with user role
     const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
     if (apiKey) {
-      aiService.current = new AIAdvisorService();
+      aiService.current = new AIAdvisorService(userRole);
     }
-  }, []);
+    evaluationService.current = new DealEvaluationService(userRole);
+  }, [userRole]);
 
   // Update current deal when initialDeal changes
   useEffect(() => {

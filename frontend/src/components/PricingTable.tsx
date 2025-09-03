@@ -129,13 +129,45 @@ export const PricingTable: React.FC = () => {
 
   const loadNetworks = async () => {
     try {
-      // Use the role-based pricing view/function
+      // Always try to use the role-based pricing RPC function first
       const { data: pricingData, error: pricingError } = await supabase
         .rpc('get_role_based_pricing');
 
-      if (pricingError) {
-        console.error('Error fetching role-based pricing:', pricingError);
-        // Fallback to regular pricing if role-based fails
+      if (!pricingError && pricingData) {
+        console.log(`Loaded ${pricingData.length} networks with role-based pricing (Sales mode: ${isSales})`);
+        
+        // Transform role-based pricing data
+        const transformedData: NetworkData[] = pricingData.map((item: any) => ({
+          network_name: item.network_name,
+          country: item.country,
+          tadig: item.tadig,
+          operator: 'Monogoto',
+          data_cost: (item.data_price_cents_per_mb || 0) / 100, // Convert cents to euros
+          sms_cost: (item.sms_price_cents || 0) / 100,
+          imsi_cost: (item.imsi_price_cents || 0) / 100,
+          notes: '',
+          lte_m: false,
+          nb_iot: false,
+          restrictions: '',
+          is_actual_cost: item.is_actual_cost,
+          markup_applied: item.markup_applied
+        }));
+
+        // Filter out unrealistic prices
+        const filteredData = transformedData.filter(network => {
+          const maxPrice = MAX_REASONABLE_PRICE_EUR_MB * (network.is_actual_cost ? 1 : 1.5);
+          if (network.data_cost > maxPrice) {
+            console.log(`Skipping unrealistic price: ${network.network_name} - ${network.country} - €${network.data_cost}/MB`);
+            return false;
+          }
+          return true;
+        });
+
+        setNetworks(filteredData);
+      } else {
+        // Fallback: Load networks with client-side markup application
+        console.log('Role-based pricing failed, using fallback with client-side markup');
+        
         const { data: networksData, error: networksError } = await supabase
           .from('networks')
           .select(`
@@ -161,20 +193,21 @@ export const PricingTable: React.FC = () => {
 
         if (networksError) throw networksError;
 
-        // Transform the data to match our interface
+        // Transform the data with client-side markup
         const transformedData: NetworkData[] = [];
         
         networksData?.forEach(network => {
           network.network_pricing?.forEach((pricing: any) => {
             const dataPrice = pricing.data_per_mb || 0;
             
-            // Apply role-based markup if user is sales
-            const adjustedDataPrice = isSales ? dataPrice * 1.5 : dataPrice;
-            const adjustedSmsPrice = isSales ? (pricing.sms_mo || pricing.sms_mt || 0) * 1.5 : (pricing.sms_mo || pricing.sms_mt || 0);
-            const adjustedImsiPrice = isSales ? (pricing.imsi_access_fee || 0) * 1.5 : (pricing.imsi_access_fee || 0);
+            // Apply role-based markup if user is sales (1.5x = 50% markup)
+            const markupMultiplier = isSales ? 1.5 : 1.0;
+            const adjustedDataPrice = dataPrice * markupMultiplier;
+            const adjustedSmsPrice = (pricing.sms_mo || pricing.sms_mt || 0) * markupMultiplier;
+            const adjustedImsiPrice = (pricing.imsi_access_fee || 0) * markupMultiplier;
             
-            // Skip networks with unrealistic pricing (>€0.90/MB which is ~$1/MB)
-            if (adjustedDataPrice > MAX_REASONABLE_PRICE_EUR_MB * (isSales ? 1.5 : 1)) {
+            // Skip networks with unrealistic pricing
+            if (adjustedDataPrice > MAX_REASONABLE_PRICE_EUR_MB * markupMultiplier) {
               console.log(`Skipping unrealistic price: ${network.network_name} - ${network.country} - €${adjustedDataPrice}/MB`);
               return;
             }
@@ -190,27 +223,12 @@ export const PricingTable: React.FC = () => {
               notes: pricing.notes,
               lte_m: pricing.lte_m || false,
               nb_iot: pricing.nb_iot || false,
-              restrictions: pricing.notes
+              restrictions: pricing.notes,
+              is_actual_cost: !isSales,
+              markup_applied: isSales ? 50.0 : 0.0
             });
           });
         });
-
-        setNetworks(transformedData);
-      } else {
-        // Use role-based pricing data
-        const transformedData: NetworkData[] = pricingData?.map((item: any) => ({
-          network_name: item.network_name,
-          country: item.country,
-          tadig: item.tadig,
-          operator: 'Monogoto',
-          data_cost: (item.data_price_cents_per_mb || 0) / 100, // Convert cents to euros
-          sms_cost: (item.sms_price_cents || 0) / 100,
-          imsi_cost: (item.imsi_price_cents || 0) / 100,
-          notes: '',
-          lte_m: false,
-          nb_iot: false,
-          restrictions: ''
-        })) || [];
 
         setNetworks(transformedData);
       }
@@ -305,11 +323,18 @@ export const PricingTable: React.FC = () => {
     <div className="w-full">
       {/* Pricing Notice for Sales Users */}
       {isSales && (
-        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
-          <Lock className="w-4 h-4 text-blue-600" />
-          <span className="text-sm text-blue-800">
-            <strong>Customer Pricing Mode:</strong> All prices shown include standard markup for customer proposals.
-          </span>
+        <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-100 rounded-full">
+              <Lock className="w-5 h-5 text-blue-600" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-blue-900">Customer Pricing View</h3>
+              <p className="text-xs text-blue-700 mt-0.5">
+                All prices shown are customer-ready with 50% markup included. Use these prices for quotes and proposals.
+              </p>
+            </div>
+          </div>
         </div>
       )}
       

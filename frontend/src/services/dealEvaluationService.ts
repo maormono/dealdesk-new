@@ -1,8 +1,14 @@
 import { supabase } from '../lib/supabase';
 import { dealConfig } from '../config/dealConfig';
 import type { DealRequest, DealEvaluation, CarrierOption } from '../config/dealConfig';
+import type { UserRole } from '../contexts/UserContext';
 
 export class DealEvaluationService {
+  private userRole: UserRole | null = null;
+  
+  constructor(userRole?: UserRole | null) {
+    this.userRole = userRole || null;
+  }
   async evaluateDeal(request: DealRequest): Promise<DealEvaluation> {
     console.log('Evaluating deal:', request);
     
@@ -90,14 +96,41 @@ export class DealEvaluationService {
   
   private async fetchCarrierPricing(request: DealRequest): Promise<CarrierOption[]> {
     const options: CarrierOption[] = [];
+    const isSales = this.userRole?.role === 'sales';
+    const markupMultiplier = isSales ? 1.5 : 1.0; // 50% markup for sales
     
-    for (const country of request.countries) {
-      // Country is already "United States" in database, no mapping needed
-      const dbCountry = country;
-      
-      // Fetch networks for this country
-      const { data: networks, error } = await supabase
-        .from('networks')
+    // Try to use role-based pricing RPC first
+    const { data: pricingData, error: pricingError } = await supabase
+      .rpc('get_role_based_pricing');
+    
+    if (!pricingError && pricingData) {
+      // Use role-based pricing data
+      for (const country of request.countries) {
+        const countryNetworks = pricingData.filter((item: any) => 
+          item.country === country
+        );
+        
+        for (const network of countryNetworks) {
+          options.push({
+            country: network.country,
+            carrier: network.network_name,
+            operator: 'Monogoto',
+            pricePerMB: (network.data_price_cents_per_mb || 0) / 100 / 1024, // Convert cents/MB to EUR/MB
+            imsiCost: (network.imsi_price_cents || 0) / 100,
+            smsCost: (network.sms_price_cents || 0) / 100,
+            availability: 'available'
+          });
+        }
+      }
+    } else {
+      // Fallback to regular pricing with client-side markup
+      for (const country of request.countries) {
+        // Country is already "United States" in database, no mapping needed
+        const dbCountry = country;
+        
+        // Fetch networks for this country
+        const { data: networks, error } = await supabase
+          .from('networks')
         .select(`
           id,
           network_name,
@@ -173,10 +206,10 @@ export class DealEvaluationService {
             return;
           }
           
-          // Calculate total cost for this option
-          const dataRate = pricing.data_per_mb;
-          const imsiCost = pricing.imsi_access_fee || 0;
-          const smsRate = pricing.sms_mo || pricing.sms_mt || 0;
+          // Calculate total cost for this option with role-based markup
+          const dataRate = pricing.data_per_mb * markupMultiplier;
+          const imsiCost = (pricing.imsi_access_fee || 0) * markupMultiplier;
+          const smsRate = (pricing.sms_mo || pricing.sms_mt || 0) * markupMultiplier;
           
           const totalCostPerSim = (dataRate * request.monthlyDataPerSim * 1024) + imsiCost + 
                                   (smsRate * (request.monthlySmsPerSim || 0));
@@ -195,7 +228,10 @@ export class DealEvaluationService {
               catM: pricing.lte_m || false,
               nbIot: pricing.nb_iot || false
             },
-            totalCostPerSim
+            totalCostPerSim,
+            pricePerMB: dataRate / 1024, // Add pricePerMB for compatibility
+            smsCost: smsRate,
+            availability: 'available'
           });
         });
       });
