@@ -17,7 +17,8 @@
     "lint": "npm run lint --workspaces"
   },
   "dependencies": {
-    "typescript": "~5.8.3"
+    "typescript": "~5.8.3",
+    "vite": "^7.1.2"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

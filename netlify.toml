@@ -1,6 +1,6 @@
 [build]
   base = "."
-  command = "npm install && cd frontend && npm install typescript vite && npm run build"
+  command = "npm ci && npm run build"
   publish = "frontend/dist"
 
 [build.environment]
