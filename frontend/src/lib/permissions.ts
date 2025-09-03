@@ -20,18 +20,6 @@ export async function getUserDealDeskPermissions(userId: string): Promise<DealDe
       return getDefaultPermissions()
     }
 
-    // Check if user has access to Monogoto OS (viewer role or higher)
-    const { data: userProfile } = await supabase
-      .from('user_profiles')
-      .select('role')
-      .eq('id', userId)
-      .single()
-
-    if (!userProfile) {
-      console.log('No user profile found')
-      return getDefaultPermissions()
-    }
-
     // Get the DealDesk app ID
     const { data: appData, error: appError } = await supabase
       .from('applications')
@@ -41,20 +29,18 @@ export async function getUserDealDeskPermissions(userId: string): Promise<DealDe
 
     if (appError || !appData) {
       console.error('Error fetching DealDesk app:', appError)
-      // If user has Monogoto OS access, grant basic DealDesk access
-      if (userProfile.role) {
-        return {
-          role: 'user' as AppPermission,
-          canSeeCosts: false,
-          canEditPricing: false,
-          canExportData: true,
-          canManageUsers: false
-        }
+      // If no DealDesk app entry exists, grant basic access to authenticated users
+      // This allows for development/testing
+      return {
+        role: 'user' as AppPermission,
+        canSeeCosts: true,
+        canEditPricing: false,
+        canExportData: true,
+        canManageUsers: false
       }
-      return getDefaultPermissions()
     }
 
-    // Check for explicit DealDesk permissions
+    // Check for explicit DealDesk permissions in user_app_roles
     const { data: roleData, error: roleError } = await supabase
       .from('user_app_roles')
       .select('role')
@@ -63,28 +49,40 @@ export async function getUserDealDeskPermissions(userId: string): Promise<DealDe
       .single()
 
     if (roleError || !roleData) {
-      console.log('No explicit DealDesk permissions, using default based on Monogoto OS access')
-      // If user has Monogoto OS access but no explicit DealDesk permissions,
-      // grant basic user access
-      if (userProfile.role) {
+      console.log('No explicit DealDesk permissions found')
+      // Check if user has ANY role in user_app_roles (for any app)
+      // This indicates they're a valid Monogoto OS user
+      const { data: anyRole } = await supabase
+        .from('user_app_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .limit(1)
+        .single()
+      
+      if (anyRole) {
+        console.log('User has Monogoto OS access, granting basic DealDesk access')
+        // User has access to Monogoto OS, grant basic DealDesk access
         return {
           role: 'user' as AppPermission,
-          canSeeCosts: false,
+          canSeeCosts: true,
           canEditPricing: false,
           canExportData: true,
           canManageUsers: false
         }
       }
+      
+      // No permissions at all
       return getDefaultPermissions()
     }
 
     // Return explicit permissions based on role
+    const isAdmin = roleData.role === 'admin' || roleData.role === 'sales_admin'
     return {
-      role: roleData.role as AppPermission,
-      canSeeCosts: roleData.role === 'admin',
-      canEditPricing: roleData.role === 'admin',
+      role: isAdmin ? 'admin' : 'user' as AppPermission,
+      canSeeCosts: true,
+      canEditPricing: isAdmin,
       canExportData: true,
-      canManageUsers: roleData.role === 'admin'
+      canManageUsers: isAdmin
     }
   } catch (error) {
     console.error('Error fetching DealDesk permissions:', error)
