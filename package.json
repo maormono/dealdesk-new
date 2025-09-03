@@ -11,11 +11,13 @@
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:frontend": "npm run dev --workspace=frontend",
     "dev:backend": "npm run dev --workspace=backend",
-    "build": "npm run build --workspaces",
+    "build": "npm run build --workspace=frontend",
+    "build:all": "npm run build --workspaces",
     "test": "npm run test --workspaces",
     "lint": "npm run lint --workspaces"
   },
   "dependencies": {
+    "typescript": "~5.8.3"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
