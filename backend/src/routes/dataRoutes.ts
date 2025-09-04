@@ -1,17 +1,20 @@
 import { Router } from 'express';
-import { DataLoader } from '../services/dataLoader.js';
+import { ComprehensiveParser } from '../services/comprehensiveParser.js';
 import type { Request, Response } from 'express';
 
 const router = Router();
-const dataLoader = new DataLoader();
+const parser = new ComprehensiveParser();
 let dataLoaded = false;
+let allData: any[] = [];
 
 // Middleware to ensure data is loaded
 const ensureDataLoaded = async (req: Request, res: Response, next: Function) => {
   if (!dataLoaded) {
     try {
-      await dataLoader.loadAllData();
+      console.log('Loading data using ComprehensiveParser...');
+      allData = await parser.loadAllData();
       dataLoaded = true;
+      console.log(`Data loaded: ${allData.length} records`);
     } catch (error) {
       console.error('Error loading data:', error);
       return res.status(500).json({ error: 'Failed to load data' });
@@ -22,11 +25,10 @@ const ensureDataLoaded = async (req: Request, res: Response, next: Function) => 
 
 // GET /api/data/all
 router.get('/all', ensureDataLoaded, (req: Request, res: Response) => {
-  const data = dataLoader.getAllData();
   res.json({
     success: true,
-    count: data.length,
-    data
+    count: allData.length,
+    data: allData
   });
 });
 
@@ -38,7 +40,9 @@ router.get('/search', ensureDataLoaded, (req: Request, res: Response) => {
     return res.status(400).json({ error: 'TADIG parameter required' });
   }
   
-  const results = dataLoader.searchByTadig(tadig);
+  const results = allData.filter(item => 
+    item.tadig?.toLowerCase().includes(tadig.toLowerCase())
+  );
   
   res.json({
     success: true,
@@ -56,15 +60,17 @@ router.get('/compare', ensureDataLoaded, (req: Request, res: Response) => {
     return res.status(400).json({ error: 'TADIG parameter required' });
   }
   
-  const results = dataLoader.getComparison(tadig);
+  const results = allData.filter(item => 
+    item.tadig === tadig.toUpperCase()
+  );
   
   res.json({
     success: true,
     tadig,
-    sources: results.map(r => r.source),
+    sources: results.map((r: any) => r.source),
     comparison: results,
     bestPrice: results.length > 0 ? 
-      Math.min(...results.map(r => r.dataPerMB)) : null
+      Math.min(...results.map((r: any) => r.dataPerMB)) : null
   });
 });
 
