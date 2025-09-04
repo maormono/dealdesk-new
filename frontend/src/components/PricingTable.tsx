@@ -141,6 +141,58 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
 
   const loadNetworks = async () => {
     try {
+      // In development, fetch from backend API
+      const isDevelopment = import.meta.env.DEV;
+      
+      if (isDevelopment) {
+        // Fetch from backend API  
+        const response = await fetch('http://localhost:3001/api/data/all');
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+          // Transform backend data to match our interface
+          const transformedData: NetworkData[] = result.data.map((item: any) => {
+            // Extract network name from the full string (e.g., "Afghanistan - AWCC" -> "AWCC")
+            const networkName = item.network.includes(' - ') 
+              ? item.network.split(' - ')[1] 
+              : item.network;
+            
+            // Apply role-based markup if user is sales
+            const dataPrice = item.dataPerMB || 0;
+            const smsPrice = item.smsOutgoing || 0;
+            const imsiPrice = item.imsiCost || 0;
+            
+            const adjustedDataPrice = isSales ? dataPrice * 1.5 : dataPrice;
+            const adjustedSmsPrice = isSales ? smsPrice * 1.5 : smsPrice;
+            const adjustedImsiPrice = isSales ? imsiPrice * 1.5 : imsiPrice;
+            
+            return {
+              network_name: networkName,
+              country: item.country,
+              tadig: item.tadig,
+              operator: item.source || 'Unknown',
+              data_cost: adjustedDataPrice,
+              sms_cost: adjustedSmsPrice,
+              imsi_cost: adjustedImsiPrice,
+              notes: item.restrictions || '',
+              lte_m: item.lteM || false,
+              nb_iot: item.nbIot || false,
+              restrictions: item.restrictions || ''
+            };
+          });
+          
+          // Store all networks and filter hidden ones
+          setAllNetworks(transformedData);
+          const visibleNetworks = transformedData.filter(n => {
+            const price = n.data_cost;
+            return price <= MAX_REASONABLE_PRICE_EUR_MB * (isSales ? 1.5 : 1);
+          });
+          setNetworks(visibleNetworks);
+          return;
+        }
+      }
+      
+      // Production: Use Supabase
       // Use the role-based pricing view/function
       const { data: pricingData, error: pricingError } = await supabase
         .rpc('get_role_based_pricing');
