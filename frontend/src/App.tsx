@@ -15,7 +15,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AuthHandler from './components/AuthHandler';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { UserProvider, useUser } from './contexts/UserContext';
-import { FileSpreadsheet, Globe, Upload, LogOut, Bot, Calculator, Shield, Book, X } from 'lucide-react';
+import { FileSpreadsheet, Globe, Upload, LogOut, Bot, Calculator, Shield, Book, X, ArrowLeft } from 'lucide-react';
 import monogotoLogo from './assets/monogoto-logo.svg';
 import { NotesDictionary } from './components/NotesDisplay';
 
@@ -60,6 +60,16 @@ function HomePage() {
               </div>
             </div>
             <div className="flex items-center space-x-4">
+              {/* Return to Monogoto OS button */}
+              <a
+                href="https://monogoto-os.netlify.app/dashboard"
+                className="flex items-center space-x-2 px-3 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-xl text-sm font-medium transition-all whitespace-nowrap"
+                title="Return to Monogoto OS"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>Monogoto OS</span>
+              </a>
+              <div className="h-6 w-px bg-gray-200" />
               <button
                 onClick={() => setShowAIAdvisor(!showAIAdvisor)}
                 className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${

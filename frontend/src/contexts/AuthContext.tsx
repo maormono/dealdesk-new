@@ -69,7 +69,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     async function getInitialSession() {
       try {
-        // Check for existing Supabase session (from Monogoto OS or direct login)
+        // First check for SSO tokens from Monogoto OS in URL parameters
+        const params = new URLSearchParams(window.location.search)
+        const accessToken = params.get('access_token')
+        const refreshToken = params.get('refresh_token')
+        const expiresAt = params.get('expires_at')
+        
+        if (accessToken && refreshToken) {
+          console.log('SSO tokens found in URL, setting session from Monogoto OS...')
+          
+          try {
+            // Set the session using the tokens from Monogoto OS
+            const { data, error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken
+            })
+            
+            if (error) throw error
+            
+            if (data.session && mounted) {
+              console.log('SSO session set successfully for:', data.session.user.email)
+              
+              // Clean URL (remove tokens from address bar for security)
+              window.history.replaceState({}, document.title, window.location.pathname)
+              
+              // Set the session in our state
+              setSession(data.session)
+              setUser(data.session.user)
+              setIsAuthorized(true)
+              setLoading(false)
+              return // Exit early, we're done
+            }
+          } catch (ssoError) {
+            console.error('SSO login failed:', ssoError)
+            // Fall through to check for existing session
+          }
+        }
+        
+        // No SSO tokens, check for existing Supabase session (from previous login)
         const { data: { session }, error } = await supabase.auth.getSession()
         
         if (error) {
