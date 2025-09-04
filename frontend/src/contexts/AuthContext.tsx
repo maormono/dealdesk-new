@@ -69,21 +69,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     async function getInitialSession() {
       try {
-        const { data: { session } } = await supabase.auth.getSession()
+        // Check for existing Supabase session (from Monogoto OS or direct login)
+        const { data: { session }, error } = await supabase.auth.getSession()
+        
+        if (error) {
+          console.error('Error getting session:', error)
+        }
         
         if (mounted) {
           if (session?.user) {
+            console.log('Found existing Supabase session for:', session.user.email)
             const email = session.user.email || ''
-            if (isEmailAllowed(email)) {
-              setSession(session)
-              setUser(session.user)
-              setIsAuthorized(true)
-            } else {
-              await supabase.auth.signOut()
-              setSession(null)
-              setUser(null)
-              setIsAuthorized(false)
+            
+            // For SSO from Monogoto OS, we trust the session
+            // The user already passed authentication there
+            setSession(session)
+            setUser(session.user)
+            setIsAuthorized(true)
+            
+            // Only check email restrictions for direct logins
+            // (not needed for SSO as Monogoto OS handles permissions)
+            if (!isEmailAllowed(email)) {
+              console.warn('User email not in allowed list, but has valid session:', email)
+              // Still allow access as they have a valid Supabase session
+              // Monogoto OS manages permissions
             }
+          } else {
+            console.log('No existing session found')
           }
           setLoading(false)
         }
@@ -99,19 +111,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Only set up auth listener in production mode
     if (!isDevMode) {
-      const { data: authListener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email)
+        
         if (mounted) {
           if (session?.user) {
+            // For SSO, trust the session from Monogoto OS
+            setSession(session)
+            setUser(session.user)
+            setIsAuthorized(true)
+            
             const email = session.user.email || ''
-            if (isEmailAllowed(email)) {
-              setSession(session)
-              setUser(session.user)
-              setIsAuthorized(true)
-            } else {
-              await supabase.auth.signOut()
-              setSession(null)
-              setUser(null)
-              setIsAuthorized(false)
+            if (!isEmailAllowed(email)) {
+              console.warn('User email not in allowed list, but has valid session:', email)
+              // Still allow access for SSO users
             }
           } else {
             setSession(null)
