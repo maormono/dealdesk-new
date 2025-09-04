@@ -197,11 +197,15 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
       }
       
       // Production: Use Supabase
-      // First try to fetch from backend API even in production as fallback
-      try {
-        console.log('Attempting backend API fetch as fallback...');
-        const response = await fetch('http://localhost:3001/api/data/all');
-        if (response.ok) {
+      // Skip backend API in production (Netlify) since localhost won't work
+      const isProduction = window.location.hostname === 'deal-desk.netlify.app';
+      
+      if (!isProduction) {
+        // Only try backend API if not on Netlify
+        try {
+          console.log('Attempting backend API fetch as fallback...');
+          const response = await fetch('http://localhost:3001/api/data/all');
+          if (response.ok) {
           const result = await response.json();
           if (result.success && result.data) {
             console.log('Using backend API data (fallback)');
@@ -246,8 +250,9 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
             return;
           }
         }
-      } catch (backendError) {
-        console.log('Backend API not available, falling back to Supabase');
+        } catch (backendError) {
+          console.log('Backend API not available, falling back to Supabase');
+        }
       }
       
       // Use the role-based pricing view/function
