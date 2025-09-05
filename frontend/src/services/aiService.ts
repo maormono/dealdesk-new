@@ -220,6 +220,7 @@ Extract these parameters and return as JSON:
 {
   "simQuantity": number,
   "countries": ["country1", "country2"],
+  "networksPerCountry": {"country1": number or "all", "country2": number or "all"},
   "monthlyDataPerSim": number (in GB),
   "monthlySmsPerSim": number (default 0),
   "duration": number (months),
@@ -230,6 +231,16 @@ Extract these parameters and return as JSON:
   "expectedUsagePattern": "low" | "medium" | "high" (default "medium"),
   "requiresIoT": boolean (default false)
 }
+
+For networksPerCountry:
+- If "all networks" is mentioned, use "all" as the value
+- If a specific number is mentioned (e.g., "2 networks"), use that number
+- If no network count is specified, use "all"
+
+Examples:
+- "Israel all networks" → {"Israel": "all"}
+- "France 2 networks" → {"France": 2}
+- "UK 3 networks, Germany all networks" → {"UK": 3, "Germany": "all"}
 
 If you cannot extract clear deal parameters, return null.
 `;
@@ -245,9 +256,19 @@ If you cannot extract clear deal parameters, return null.
         // Validate required fields
         if (params.simQuantity && params.countries && params.monthlyDataPerSim) {
           // Set defaults for missing fields
+          const networksPerCountry = params.networksPerCountry || {};
+          
+          // If networksPerCountry is empty, default to "all" for each country
+          if (Object.keys(networksPerCountry).length === 0) {
+            params.countries.forEach((country: string) => {
+              networksPerCountry[country] = "all";
+            });
+          }
+          
           return {
             simQuantity: params.simQuantity,
             countries: params.countries,
+            networksPerCountry: networksPerCountry,
             monthlyDataPerSim: params.monthlyDataPerSim,
             monthlySmsPerSim: params.monthlySmsPerSim || 0,
             duration: params.duration || 12,
