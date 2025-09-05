@@ -1,4 +1,5 @@
-import * as XLSX from 'xlsx';
+import xlsx from 'xlsx';
+const XLSX = xlsx;
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -301,7 +302,7 @@ export class ComprehensiveParser {
     const possiblePaths = [
       path.join(process.cwd(), '202509_Country Price List A1 IMSI Sponsoring.xlsx'),
       path.join(process.cwd(), '..', '202509_Country Price List A1 IMSI Sponsoring.xlsx'),
-      path.join(__dirname, '../../../', '202509_Country Price List A1 IMSI Sponsoring.xlsx')
+      path.join(process.cwd(), '../..', '202509_Country Price List A1 IMSI Sponsoring.xlsx')
     ];
     
     const filePath = possiblePaths.find(p => fs.existsSync(p)) || possiblePaths[0];
@@ -348,6 +349,11 @@ export class ComprehensiveParser {
       const country = this.normalizeCountryName(countryRaw);
       const networkRaw = (row[1] || '').toString().trim();
       const network = this.getFormalNetworkName(tadig, networkRaw);
+      
+      // Debug logging
+      if (i < 8 + 5) {  // Log first 5 records
+        console.log(`Row ${i}: networkRaw="${networkRaw}", network="${network}"`);
+      }
       
       // Parse technologies - A1 uses 'yes'/'no'/'in process' values
       const techValue = (val: any) => {
@@ -417,7 +423,7 @@ export class ComprehensiveParser {
     const possiblePaths = [
       path.join(process.cwd(), '20250205 Monogoto TGS UK V1.xlsx'),
       path.join(process.cwd(), '..', '20250205 Monogoto TGS UK V1.xlsx'),
-      path.join(__dirname, '../../../', '20250205 Monogoto TGS UK V1.xlsx')
+      path.join(process.cwd(), '../..', '20250205 Monogoto TGS UK V1.xlsx')
     ];
     
     const filePath = possiblePaths.find(p => fs.existsSync(p)) || possiblePaths[0];
@@ -515,7 +521,7 @@ export class ComprehensiveParser {
     const possiblePaths = [
       path.join(process.cwd(), '0- Invoice Monogoto 2025-04.xlsx'),
       path.join(process.cwd(), '..', '0- Invoice Monogoto 2025-04.xlsx'),
-      path.join(__dirname, '../../../', '0- Invoice Monogoto 2025-04.xlsx')
+      path.join(process.cwd(), '../..', '0- Invoice Monogoto 2025-04.xlsx')
     ];
     
     const filePath = possiblePaths.find(p => fs.existsSync(p)) || possiblePaths[0];

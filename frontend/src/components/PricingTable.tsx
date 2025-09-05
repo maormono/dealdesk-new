@@ -141,6 +141,120 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
 
   const loadNetworks = async () => {
     try {
+      // In development, fetch from backend API
+      const isDevelopment = import.meta.env.DEV;
+      console.log('Development mode:', isDevelopment);
+      console.log('Environment:', import.meta.env);
+      
+      if (isDevelopment) {
+        console.log('Fetching from backend API...');
+        // Fetch from backend API  
+        const response = await fetch('http://localhost:3001/api/data/all');
+        const result = await response.json();
+        console.log('Backend API response:', result);
+        
+        if (result.success && result.data) {
+          // Transform backend data to match our interface
+          const transformedData: NetworkData[] = result.data.map((item: any) => {
+            // Extract network name from the full string (e.g., "Afghanistan - AWCC" -> "AWCC")
+            const networkName = item.network.includes(' - ') 
+              ? item.network.split(' - ')[1] 
+              : item.network;
+            
+            // Apply role-based markup if user is sales
+            const dataPrice = item.dataPerMB || 0;
+            const smsPrice = item.smsOutgoing || 0;
+            const imsiPrice = item.imsiCost || 0;
+            
+            const adjustedDataPrice = isSales ? dataPrice * 1.5 : dataPrice;
+            const adjustedSmsPrice = isSales ? smsPrice * 1.5 : smsPrice;
+            const adjustedImsiPrice = isSales ? imsiPrice * 1.5 : imsiPrice;
+            
+            return {
+              network_name: networkName,
+              country: item.country,
+              tadig: item.tadig,
+              operator: item.source || 'Unknown',
+              data_cost: adjustedDataPrice,
+              sms_cost: adjustedSmsPrice,
+              imsi_cost: adjustedImsiPrice,
+              notes: item.restrictions || '',
+              lte_m: item.lteM || false,
+              nb_iot: item.nbIot || false,
+              restrictions: item.restrictions || ''
+            };
+          });
+          
+          // Store all networks and filter hidden ones
+          setAllNetworks(transformedData);
+          const visibleNetworks = transformedData.filter(n => {
+            const price = n.data_cost;
+            return price <= MAX_REASONABLE_PRICE_EUR_MB * (isSales ? 1.5 : 1);
+          });
+          setNetworks(visibleNetworks);
+          return;
+        }
+      }
+      
+      // Production: Use Supabase
+      // Skip backend API in production (Netlify) since localhost won't work
+      const isProduction = window.location.hostname === 'deal-desk.netlify.app';
+      
+      if (!isProduction) {
+        // Only try backend API if not on Netlify
+        try {
+          console.log('Attempting backend API fetch as fallback...');
+          const response = await fetch('http://localhost:3001/api/data/all');
+          if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.data) {
+            console.log('Using backend API data (fallback)');
+            // Transform backend data to match our interface
+            const transformedData: NetworkData[] = result.data.map((item: any) => {
+              // Extract network name from the full string (e.g., "Afghanistan - AWCC" -> "AWCC")
+              const networkName = item.network.includes(' - ') 
+                ? item.network.split(' - ')[1] 
+                : item.network;
+              
+              // Apply role-based markup if user is sales
+              const dataPrice = item.dataPerMB || 0;
+              const smsPrice = item.smsOutgoing || 0;
+              const imsiPrice = item.imsiCost || 0;
+              
+              const adjustedDataPrice = isSales ? dataPrice * 1.5 : dataPrice;
+              const adjustedSmsPrice = isSales ? smsPrice * 1.5 : smsPrice;
+              const adjustedImsiPrice = isSales ? imsiPrice * 1.5 : imsiPrice;
+              
+              return {
+                network_name: networkName,
+                country: item.country,
+                tadig: item.tadig,
+                operator: item.source || 'Unknown',
+                data_cost: adjustedDataPrice,
+                sms_cost: adjustedSmsPrice,
+                imsi_cost: adjustedImsiPrice,
+                notes: item.restrictions || '',
+                lte_m: item.lteM || false,
+                nb_iot: item.nbIot || false,
+                restrictions: item.restrictions || ''
+              };
+            });
+            
+            // Store all networks and filter hidden ones
+            setAllNetworks(transformedData);
+            const visibleNetworks = transformedData.filter(n => {
+              const price = n.data_cost;
+              return price <= MAX_REASONABLE_PRICE_EUR_MB * (isSales ? 1.5 : 1);
+            });
+            setNetworks(visibleNetworks);
+            return;
+          }
+        }
+        } catch (backendError) {
+          console.log('Backend API not available, falling back to Supabase');
+        }
+      }
+      
       // Use the role-based pricing view/function
       const { data: pricingData, error: pricingError } = await supabase
         .rpc('get_role_based_pricing');
