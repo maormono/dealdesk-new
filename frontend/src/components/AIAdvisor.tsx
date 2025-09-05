@@ -411,9 +411,9 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ currency = 'USD' }) => {
   return (
     <div className="flex flex-col h-[600px] bg-white rounded-lg shadow-sm border border-gray-200">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-blue-50">
+      <div className="px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-pink-50 to-rose-50">
         <div className="flex items-center space-x-2">
-          <div className="p-2 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg">
+          <div className="p-2 bg-gradient-to-br from-pink-500 to-rose-600 rounded-lg">
             <Bot className="w-5 h-5 text-white" />
           </div>
           <div>
@@ -433,7 +433,7 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ currency = 'USD' }) => {
             <div
               className={`max-w-[80%] rounded-lg px-4 py-2 ${
                 message.role === 'user'
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-pink-500 text-white'
                   : 'bg-gray-100 text-gray-900'
               }`}
             >
@@ -441,7 +441,7 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ currency = 'USD' }) => {
                 {message.content}
               </div>
               <div className={`text-xs mt-1 ${
-                message.role === 'user' ? 'text-blue-100' : 'text-gray-500'
+                message.role === 'user' ? 'text-pink-100' : 'text-gray-500'
               }`}>
                 {message.timestamp.toLocaleTimeString()}
               </div>
@@ -465,13 +465,13 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ currency = 'USD' }) => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask about pricing, networks, or operators..."
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
             disabled={loading}
           />
           <button
             type="submit"
             disabled={loading || !input.trim()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {loading ? (
               <Loader2 className="w-5 h-5 animate-spin" />

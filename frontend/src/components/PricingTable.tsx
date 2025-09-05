@@ -377,151 +377,6 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
           </span>
         </div>
       )}
-      
-      {/* Search Bar and Controls - Apple Style */}
-      <div className="mb-6">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-          <div className="flex gap-3 items-center">
-            <div className="flex-1 relative">
-              <input
-                type="text"
-                placeholder="Search networks, countries, TADIG codes..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-4 py-3 bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]/50 focus:bg-white transition-all placeholder-gray-400"
-              />
-            </div>
-            
-            {/* Export Button */}
-            <button
-              onClick={exportToCSV}
-              className="flex items-center gap-2 px-4 py-2 bg-[#5B9BD5] text-white rounded-xl hover:bg-[#5B9BD5]/90 transition-all font-medium text-sm"
-              title="Export to CSV"
-            >
-              <Download className="w-4 h-4" />
-              Export
-            </button>
-            
-            {/* Data Unit Toggle - Pill Style */}
-            <div className="flex items-center bg-gray-50 rounded-xl p-1">
-              <button
-                onClick={() => setDataUnit('MB')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  dataUnit === 'MB' 
-                    ? 'bg-white text-[#5B9BD5] shadow-sm' 
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                MB
-              </button>
-              <button
-                onClick={() => setDataUnit('GB')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  dataUnit === 'GB' 
-                    ? 'bg-white text-[#5B9BD5] shadow-sm' 
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                GB
-              </button>
-            </div>
-            
-            {/* Currency Toggle - Pill Style */}
-            <div className="flex items-center bg-gray-50 rounded-xl p-1">
-              <button
-                onClick={() => {
-                  setCurrency('USD');
-                  onCurrencyChange?.('USD');
-                }}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  currency === 'USD' 
-                    ? 'bg-white text-[#5B9BD5] shadow-sm' 
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                USD $
-              </button>
-              <button
-                onClick={() => {
-                  setCurrency('EUR');
-                  onCurrencyChange?.('EUR');
-                }}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  currency === 'EUR' 
-                    ? 'bg-white text-[#5B9BD5] shadow-sm' 
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                EUR €
-              </button>
-            </div>
-          </div>
-          
-          {/* Filter Controls Row */}
-          <div className="mt-4 flex gap-3 items-center">
-            {/* Operator Filter */}
-            <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-gray-500" />
-              <span className="text-sm text-gray-600 mr-2">Operators:</span>
-              <div className="flex gap-2">
-                {['A1', 'Telefonica', 'Tele2'].map(operator => {
-                  const config = operatorConfig[operator as keyof typeof operatorConfig];
-                  return (
-                    <button
-                      key={operator}
-                      onClick={() => toggleOperator(operator)}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all border ${
-                        selectedOperators.has(operator)
-                          ? `${config.bgColor} ${config.color} ${config.borderColor} border-2`
-                          : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
-                      }`}
-                    >
-                      {config.label} {operator}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-            
-            {/* Show Hidden Networks Toggle */}
-            <div className="flex items-center gap-2 ml-auto">
-              <button
-                onClick={() => setShowHiddenNetworks(!showHiddenNetworks)}
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium transition-all border ${
-                  showHiddenNetworks
-                    ? 'bg-orange-50 text-orange-600 border-orange-200'
-                    : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
-                }`}
-              >
-                {showHiddenNetworks ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                {showHiddenNetworks ? 'Showing All' : 'Hidden Networks'}
-                <span className="px-1.5 py-0.5 bg-white rounded text-xs">
-                  {showHiddenNetworks ? allNetworks.length - networks.length : 0}
-                </span>
-              </button>
-            </div>
-          </div>
-      
-          {/* Active filter indicator */}
-          {(searchTerm || selectedOperators.size > 0) && (
-            <div className="mt-3 flex items-center gap-2 text-sm text-gray-500">
-              <span>Active filters: 
-                {searchTerm && <strong className="text-gray-700 ml-1">"{searchTerm}"</strong>}
-                {selectedOperators.size > 0 && <strong className="text-gray-700 ml-1">{Array.from(selectedOperators).join(', ')}</strong>}
-              </span>
-              <button
-                onClick={() => {
-                  setSearchTerm('');
-                  setSelectedOperators(new Set());
-                }}
-                className="text-[#5B9BD5] hover:text-[#5B9BD5]/80 font-medium"
-              >
-                Clear All
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
 
       {/* Stats Cards - Apple Style */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-8">
@@ -591,6 +446,150 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
             </div>
             <div className="text-sm text-gray-500">Enabled</div>
           </div>
+        </div>
+      </div>
+      
+      {/* Search Bar and Controls - Apple Style */}
+      <div className="mb-6">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+          <div className="flex gap-3 items-center">
+            <div className="flex-1 relative">
+              <input
+                type="text"
+                placeholder="Search networks, countries, TADIG codes..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-3 py-1.5 bg-gray-50 border-0 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]/50 focus:bg-white transition-all placeholder-gray-400 text-sm"
+              />
+            </div>
+            
+            {/* Data Unit Toggle - Pill Style */}
+            <div className="flex items-center bg-gray-50 rounded-xl p-1">
+              <button
+                onClick={() => setDataUnit('MB')}
+                className={`px-3 py-1.5 rounded-lg text-sm transition-all ${
+                  dataUnit === 'MB' 
+                    ? 'bg-white text-[#5B9BD5] shadow-sm' 
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                MB
+              </button>
+              <button
+                onClick={() => setDataUnit('GB')}
+                className={`px-3 py-1.5 rounded-lg text-sm transition-all ${
+                  dataUnit === 'GB' 
+                    ? 'bg-white text-[#5B9BD5] shadow-sm' 
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                GB
+              </button>
+            </div>
+            
+            {/* Currency Toggle - Pill Style */}
+            <div className="flex items-center bg-gray-50 rounded-xl p-1">
+              <button
+                onClick={() => {
+                  setCurrency('USD');
+                  onCurrencyChange?.('USD');
+                }}
+                className={`px-3 py-1.5 rounded-lg text-sm transition-all ${
+                  currency === 'USD' 
+                    ? 'bg-white text-[#5B9BD5] shadow-sm' 
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                USD $
+              </button>
+              <button
+                onClick={() => {
+                  setCurrency('EUR');
+                  onCurrencyChange?.('EUR');
+                }}
+                className={`px-3 py-1.5 rounded-lg text-sm transition-all ${
+                  currency === 'EUR' 
+                    ? 'bg-white text-[#5B9BD5] shadow-sm' 
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                EUR €
+              </button>
+            </div>
+            
+            {/* Export Button - Minimized */}
+            <button
+              onClick={exportToCSV}
+              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-all"
+              title="Export to CSV"
+            >
+              <Download className="w-4 h-4" />
+            </button>
+          </div>
+          
+          {/* Filter Controls Row */}
+          <div className="mt-4 flex gap-3 items-center">
+            {/* Operator Filter */}
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-gray-500" />
+              <span className="text-sm text-gray-600 mr-2">Operators:</span>
+              <div className="flex gap-2">
+                {['A1', 'Telefonica', 'Tele2'].map(operator => {
+                  const config = operatorConfig[operator as keyof typeof operatorConfig];
+                  return (
+                    <button
+                      key={operator}
+                      onClick={() => toggleOperator(operator)}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all border ${
+                        selectedOperators.has(operator)
+                          ? `${config.bgColor} ${config.color} ${config.borderColor} border-2`
+                          : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
+                      }`}
+                    >
+                      {config.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            
+            {/* Show Hidden Networks Toggle */}
+            <div className="flex items-center gap-2 ml-auto">
+              <button
+                onClick={() => setShowHiddenNetworks(!showHiddenNetworks)}
+                className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium transition-all border ${
+                  showHiddenNetworks
+                    ? 'bg-orange-50 text-orange-600 border-orange-200'
+                    : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
+                }`}
+              >
+                {showHiddenNetworks ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                {showHiddenNetworks ? 'Showing All' : 'Hidden Networks'}
+                <span className="px-1.5 py-0.5 bg-white rounded text-xs">
+                  {showHiddenNetworks ? allNetworks.length - networks.length : 0}
+                </span>
+              </button>
+            </div>
+          </div>
+      
+          {/* Active filter indicator */}
+          {(searchTerm || selectedOperators.size > 0) && (
+            <div className="mt-3 flex items-center gap-2 text-sm text-gray-500">
+              <span>Active filters: 
+                {searchTerm && <strong className="text-gray-700 ml-1">"{searchTerm}"</strong>}
+                {selectedOperators.size > 0 && <strong className="text-gray-700 ml-1">{Array.from(selectedOperators).join(', ')}</strong>}
+              </span>
+              <button
+                onClick={() => {
+                  setSearchTerm('');
+                  setSelectedOperators(new Set());
+                }}
+                className="text-[#5B9BD5] hover:text-[#5B9BD5]/80 font-medium"
+              >
+                Clear All
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
