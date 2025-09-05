@@ -48,10 +48,14 @@ Once you provide this information, I'll analyze real operator pricing and recomm
   const [currentDeal, setCurrentDeal] = useState<Partial<DealRequestMandatory>>({});
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
   const dealService = useRef(new ComprehensiveDealService());
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(false);
   
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    if (shouldAutoScroll) {
+      scrollToBottom();
+      setShouldAutoScroll(false);
+    }
+  }, [messages, shouldAutoScroll]);
   
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -70,6 +74,7 @@ Once you provide this information, I'll analyze real operator pricing and recomm
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setLoading(true);
+    setShouldAutoScroll(true);
     
     try {
       // Parse user input
@@ -90,6 +95,7 @@ Once you provide this information, I'll analyze real operator pricing and recomm
           content: formatMissingFieldsMessage(validation.missingFields, updatedDeal),
           timestamp: new Date()
         };
+        setShouldAutoScroll(true);
         setMessages(prev => [...prev, missingFieldsMessage]);
       } else {
         // All fields present - proceed with analysis
@@ -112,6 +118,7 @@ Once you provide this information, I'll analyze real operator pricing and recomm
             timestamp: new Date(),
             dealData: updatedDeal
           };
+          setShouldAutoScroll(true);
           setMessages(prev => prev.filter(m => m.id !== statusMessage.id).concat(analysisMessage));
         } else {
           const errorMessage: Message = {
@@ -120,6 +127,7 @@ Once you provide this information, I'll analyze real operator pricing and recomm
             content: result.warnings?.join('\n') || 'Unable to analyze deal. Please try again.',
             timestamp: new Date()
           };
+          setShouldAutoScroll(true);
           setMessages(prev => prev.filter(m => m.id !== statusMessage.id).concat(errorMessage));
         }
       }
@@ -131,6 +139,7 @@ Once you provide this information, I'll analyze real operator pricing and recomm
         content: 'An error occurred while analyzing your deal. Please try again.',
         timestamp: new Date()
       };
+      setShouldAutoScroll(true);
       setMessages(prev => [...prev, errorMessage]);
     } finally {
       setLoading(false);
@@ -308,7 +317,7 @@ Once you provide this information, I'll analyze real operator pricing and recomm
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="E.g., '1000 SIMs with 1GB in UK (2 networks) and Belgium (1 network), 24-month commitment'"
-            className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#5B9BD5] focus:border-transparent"
+            className="flex-1 px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5B9BD5] focus:border-transparent text-sm"
             disabled={loading}
           />
           <button

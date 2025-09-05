@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import * as XLSX from 'xlsx';
 import { AlertCircle, Upload, CheckCircle, XCircle } from 'lucide-react';
+import { NavigationHeader } from '../components/NavigationHeader';
 
 interface SchemaHints {
   hasTADIG: boolean;
@@ -166,20 +167,20 @@ export const PriceUpdater: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">DealDesk Price Updater</h1>
-              <p className="text-sm text-gray-500">Smart price list management with validation</p>
+      {/* Navigation Header */}
+      <NavigationHeader />
+      
+      {/* Page Header */}
+      <header className="bg-white/80 backdrop-blur-xl border-b border-gray-100 shadow-sm">
+        <div className="px-8 py-6">
+          <div className="flex items-center space-x-4">
+            <div className="p-3 bg-gradient-to-br from-[#F5B342] to-[#E89B3E] rounded-2xl shadow-lg">
+              <Upload className="w-6 h-6 text-white" />
             </div>
-            <button 
-              onClick={() => window.history.back()}
-              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium"
-            >
-              ← Back
-            </button>
+            <div>
+              <h1 className="text-2xl font-semibold text-gray-900 tracking-tight">Price Updater</h1>
+              <p className="text-sm text-gray-500 mt-0.5">Smart price list management with validation</p>
+            </div>
           </div>
         </div>
       </header>
