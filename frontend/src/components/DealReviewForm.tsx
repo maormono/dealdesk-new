@@ -5,6 +5,8 @@ import { dealConfig } from '../config/dealConfig';
 import type { DealRequest, DealEvaluation } from '../config/dealConfig';
 import { DealEvaluationService } from '../services/dealEvaluationService';
 import { EnhancedDealService } from '../services/enhancedDealService';
+import { ComprehensiveDealService } from '../services/comprehensiveDealService';
+import type { DealRequestMandatory } from '../services/comprehensiveDealService';
 import { formatDealForSales } from '../utils/dealFormatter';
 import '../styles/monogoto-theme.css';
 
@@ -38,9 +40,11 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
   
   const [evaluation, setEvaluation] = useState<DealEvaluation | null>(null);
   const [enhancedAnalysis, setEnhancedAnalysis] = useState<any>(null);
+  const [comprehensiveAnalysis, setComprehensiveAnalysis] = useState<any>(null);
   const [showResults, setShowResults] = useState(false);
   const evaluationService = new DealEvaluationService();
   const enhancedService = new EnhancedDealService();
+  const comprehensiveService = new ComprehensiveDealService();
   
   useEffect(() => {
     loadCountries();
@@ -89,8 +93,21 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
     setLoading(true);
     
     try {
-      // Use both services for comprehensive analysis
-      const [basicResult, enhancedResult] = await Promise.all([
+      // Prepare comprehensive deal request
+      const comprehensiveDeal: DealRequestMandatory = {
+        simCount: formData.simQuantity,
+        dataPerMonth: formData.monthlyDataPerSim * 1024, // Convert GB to MB
+        countries: formData.countries,
+        networksPerCountry: formData.countries.reduce((acc, country) => {
+          acc[country] = 2; // Default to 2 networks per country for redundancy
+          return acc;
+        }, {} as Record<string, number>),
+        commitmentMonths: formData.duration,
+        technology: formData.requiresIoT ? ['4G', '5G', 'Cat-M', 'NB-IoT'] : ['3G', '4G', '5G']
+      };
+
+      // Use all three services for comprehensive analysis
+      const [basicResult, enhancedResult, comprehensiveResult] = await Promise.all([
         evaluationService.evaluateDeal(formData),
         enhancedService.analyzeDeal({
           simCount: formData.simQuantity,
@@ -100,11 +117,29 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
           usagePercentages: formData.usagePercentages, // Pass usage distribution
           contractLength: formData.duration,
           requestedPrice: formData.proposedPricePerSim
-        })
+        }),
+        comprehensiveService.evaluateDeal(comprehensiveDeal)
       ]);
+      
+      console.log('=== DEBUGGING DEAL EVALUATION DATA ===');
+      console.log('Basic evaluation result:', basicResult);
+      console.log('Enhanced analysis result:', enhancedResult);
+      console.log('Comprehensive analysis result:', comprehensiveResult);
+      console.log('Comprehensive recommendation:', comprehensiveResult?.recommendation);
+      console.log('Enhanced analysis fields:');
+      console.log('- reasoning:', enhancedResult?.reasoning);
+      console.log('- assumptions:', enhancedResult?.assumptions);
+      console.log('- warnings:', enhancedResult?.warnings);
+      console.log('- usageDistribution:', enhancedResult?.usageDistribution);
+      console.log('- payAsYouGo:', enhancedResult?.payAsYouGo);
+      console.log('Basic evaluation fields:');
+      console.log('- businessJustification:', basicResult?.businessJustification);
+      console.log('- keyAssumptions:', basicResult?.keyAssumptions);
+      console.log('=========================================');
       
       setEvaluation(basicResult);
       setEnhancedAnalysis(enhancedResult);
+      setComprehensiveAnalysis(comprehensiveResult);
       setShowResults(true);
       
       if (onEvaluation) {
@@ -183,26 +218,141 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
           
           {/* Evaluation Content */}
           <div className="space-y-6">
-            {enhancedAnalysis && (
+            {/* Deal Bottom Line - Executive Summary */}
+            {comprehensiveAnalysis && comprehensiveAnalysis.recommendation && (
+              <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 rounded-2xl p-6 border border-blue-200/50 shadow-sm">
+                <h4 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                  🎯 Deal Recommendation & Bottom Line
+                </h4>
+                <div 
+                  className="prose prose-sm max-w-none text-gray-800"
+                  dangerouslySetInnerHTML={{ __html: comprehensiveAnalysis.recommendation }}
+                />
+              </div>
+            )}
+            
+            {/* Fallback Bottom Line if comprehensive analysis fails */}
+            {(!comprehensiveAnalysis || !comprehensiveAnalysis.recommendation) && enhancedAnalysis && (
+              <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-cyan-50 rounded-2xl p-6 border border-emerald-200/50 shadow-sm">
+                <h4 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                  🎯 Deal Summary & Bottom Line
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h5 className="font-semibold text-gray-800 mb-2">💰 Financial Summary</h5>
+                    <ul className="space-y-1 text-sm text-gray-700">
+                      <li>• Monthly per SIM: <strong>${enhancedAnalysis.payAsYouGo?.listPrice?.toFixed(2) || 'N/A'}</strong></li>
+                      <li>• Total monthly: <strong>${((enhancedAnalysis.payAsYouGo?.listPrice || 0) * formData.simQuantity).toFixed(0)}</strong></li>
+                      <li>• Contract value: <strong>${((enhancedAnalysis.payAsYouGo?.listPrice || 0) * formData.simQuantity * formData.duration).toFixed(0)}</strong></li>
+                      <li>• Discount applied: <strong>{enhancedAnalysis.payAsYouGo?.discountPercentage?.toFixed(1) || '0'}%</strong></li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h5 className="font-semibold text-gray-800 mb-2">✅ Recommendation</h5>
+                    <div className="bg-white/60 rounded-lg p-3 border border-emerald-200/30">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <span className="text-2xl">{evaluation?.isViable ? '✅' : '⚠️'}</span>
+                        <span className="font-bold text-lg">
+                          {evaluation?.isViable ? 'APPROVED' : 'NEEDS REVIEW'}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600">
+                        {evaluation?.isViable 
+                          ? 'Deal meets profitability and risk criteria. Proceed with contract.'
+                          : 'Deal requires additional review or negotiation before approval.'
+                        }
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                {enhancedAnalysis.reasoning && enhancedAnalysis.reasoning.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-emerald-200/30">
+                    <h5 className="font-semibold text-gray-800 mb-2">🔑 Key Business Drivers</h5>
+                    <ul className="grid grid-cols-1 md:grid-cols-2 gap-1 text-sm text-gray-700">
+                      {enhancedAnalysis.reasoning.slice(0, 4).map((reason, index) => (
+                        <li key={index} className="flex items-start space-x-2">
+                          <span className="text-blue-500 mt-0.5 flex-shrink-0">→</span>
+                          <span>{reason}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {enhancedAnalysis && enhancedAnalysis.payAsYouGo && (
               <div className="bg-white/60 rounded-xl p-4 border border-green-100/30">
                 <h4 className="font-semibold text-gray-900 mb-3">💰 Pay-as-you-go Pricing Structure</h4>
                 <div className="grid grid-cols-4 gap-4 text-center">
                   <div>
                     <div className="text-xs text-gray-500 mb-1">ACTIVE SIM FEE</div>
-                    <div className="text-lg font-semibold text-gray-900">${enhancedAnalysis.activeSimFee}/month</div>
+                    <div className="text-lg font-semibold text-gray-900">${enhancedAnalysis.payAsYouGo.activeSimFee?.toFixed(2) || '0.00'}/month</div>
                   </div>
                   <div>
                     <div className="text-xs text-gray-500 mb-1">DATA RATE</div>
-                    <div className="text-lg font-semibold text-gray-900">${enhancedAnalysis.dataRate}/GB</div>
+                    <div className="text-lg font-semibold text-gray-900">${enhancedAnalysis.payAsYouGo.dataFee ? (enhancedAnalysis.payAsYouGo.dataFee * 1024).toFixed(2) : '0.00'}/GB</div>
                   </div>
                   <div>
                     <div className="text-xs text-gray-500 mb-1">TOTAL/SIM</div>
-                    <div className="text-lg font-semibold text-green-600">${enhancedAnalysis.totalCostPerSim}</div>
+                    <div className="text-lg font-semibold text-green-600">${enhancedAnalysis.payAsYouGo.listPrice?.toFixed(2) || '0.00'}</div>
                   </div>
                   <div>
                     <div className="text-xs text-gray-500 mb-1">DISCOUNT</div>
-                    <div className="text-lg font-semibold text-blue-600">{enhancedAnalysis.volumeDiscount}% OFF</div>
+                    <div className="text-lg font-semibold text-blue-600">{enhancedAnalysis.payAsYouGo.discountPercentage?.toFixed(1) || '0.0'}% OFF</div>
                   </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Enhanced Analysis Sections */}
+            {enhancedAnalysis && enhancedAnalysis.reasoning && enhancedAnalysis.reasoning.length > 0 && (
+              <div className="bg-white/60 rounded-xl p-4 border border-green-100/30">
+                <h4 className="font-semibold text-gray-900 mb-3">💡 Enhanced Analysis:</h4>
+                <ul className="space-y-2">
+                  {enhancedAnalysis.reasoning.map((item, index) => (
+                    <li key={index} className="flex items-start space-x-2 text-sm text-gray-700">
+                      <span className="text-blue-500 mt-0.5">→</span>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
+            {enhancedAnalysis && enhancedAnalysis.assumptions && enhancedAnalysis.assumptions.length > 0 && (
+              <div className="bg-white/60 rounded-xl p-4 border border-green-100/30">
+                <h4 className="font-semibold text-gray-900 mb-3">📋 Analysis Assumptions:</h4>
+                <ul className="space-y-1">
+                  {enhancedAnalysis.assumptions.map((item, index) => (
+                    <li key={index} className="text-sm text-gray-600">• {item}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
+            {enhancedAnalysis && enhancedAnalysis.warnings && enhancedAnalysis.warnings.length > 0 && (
+              <div className="bg-white/60 rounded-xl p-4 border border-amber-100/30">
+                <h4 className="font-semibold text-gray-900 mb-3">⚠️ Important Notes:</h4>
+                <ul className="space-y-1">
+                  {enhancedAnalysis.warnings.map((item, index) => (
+                    <li key={index} className="text-sm text-amber-700">⚠️ {item}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
+            {enhancedAnalysis && enhancedAnalysis.usageDistribution && Object.keys(enhancedAnalysis.usageDistribution).length > 0 && (
+              <div className="bg-white/60 rounded-xl p-4 border border-green-100/30">
+                <h4 className="font-semibold text-gray-900 mb-3">🌍 Usage Distribution Analysis:</h4>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {Object.entries(enhancedAnalysis.usageDistribution).map(([country, percentage]) => (
+                    <div key={country} className="flex justify-between items-center bg-gray-50 rounded-lg px-3 py-2">
+                      <span className="text-sm font-medium text-gray-700">{country}</span>
+                      <span className="text-sm font-semibold text-gray-900">{Number(percentage).toFixed(1)}%</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

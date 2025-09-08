@@ -2,7 +2,6 @@ import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import * as XLSX from 'xlsx';
 import { AlertCircle, Upload, CheckCircle, XCircle } from 'lucide-react';
-import { NavigationHeader } from '../components/NavigationHeader';
 
 interface SchemaHints {
   hasTADIG: boolean;
@@ -166,10 +165,7 @@ export const PriceUpdater: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Navigation Header */}
-      <NavigationHeader />
-      
+    <div className="min-h-screen bg-gray-50 pt-20">
       {/* Page Header */}
       <header className="bg-white/80 backdrop-blur-xl border-b border-gray-100 shadow-sm">
         <div className="px-8 py-6">

@@ -20,10 +20,7 @@ function HomePage() {
   const [currency, setCurrency] = useState<'EUR' | 'USD'>('USD');
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Navigation Header */}
-      <NavigationHeader />
-
+    <div className="min-h-screen bg-gray-50 pt-20">
       {/* Main Content */}
       <main className="px-4 sm:px-6 lg:px-8 py-8">
         <div className={showAIAdvisor ? 'grid grid-cols-1 xl:grid-cols-4 gap-6' : ''}>
@@ -97,6 +94,17 @@ function HomePage() {
   );
 }
 
+function ProtectedLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <>
+      {/* Fixed Navigation Header */}
+      <NavigationHeader />
+      {/* Page Content */}
+      {children}
+    </>
+  );
+}
+
 function App() {
   return (
     <Router>
@@ -111,28 +119,38 @@ function App() {
             <Route path="/" element={
               <AuthHandler>
                 <ProtectedRoute>
-                  <HomePage />
+                  <ProtectedLayout>
+                    <HomePage />
+                  </ProtectedLayout>
                 </ProtectedRoute>
               </AuthHandler>
             } />
             <Route path="/price-updater" element={
               <ProtectedRoute>
-                <PriceUpdater />
+                <ProtectedLayout>
+                  <PriceUpdater />
+                </ProtectedLayout>
               </ProtectedRoute>
             } />
             <Route path="/deal-review" element={
               <ProtectedRoute>
-                <DealReviewTabs />
+                <ProtectedLayout>
+                  <DealReviewTabs />
+                </ProtectedLayout>
               </ProtectedRoute>
             } />
             <Route path="/user-management" element={
               <ProtectedRoute>
-                <UserManagement />
+                <ProtectedLayout>
+                  <UserManagement />
+                </ProtectedLayout>
               </ProtectedRoute>
             } />
             <Route path="/admin" element={
               <ProtectedRoute>
-                <Admin />
+                <ProtectedLayout>
+                  <Admin />
+                </ProtectedLayout>
               </ProtectedRoute>
             } />
             <Route path="*" element={<Navigate to="/" replace />} />

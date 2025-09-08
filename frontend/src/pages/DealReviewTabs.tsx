@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Calculator, Sparkles } from 'lucide-react';
-import { NavigationHeader } from '../components/NavigationHeader';
 import { DealReviewForm } from '../components/DealReviewForm';
 import { DealReviewEnhanced } from '../components/DealReviewEnhanced';
 import type { DealRequest, DealEvaluation } from '../config/dealConfig';
@@ -24,10 +23,7 @@ export const DealReviewTabs: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Navigation Header */}
-      <NavigationHeader />
-      
+    <div className="min-h-screen bg-gray-50 pt-20">
       {/* Main Content */}
       <main className="px-4 sm:px-6 lg:px-8 py-8">
         <div className={showDealAnalyzer ? `grid grid-cols-1 ${isAnalyzerExpanded ? 'xl:grid-cols-2' : 'xl:grid-cols-4'} gap-6` : ''}>
