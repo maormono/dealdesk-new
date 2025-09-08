@@ -2,12 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   Calculator, 
   Send, 
-  AlertTriangle, 
-  CheckCircle, 
-  Loader2,
-  Users,
-  Globe,
-  Calendar
+  Loader2
 } from 'lucide-react';
 import { ComprehensiveDealService } from '../services/comprehensiveDealService';
 import type { DealRequestMandatory } from '../services/comprehensiveDealService';
@@ -191,21 +186,6 @@ I'll help you analyze your deal profitability. To provide accurate pricing, I ne
     return message;
   };
   
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  };
-  
-  // Quick action buttons
-  const quickActions = [
-    { label: '1000 SIMs', value: '1000 SIMs' },
-    { label: '1GB/month', value: '1GB per month' },
-    { label: 'UK + Belgium', value: 'UK and Belgium' },
-    { label: '2 networks each', value: '2 networks in each country' },
-    { label: '24-month deal', value: '24 month commitment' }
-  ];
   
   return (
     <div className="flex flex-col h-[600px] bg-white rounded-lg shadow-sm border border-gray-200">
@@ -222,36 +202,18 @@ I'll help you analyze your deal profitability. To provide accurate pricing, I ne
         </div>
       </div>
       
-      {/* Current Deal Summary */}
-      {Object.keys(currentDeal).length > 0 && (
-        <div className="bg-blue-50 border-b border-blue-200 px-6 py-3">
-          <div className="flex items-start space-x-2">
-            <AlertTriangle className="w-4 h-4 text-blue-600 mt-0.5" />
-            <div className="text-sm text-blue-800">
-              <span className="font-medium">Current Deal Parameters: </span>
-              {currentDeal.simCount && <span>{currentDeal.simCount} SIMs • </span>}
-              {currentDeal.dataPerMonth && <span>{(currentDeal.dataPerMonth / 1000).toFixed(1)}GB • </span>}
-              {currentDeal.countries && <span>{currentDeal.countries.join(', ')} • </span>}
-              {currentDeal.commitmentMonths && <span>{currentDeal.commitmentMonths} months</span>}
-            </div>
-          </div>
-        </div>
-      )}
-      
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((message) => (
           <div
             key={message.id}
             className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div
-              className={`max-w-3xl px-4 py-3 rounded-2xl ${
+              className={`max-w-[80%] rounded-lg px-4 py-2 ${
                 message.role === 'user'
                   ? 'bg-[#5B9BD5] text-white'
-                  : message.role === 'system'
-                  ? 'bg-yellow-50 text-yellow-800 border border-yellow-200'
-                  : 'bg-white border border-gray-200 text-gray-800'
+                  : 'bg-gray-100 text-gray-900'
               }`}
             >
               <div className="whitespace-pre-wrap text-sm leading-4" 
@@ -280,48 +242,30 @@ I'll help you analyze your deal profitability. To provide accurate pricing, I ne
         <div ref={messagesEndRef} />
       </div>
       
-      {/* Quick Actions */}
-      <div className="bg-white border-t border-gray-200 px-6 py-3">
-        <div className="flex items-center space-x-2">
-          <span className="text-xs text-gray-500">Quick add:</span>
-          {quickActions.map((action) => (
-            <button
-              key={action.label}
-              onClick={() => setInput(prev => prev ? `${prev} ${action.value}` : action.value)}
-              className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors"
-            >
-              {action.label}
-            </button>
-          ))}
-        </div>
-      </div>
-      
       {/* Input */}
-      <div className="bg-white border-t border-gray-200 px-6 py-4">
-        <div className="flex space-x-4">
+      <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} className="p-4 border-t border-gray-200">
+        <div className="flex space-x-2">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyPress={handleKeyPress}
             placeholder="E.g., '1000 SIMs with 1GB in UK (2 networks) and Belgium (1 network), 24-month commitment'"
-            className="flex-1 px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5B9BD5] focus:border-transparent text-sm leading-4"
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]"
             disabled={loading}
           />
           <button
-            onClick={handleSendMessage}
+            type="submit"
             disabled={loading || !input.trim()}
-            className="px-6 py-3 bg-gradient-to-r from-[#5B9BD5] to-[#9B7BB6] text-white rounded-xl hover:shadow-lg active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+            className="px-4 py-2 bg-[#5B9BD5] text-white rounded-lg hover:bg-[#4A8BC2] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {loading ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
+              <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
-              <Send className="w-5 h-5" />
+              <Send className="w-4 h-4" />
             )}
-            <span className="text-sm leading-4">{loading ? 'Analyzing...' : 'Analyze'}</span>
           </button>
         </div>
-      </div>
+      </form>
     </div>
   );
 };
