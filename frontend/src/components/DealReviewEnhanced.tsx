@@ -287,7 +287,7 @@ I'll help you analyze your deal profitability. To provide accurate pricing, I ne
             <div className="bg-white border border-gray-200 px-4 py-3 rounded-2xl">
               <div className="flex items-center space-x-2">
                 <Loader2 className="w-4 h-4 animate-spin text-[#5B9BD5]" />
-                <span className="text-gray-600">Analyzing deal with real operator data...</span>
+                <span className="text-sm text-gray-600">Analyzing deal with real operator data...</span>
               </div>
             </div>
           </div>
