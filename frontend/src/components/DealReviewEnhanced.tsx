@@ -27,7 +27,9 @@ export const DealReviewEnhanced: React.FC = () => {
     {
       id: '1',
       role: 'assistant',
-      content: `I'll help you analyze your deal profitability. To provide accurate pricing, I need the following information:
+      content: `🚀 **ENHANCED AI ANALYZER v2** - This component uses the FIXED parsing logic!
+
+I'll help you analyze your deal profitability. To provide accurate pricing, I need the following information:
 
 **Mandatory Requirements:**
 • 📱 **Number of SIM cards**
@@ -36,9 +38,9 @@ export const DealReviewEnhanced: React.FC = () => {
 • 🔗 **Number of networks** required per country
 • 📅 **Commitment period** (if any)
 
-**Example:** "I need 1000 SIMs with 1GB per month in UK (2 networks) and Belgium (1 network) with 24-month commitment"
+**Example:** "100 sims 10 mb/mo. Israel all networks 24 mo. deal"
 
-Once you provide this information, I'll analyze real operator pricing and recommend the best deal structure.`,
+✅ **Fixed Issues:** Now correctly parses "Israel", "all networks", and "mo." commitment periods.`,
       timestamp: new Date()
     }
   ]);
@@ -63,6 +65,8 @@ Once you provide this information, I'll analyze real operator pricing and recomm
   
   const handleSendMessage = async () => {
     if (!input.trim() || loading) return;
+    
+    console.log('🚀 DealReviewEnhanced - Processing input:', input);
     
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -215,7 +219,7 @@ Once you provide this information, I'll analyze real operator pricing and recomm
               <Calculator className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">AI Deal Analyzer</h2>
+              <h2 className="text-lg font-semibold text-gray-900">AI Deal Analyzer v2</h2>
               <p className="text-sm text-gray-500">Real-time operator pricing analysis</p>
             </div>
           </div>
