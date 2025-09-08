@@ -1,14 +1,13 @@
 import React, { useState } from 'react';
-import { MessageCircle, FileText, Zap } from 'lucide-react';
+import { FileText, Zap } from 'lucide-react';
 import { NavigationHeader } from '../components/NavigationHeader';
-import { DealReview } from './DealReview';
 import { DealReviewForm } from '../components/DealReviewForm';
 import { DealReviewEnhanced } from '../components/DealReviewEnhanced';
 import type { DealRequest, DealEvaluation } from '../config/dealConfig';
 import '../styles/monogoto-theme.css';
 
 export const DealReviewTabs: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'enhanced' | 'chat' | 'form'>('enhanced');
+  const [activeTab, setActiveTab] = useState<'enhanced' | 'form'>('enhanced');
   const [sharedDeal, setSharedDeal] = useState<Partial<DealRequest> | undefined>();
   const [sharedEvaluation, setSharedEvaluation] = useState<DealEvaluation | undefined>();
 
@@ -16,12 +15,6 @@ export const DealReviewTabs: React.FC = () => {
   const handleFormEvaluation = (evaluation: DealEvaluation, deal: DealRequest) => {
     setSharedEvaluation(evaluation);
     setSharedDeal(deal);
-  };
-
-  // Handler for switching from form to chat with context
-  const switchToChat = () => {
-    setActiveTab('chat');
-    // Deal context will be passed through sharedDeal state
   };
 
   return (
@@ -50,17 +43,6 @@ export const DealReviewTabs: React.FC = () => {
                 <span className="px-1.5 py-0.5 text-xs bg-green-100 text-green-700 rounded-full">NEW</span>
               </button>
               
-              <button
-                onClick={() => setActiveTab('chat')}
-                className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg text-sm transition-all duration-300 ${
-                  activeTab === 'chat'
-                    ? 'bg-white text-[#5B9BD5] shadow-sm border border-gray-100'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                <MessageCircle className="w-4 h-4" />
-                <span>AI Assistant</span>
-              </button>
               
               <button
                 onClick={() => setActiveTab('form')}
@@ -82,27 +64,12 @@ export const DealReviewTabs: React.FC = () => {
               <div className="h-full">
                 <DealReviewEnhanced />
               </div>
-            ) : activeTab === 'chat' ? (
-              <div className="h-full">
-                <DealReview initialDeal={sharedDeal} />
-              </div>
             ) : (
               <div className="h-full overflow-y-auto">
                 <DealReviewForm 
                   initialDeal={sharedDeal}
                   onEvaluation={handleFormEvaluation}
                 />
-                
-                {sharedEvaluation && (
-                  <div className="px-6 pb-4">
-                    <button
-                      onClick={switchToChat}
-                      className="mt-4 px-3 py-1.5 bg-[#5B9BD5]/10 text-[#5B9BD5] rounded-lg hover:bg-[#5B9BD5]/20 active:scale-95 transition-all text-sm border border-[#5B9BD5]/20"
-                    >
-                      Continue with AI Assistant to refine this deal →
-                    </button>
-                  </div>
-                )}
               </div>
             )}
           </div>
