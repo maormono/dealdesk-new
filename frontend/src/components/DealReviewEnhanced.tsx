@@ -30,13 +30,13 @@ export const DealReviewEnhanced: React.FC<DealReviewEnhancedProps> = ({ onExpand
       content: `I'll help you analyze your deal profitability. To provide accurate pricing, I need the following information:
 
 **Mandatory Requirements:**
-• 📱 **Number of SIM cards**
-• 📊 **Monthly data per SIM** (MB or GB)
-• 🌍 **Countries** where SIMs will operate
-• 🔗 **Number of networks** required per country
-• 📅 **Commitment period** (if any)
+📱 Number of SIM cards
+📊 Monthly data per SIM (MB or GB)
+🌍 Countries where SIMs will operate
+🔗 Number of networks required per country
+📅 Commitment period (if any)
 
-**Example:** "100 sims 10 mb/mo. Israel all networks 24 mo. deal"`,
+**Example:** "1000 SIMs with 1GB in UK (2 networks) and Belgium (1 network), 24-month commitment"`,
       timestamp: new Date()
     }
   ]);
@@ -269,7 +269,7 @@ export const DealReviewEnhanced: React.FC<DealReviewEnhancedProps> = ({ onExpand
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="E.g., '1000 SIMs with 1GB in UK (2 networks) and Belgium (1 network), 24-month commitment'"
+            placeholder="1000 SIMs with 1GB in UK (2 networks) and Belgium (1 network), 24-month commitment"
             className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]"
             disabled={loading}
           />
