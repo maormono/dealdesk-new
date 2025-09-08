@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calculator, Plus, X, Loader2, TrendingUp, AlertCircle, Globe, Smartphone, DollarSign, Wifi, Network } from 'lucide-react';
+import { Calculator, Plus, X, Loader2, TrendingUp, AlertCircle, Globe, Smartphone, DollarSign, Wifi, Network, Edit } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { dealConfig } from '../config/dealConfig';
 import type { DealRequest, DealEvaluation } from '../config/dealConfig';
@@ -38,6 +38,7 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
   
   const [evaluation, setEvaluation] = useState<DealEvaluation | null>(null);
   const [enhancedAnalysis, setEnhancedAnalysis] = useState<any>(null);
+  const [showResults, setShowResults] = useState(false);
   const evaluationService = new DealEvaluationService();
   const enhancedService = new EnhancedDealService();
   
@@ -104,6 +105,7 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
       
       setEvaluation(basicResult);
       setEnhancedAnalysis(enhancedResult);
+      setShowResults(true);
       
       if (onEvaluation) {
         onEvaluation(basicResult, formData);
@@ -115,6 +117,10 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
     }
   };
   
+  const handleEditDeal = () => {
+    setShowResults(false);
+  };
+
   const addCountry = (country: string) => {
     if (country && !formData.countries.includes(country)) {
       setFormData(prev => ({
@@ -145,6 +151,92 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
     }));
   };
   
+  // Show results screen if evaluation is complete and showResults is true
+  if (showResults && evaluation) {
+    return (
+      <div className="max-w-5xl mx-auto p-6">
+        {/* Edit Deal Button */}
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">Deal Evaluation Results</h2>
+          <button
+            onClick={handleEditDeal}
+            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors flex items-center space-x-2"
+          >
+            <Edit className="w-4 h-4" />
+            <span>Edit Deal</span>
+          </button>
+        </div>
+        
+        {/* Evaluation Results - Monogoto Apple Style */}
+        <div className="bg-gradient-to-br from-white via-green-50/30 to-emerald-50/50 rounded-2xl shadow-sm border border-green-100/50 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center space-x-3">
+              <div className="p-2.5 bg-white/80 backdrop-blur rounded-xl shadow-sm border border-green-200/30">
+                <TrendingUp className="w-6 h-6 text-green-600" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900">Evaluation Results</h3>
+            </div>
+            <div className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+              {evaluation.isViable ? 'APPROVED' : 'NEEDS REVIEW'}
+            </div>
+          </div>
+          
+          {/* Evaluation Content */}
+          <div className="space-y-6">
+            {enhancedAnalysis && (
+              <div className="bg-white/60 rounded-xl p-4 border border-green-100/30">
+                <h4 className="font-semibold text-gray-900 mb-3">💰 Pay-as-you-go Pricing Structure</h4>
+                <div className="grid grid-cols-4 gap-4 text-center">
+                  <div>
+                    <div className="text-xs text-gray-500 mb-1">ACTIVE SIM FEE</div>
+                    <div className="text-lg font-semibold text-gray-900">${enhancedAnalysis.activeSimFee}/month</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500 mb-1">DATA RATE</div>
+                    <div className="text-lg font-semibold text-gray-900">${enhancedAnalysis.dataRate}/GB</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500 mb-1">TOTAL/SIM</div>
+                    <div className="text-lg font-semibold text-green-600">${enhancedAnalysis.totalCostPerSim}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500 mb-1">DISCOUNT</div>
+                    <div className="text-lg font-semibold text-blue-600">{enhancedAnalysis.volumeDiscount}% OFF</div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {evaluation.businessJustification && (
+              <div className="bg-white/60 rounded-xl p-4 border border-green-100/30">
+                <h4 className="font-semibold text-gray-900 mb-3">📝 Business Justification:</h4>
+                <ul className="space-y-2">
+                  {evaluation.businessJustification.map((item, index) => (
+                    <li key={index} className="flex items-start space-x-2 text-sm text-gray-700">
+                      <span className="text-green-500 mt-0.5">✓</span>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            
+            {evaluation.keyAssumptions && (
+              <div className="bg-white/60 rounded-xl p-4 border border-green-100/30">
+                <h4 className="font-semibold text-gray-900 mb-3">🔑 Key Assumptions:</h4>
+                <ul className="space-y-1">
+                  {evaluation.keyAssumptions.map((item, index) => (
+                    <li key={index} className="text-sm text-gray-600">• {item}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-5xl mx-auto p-6">
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -553,236 +645,7 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
           </button>
         </div>
       </form>
-      
-      {/* Evaluation Results - Monogoto Apple Style */}
-      {evaluation && (
-        <div className="mt-8 bg-gradient-to-br from-white via-green-50/30 to-emerald-50/50 rounded-2xl shadow-sm border border-green-100/50 p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-white/90 backdrop-blur rounded-xl shadow-sm border border-green-100">
-                <TrendingUp className="w-5 h-5 text-green-600" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900">Evaluation Results</h3>
-            </div>
-            <div className={`px-4 py-2 rounded-full text-sm font-semibold ${
-              evaluation.verdict === 'approved' ? 'bg-green-50 text-green-700 border border-green-200' :
-              evaluation.verdict === 'negotiable' ? 'bg-[#F5B342]/10 text-[#F5B342] border border-[#F5B342]/20' :
-              'bg-red-50 text-red-700 border border-red-200'
-            }`}>
-              {evaluation.verdict.toUpperCase()}
-            </div>
-          </div>
-          
-          {/* Enhanced Analysis Results */}
-          {enhancedAnalysis && enhancedAnalysis.payAsYouGo && (
-            <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-blue-100">
-              <h4 className="text-sm font-semibold text-gray-700 mb-3">💡 Pay-as-you-go Pricing Structure</h4>
-              
-              {/* Pricing Components */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                <div>
-                  <p className="text-xs uppercase tracking-wider text-gray-500 mb-1">Active SIM Fee</p>
-                  <p className="text-xl font-bold text-gray-900">
-                    {formData.currency === 'USD' ? '$' : '€'}{enhancedAnalysis.payAsYouGo.activeSimFee.toFixed(2)}
-                    <span className="text-xs text-gray-500">/month</span>
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-wider text-gray-500 mb-1">Data Rate</p>
-                  <p className="text-xl font-bold text-gray-900">
-                    {formData.currency === 'USD' ? '$' : '€'}{(enhancedAnalysis.payAsYouGo.dataFee * 1024).toFixed(2)}
-                    <span className="text-xs text-gray-500">/GB</span>
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-wider text-gray-500 mb-1">Total/SIM</p>
-                  <p className="text-xl font-bold text-green-600">
-                    {formData.currency === 'USD' ? '$' : '€'}{enhancedAnalysis.payAsYouGo.listPrice.toFixed(2)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-wider text-gray-500 mb-1">Discount</p>
-                  <p className="text-xl font-bold text-blue-600">
-                    {enhancedAnalysis.payAsYouGo.discountPercentage.toFixed(1)}% OFF
-                  </p>
-                </div>
-              </div>
-              
-              {/* Usage Distribution & Carrier Optimization Display */}
-              {enhancedAnalysis.usageDistribution && Object.keys(enhancedAnalysis.usageDistribution).length > 1 && (
-                <div className="mb-3 p-3 bg-white/50 rounded-lg">
-                  <p className="text-xs font-semibold text-gray-600 mb-2">📊 Regional & Carrier Optimization:</p>
-                  
-                  {/* Show carrier strategy if available */}
-                  {enhancedAnalysis.regionalOptimization?.carrierStrategy ? (
-                    <div className="space-y-2">
-                      {Object.entries(enhancedAnalysis.regionalOptimization.carrierStrategy).map(([country, strategy]) => {
-                        const percentage = enhancedAnalysis.usageDistribution[country] || 0;
-                        return (
-                          <div key={country} className="text-sm">
-                            <span className="font-medium text-gray-700">{country} ({percentage.toFixed(0)}%):</span>
-                            <span className="text-gray-600 ml-2">{strategy as string}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                      {Object.entries(enhancedAnalysis.usageDistribution).map(([country, percentage]) => (
-                        <div key={country} className="flex items-center justify-between text-sm">
-                          <span className="text-gray-600">{country}:</span>
-                          <span className="font-medium text-gray-900">{(percentage as number).toFixed(0)}%</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  
-                  {/* Show pricing impact if available */}
-                  {enhancedAnalysis.regionalOptimization?.impact && (
-                    <div className="mt-2 pt-2 border-t border-gray-200">
-                      <p className="text-xs text-blue-600">
-                        <span className="font-semibold">Impact:</span> {enhancedAnalysis.regionalOptimization.impact}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-              
-              {/* Business Justification */}
-              {enhancedAnalysis.reasoning && enhancedAnalysis.reasoning.length > 0 && (
-                <div className="mb-3">
-                  <p className="text-xs font-semibold text-gray-600 mb-2">📝 Business Justification:</p>
-                  <ul className="text-sm text-gray-700 space-y-1">
-                    {enhancedAnalysis.reasoning.map((reason: string, idx: number) => (
-                      <li key={idx} className="flex items-start">
-                        <span className="text-green-500 mr-2">✓</span>
-                        <span>{reason}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              
-              {/* Key Assumptions */}
-              {enhancedAnalysis.assumptions && enhancedAnalysis.assumptions.length > 0 && (
-                <div>
-                  <p className="text-xs font-semibold text-gray-600 mb-2">🔍 Key Assumptions:</p>
-                  <ul className="text-sm text-gray-600 space-y-1">
-                    {enhancedAnalysis.assumptions.map((assumption: string, idx: number) => (
-                      <li key={idx} className="flex items-start">
-                        <span className="text-gray-400 mr-2">•</span>
-                        <span>{assumption}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          )}
-          
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
-            <div>
-              <p className="text-xs uppercase tracking-wider text-gray-500 mb-1">Deal Status</p>
-              <p className="text-2xl font-bold">
-                <span className={`${enhancedAnalysis?.approved ? 'text-green-600' : 'text-amber-600'}`}>
-                  {enhancedAnalysis?.approved ? '✅' : '⚠️'}
-                </span>
-              </p>
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-wider text-gray-500 mb-1">Your Price</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {formData.currency === 'USD' ? '$' : '€'}{(enhancedAnalysis?.recommendedPrice || evaluation.revenuePerSim).toFixed(2)}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-wider text-gray-500 mb-1">Savings</p>
-              <p className="text-2xl font-bold text-green-600">
-                {enhancedAnalysis?.discountPercentage?.toFixed(0) || '0'}%
-              </p>
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-wider text-gray-500 mb-1">Monthly Value</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {formData.currency === 'USD' ? '$' : '€'}{(enhancedAnalysis?.recommendedPrice || evaluation.revenuePerSim * formData.simQuantity).toFixed(0)}
-              </p>
-            </div>
-          </div>
-          
-          {/* Network Structure Section */}
-          {evaluation.carrierOptions && evaluation.carrierOptions.length > 0 && (
-            <div className="mb-6 p-4 bg-gray-50 rounded-xl">
-              <h4 className="text-sm font-semibold text-gray-700 mb-3">🌐 Network Structure</h4>
-              <div className="space-y-3">
-                {(() => {
-                  // Group carriers by country
-                  const byCountry = new Map<string, typeof evaluation.carrierOptions>();
-                  evaluation.carrierOptions.forEach(carrier => {
-                    if (!byCountry.has(carrier.country)) {
-                      byCountry.set(carrier.country, []);
-                    }
-                    byCountry.get(carrier.country)!.push(carrier);
-                  });
-                  
-                  return Array.from(byCountry.entries()).map(([country, carriers]) => (
-                    <div key={country} className="space-y-1">
-                      <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">{country}</p>
-                      {carriers.map((c, idx) => {
-                        return (
-                          <div key={idx} className="ml-3 flex items-center justify-between text-sm">
-                            <span className="text-gray-700">
-                              <span className="font-medium">{c.carrier}</span>
-                              <span className="text-gray-500"> via {c.operator}</span>
-                            </span>
-                            <span className="text-gray-600 text-xs">
-                              {c.hasRequestedCarrier ? '✓ Preferred' : 'Available'}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ));
-                })()}
-              </div>
-            </div>
-          )}
-          
-          {evaluation.recommendedPrice && !enhancedAnalysis?.approved && (
-            <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 mb-4">
-              <div className="flex items-center space-x-2">
-                <AlertCircle className="w-5 h-5 text-yellow-600" />
-                <p className="text-sm text-yellow-800">
-                  To approve this deal, consider adjusting the price to {formData.currency === 'USD' ? '$' : '€'}
-                  {evaluation.recommendedPrice.toFixed(2)}/SIM or negotiating better terms
-                </p>
-              </div>
-            </div>
-          )}
-          
-          {/* Detailed Analysis Section */}
-          <div className="space-y-4">
-            <h4 className="text-sm font-semibold text-gray-700">📊 Detailed Analysis</h4>
-            <div className="space-y-3">
-              {evaluation.notes.map((note, index) => {
-                // Parse markdown-style bold text
-                const formattedNote = note.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-                
-                // Determine indentation level
-                const isIndented = note.startsWith('  ') || note.startsWith('•');
-                const isSubItem = note.startsWith('  →');
-                
-                return (
-                  <div 
-                    key={index} 
-                    className={`text-sm text-gray-600 ${isSubItem ? 'ml-6' : isIndented ? 'ml-3' : ''}`}
-                    dangerouslySetInnerHTML={{ __html: formattedNote }}
-                  />
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
+
