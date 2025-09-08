@@ -133,8 +133,8 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
       console.log('- usageDistribution:', enhancedResult?.usageDistribution);
       console.log('- payAsYouGo:', enhancedResult?.payAsYouGo);
       console.log('Basic evaluation fields:');
-      console.log('- businessJustification:', basicResult?.businessJustification);
-      console.log('- keyAssumptions:', basicResult?.keyAssumptions);
+      console.log('- verdict:', basicResult?.verdict);
+      console.log('- notes:', basicResult?.notes);
       console.log('=========================================');
       
       setEvaluation(basicResult);
@@ -212,7 +212,7 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
               <h3 className="text-xl font-semibold text-gray-900">Evaluation Results</h3>
             </div>
             <div className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
-              {evaluation.isViable ? 'APPROVED' : 'NEEDS REVIEW'}
+              {evaluation.verdict === 'approved' ? 'APPROVED' : 'NEEDS REVIEW'}
             </div>
           </div>
           
@@ -251,13 +251,13 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
                     <h5 className="font-semibold text-gray-800 mb-2">✅ Recommendation</h5>
                     <div className="bg-white/60 rounded-lg p-3 border border-emerald-200/30">
                       <div className="flex items-center space-x-2 mb-2">
-                        <span className="text-2xl">{evaluation?.isViable ? '✅' : '⚠️'}</span>
+                        <span className="text-2xl">{evaluation?.verdict === 'approved' ? '✅' : '⚠️'}</span>
                         <span className="font-bold text-lg">
-                          {evaluation?.isViable ? 'APPROVED' : 'NEEDS REVIEW'}
+                          {evaluation?.verdict === 'approved' ? 'APPROVED' : 'NEEDS REVIEW'}
                         </span>
                       </div>
                       <p className="text-sm text-gray-600">
-                        {evaluation?.isViable 
+                        {evaluation?.verdict === 'approved'
                           ? 'Deal meets profitability and risk criteria. Proceed with contract.'
                           : 'Deal requires additional review or negotiation before approval.'
                         }
@@ -270,7 +270,7 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
                   <div className="mt-4 pt-4 border-t border-emerald-200/30">
                     <h5 className="font-semibold text-gray-800 mb-2">🔑 Key Business Drivers</h5>
                     <ul className="grid grid-cols-1 md:grid-cols-2 gap-1 text-sm text-gray-700">
-                      {enhancedAnalysis.reasoning.slice(0, 4).map((reason, index) => (
+                      {enhancedAnalysis.reasoning.slice(0, 4).map((reason: string, index: number) => (
                         <li key={index} className="flex items-start space-x-2">
                           <span className="text-blue-500 mt-0.5 flex-shrink-0">→</span>
                           <span>{reason}</span>
@@ -311,7 +311,7 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
               <div className="bg-white/60 rounded-xl p-4 border border-green-100/30">
                 <h4 className="font-semibold text-gray-900 mb-3">💡 Enhanced Analysis:</h4>
                 <ul className="space-y-2">
-                  {enhancedAnalysis.reasoning.map((item, index) => (
+                  {enhancedAnalysis.reasoning.map((item: string, index: number) => (
                     <li key={index} className="flex items-start space-x-2 text-sm text-gray-700">
                       <span className="text-blue-500 mt-0.5">→</span>
                       <span>{item}</span>
@@ -325,7 +325,7 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
               <div className="bg-white/60 rounded-xl p-4 border border-green-100/30">
                 <h4 className="font-semibold text-gray-900 mb-3">📋 Analysis Assumptions:</h4>
                 <ul className="space-y-1">
-                  {enhancedAnalysis.assumptions.map((item, index) => (
+                  {enhancedAnalysis.assumptions.map((item: string, index: number) => (
                     <li key={index} className="text-sm text-gray-600">• {item}</li>
                   ))}
                 </ul>
@@ -336,7 +336,7 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
               <div className="bg-white/60 rounded-xl p-4 border border-amber-100/30">
                 <h4 className="font-semibold text-gray-900 mb-3">⚠️ Important Notes:</h4>
                 <ul className="space-y-1">
-                  {enhancedAnalysis.warnings.map((item, index) => (
+                  {enhancedAnalysis.warnings.map((item: string, index: number) => (
                     <li key={index} className="text-sm text-amber-700">⚠️ {item}</li>
                   ))}
                 </ul>
@@ -357,26 +357,15 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
               </div>
             )}
             
-            {evaluation.businessJustification && (
+            {evaluation.notes && evaluation.notes.length > 0 && (
               <div className="bg-white/60 rounded-xl p-4 border border-green-100/30">
-                <h4 className="font-semibold text-gray-900 mb-3">📝 Business Justification:</h4>
+                <h4 className="font-semibold text-gray-900 mb-3">📝 Deal Notes & Analysis:</h4>
                 <ul className="space-y-2">
-                  {evaluation.businessJustification.map((item, index) => (
+                  {evaluation.notes.map((item: string, index: number) => (
                     <li key={index} className="flex items-start space-x-2 text-sm text-gray-700">
                       <span className="text-green-500 mt-0.5">✓</span>
                       <span>{item}</span>
                     </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            
-            {evaluation.keyAssumptions && (
-              <div className="bg-white/60 rounded-xl p-4 border border-green-100/30">
-                <h4 className="font-semibold text-gray-900 mb-3">🔑 Key Assumptions:</h4>
-                <ul className="space-y-1">
-                  {evaluation.keyAssumptions.map((item, index) => (
-                    <li key={index} className="text-sm text-gray-600">• {item}</li>
                   ))}
                 </ul>
               </div>
