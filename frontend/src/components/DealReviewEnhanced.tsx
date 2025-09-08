@@ -2,7 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   Calculator, 
   Send, 
-  Loader2
+  Loader2,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 import { ComprehensiveDealService } from '../services/comprehensiveDealService';
 import type { DealRequestMandatory } from '../services/comprehensiveDealService';
@@ -15,14 +17,17 @@ interface Message {
   dealData?: Partial<DealRequestMandatory>;
 }
 
-export const DealReviewEnhanced: React.FC = () => {
+interface DealReviewEnhancedProps {
+  onExpandToggle?: () => void;
+  isExpanded?: boolean;
+}
+
+export const DealReviewEnhanced: React.FC<DealReviewEnhancedProps> = ({ onExpandToggle, isExpanded = false }) => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
       role: 'assistant',
-      content: `🚀 **ENHANCED AI ANALYZER v2** - This component uses the FIXED parsing logic!
-
-I'll help you analyze your deal profitability. To provide accurate pricing, I need the following information:
+      content: `I'll help you analyze your deal profitability. To provide accurate pricing, I need the following information:
 
 **Mandatory Requirements:**
 • 📱 **Number of SIM cards**
@@ -31,9 +36,7 @@ I'll help you analyze your deal profitability. To provide accurate pricing, I ne
 • 🔗 **Number of networks** required per country
 • 📅 **Commitment period** (if any)
 
-**Example:** "100 sims 10 mb/mo. Israel all networks 24 mo. deal"
-
-✅ **Fixed Issues:** Now correctly parses "Israel", "all networks", and "mo." commitment periods.`,
+**Example:** "100 sims 10 mb/mo. Israel all networks 24 mo. deal"`,
       timestamp: new Date()
     }
   ]);
@@ -191,14 +194,31 @@ I'll help you analyze your deal profitability. To provide accurate pricing, I ne
     <div className="flex flex-col h-[600px] bg-white rounded-lg shadow-sm border border-gray-200">
       {/* Header */}
       <div className="px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
-        <div className="flex items-center space-x-2">
-          <div className="p-2 bg-gradient-to-br from-[#5B9BD5] to-[#9B7BB6] rounded-lg">
-            <Calculator className="w-5 h-5 text-white" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <div className="p-2 bg-gradient-to-br from-[#5B9BD5] to-[#9B7BB6] rounded-lg">
+              <Calculator className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900">AI Deal Analyzer</h3>
+              <p className="text-xs text-gray-500">Real-Time Operator Pricing Analysis</p>
+            </div>
           </div>
-          <div>
-            <h3 className="font-semibold text-gray-900">AI Deal Analyzer</h3>
-            <p className="text-xs text-gray-500">Real-Time Operator Pricing Analysis</p>
-          </div>
+          
+          {/* Expand/Collapse Button */}
+          {onExpandToggle && (
+            <button
+              onClick={onExpandToggle}
+              className="p-1 hover:bg-white/50 rounded-lg transition-colors"
+              title={isExpanded ? "Collapse to sidebar" : "Expand to 50% width"}
+            >
+              {isExpanded ? (
+                <Minimize2 className="w-4 h-4 text-gray-600" />
+              ) : (
+                <Maximize2 className="w-4 h-4 text-gray-600" />
+              )}
+            </button>
+          )}
         </div>
       </div>
       

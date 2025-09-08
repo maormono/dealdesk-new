@@ -10,11 +10,17 @@ export const DealReviewTabs: React.FC = () => {
   const [sharedDeal, setSharedDeal] = useState<Partial<DealRequest> | undefined>();
   const [sharedEvaluation, setSharedEvaluation] = useState<DealEvaluation | undefined>();
   const [showDealAnalyzer, setShowDealAnalyzer] = useState(false);
+  const [isAnalyzerExpanded, setIsAnalyzerExpanded] = useState(false);
 
   // Handler for when form evaluation is complete
   const handleFormEvaluation = (evaluation: DealEvaluation, deal: DealRequest) => {
     setSharedEvaluation(evaluation);
     setSharedDeal(deal);
+  };
+
+  // Handler for expanding/collapsing the analyzer
+  const handleAnalyzerExpandToggle = () => {
+    setIsAnalyzerExpanded(!isAnalyzerExpanded);
   };
 
   return (
@@ -24,9 +30,9 @@ export const DealReviewTabs: React.FC = () => {
       
       {/* Main Content */}
       <main className="px-4 sm:px-6 lg:px-8 py-8">
-        <div className={showDealAnalyzer ? 'grid grid-cols-1 xl:grid-cols-4 gap-6' : ''}>
-          {/* Deal Review Form - Full width when closed, 3/4 when open */}
-          <div className={showDealAnalyzer ? 'xl:col-span-3' : 'w-full'}>
+        <div className={showDealAnalyzer ? `grid grid-cols-1 ${isAnalyzerExpanded ? 'xl:grid-cols-2' : 'xl:grid-cols-4'} gap-6` : ''}>
+          {/* Deal Review Form - Full width when closed, responsive when open */}
+          <div className={showDealAnalyzer ? (isAnalyzerExpanded ? 'xl:col-span-1' : 'xl:col-span-3') : 'w-full'}>
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
               <h2 className="text-xl font-semibold text-gray-900 tracking-tight mb-6">Deal Review</h2>
               
@@ -44,8 +50,11 @@ export const DealReviewTabs: React.FC = () => {
           
           {/* Deal Analyzer Panel - Right side */}
           {showDealAnalyzer && (
-            <div className="xl:col-span-1">
-              <DealReviewEnhanced />
+            <div className={isAnalyzerExpanded ? 'xl:col-span-1' : 'xl:col-span-1'}>
+              <DealReviewEnhanced 
+                onExpandToggle={handleAnalyzerExpandToggle}
+                isExpanded={isAnalyzerExpanded}
+              />
             </div>
           )}
         </div>
