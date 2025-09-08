@@ -341,44 +341,44 @@ Once you provide this information, I'll analyze real operator pricing and recomm
 // Helper function to format message content with Markdown-like styling
 function formatMessageContent(content: string): string {
   return content
-    // Headers
-    .replace(/### (.*?)$/gm, '<h3 class="text-lg font-semibold mt-4 mb-2">$1</h3>')
-    .replace(/## (.*?)$/gm, '<h2 class="text-xl font-bold mt-4 mb-2">$1</h2>')
+    // Headers - minimal spacing, smaller font
+    .replace(/### (.*?)$/gm, '<h3 class="text-sm font-semibold mt-1 mb-0.5 text-gray-800">$1</h3>')
+    .replace(/## (.*?)$/gm, '<h2 class="text-sm font-bold mt-2 mb-0.5 text-gray-900">$1</h2>')
     // Bold text
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    // Pricing grid styles - left aligned with better spacing
-    .replace(/<div class="pricing-grid">/g, '<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">')
-    .replace(/<div class="pricing-card">/g, '<div class="bg-white p-4 rounded-lg border border-gray-200 text-left">')
-    .replace(/<span class="label">/g, '<span class="block text-xs uppercase tracking-wider text-gray-500 mb-2">')
-    .replace(/<span class="value">/g, '<span class="block text-2xl font-bold text-gray-900">')
-    .replace(/<span class="value success">/g, '<span class="block text-2xl font-bold text-green-600">')
-    .replace(/<span class="value accent">/g, '<span class="block text-2xl font-bold text-blue-600">')
-    .replace(/<span class="description">/g, '<span class="block text-xs text-gray-500 mt-1">')
-    // Optimization section
-    .replace(/<div class="optimization-section">/g, '<div class="mb-4">')
-    .replace(/<div class="optimization-grid">/g, '<div class="grid grid-cols-2 gap-3 p-4 bg-gray-50 rounded-lg mb-2">')
-    .replace(/<div class="region-card">/g, '<div class="flex justify-between items-center p-2 bg-white rounded border border-gray-200">')
+    .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-sm">$1</strong>')
+    // Replace grid with very compact list format - uppercase labels
+    .replace(/<div class="pricing-grid">/g, '<div class="space-y-0 mb-1">')
+    .replace(/<div class="pricing-card">/g, '<div class="text-sm leading-tight">')
+    .replace(/<span class="label">/g, '<span class="font-semibold text-gray-800 uppercase">')
+    .replace(/<span class="value">/g, '<span class="font-semibold text-gray-900">')
+    .replace(/<span class="value success">/g, '<span class="font-semibold text-green-600">')
+    .replace(/<span class="value accent">/g, '<span class="font-semibold text-blue-600">')
+    .replace(/<span class="description">/g, '<span class="text-sm text-gray-500 ml-2">(')
+    // Optimization section - ultra compact
+    .replace(/<div class="optimization-section">/g, '<div class="mb-0.5">')
+    .replace(/<div class="optimization-grid">/g, '<div class="text-sm space-y-0">')
+    .replace(/<div class="region-card">/g, '<div class="flex justify-between items-center text-sm">')
     .replace(/<div class="region-name">/g, '<div class="font-medium text-gray-700">')
-    .replace(/<div class="region-percentage">/g, '<div class="font-bold text-gray-900">')
-    .replace(/<div class="optimization-note">/g, '<div class="flex items-center gap-2 p-2 text-sm text-gray-600">')
+    .replace(/<div class="region-percentage">/g, '<div class="font-semibold text-gray-900">')
+    .replace(/<div class="optimization-note">/g, '<div class="text-xs text-gray-600">')
     .replace(/<span class="note-icon">/g, '<span class="text-blue-500">')
     .replace(/<span class="note-text">/g, '<span>')
-    // Justification and assumptions
-    .replace(/<div class="justification-list">/g, '<div class="space-y-2 mb-4">')
-    .replace(/<div class="justification-item">/g, '<div class="flex items-start gap-2 text-gray-700">')
-    .replace(/<div class="assumptions-list">/g, '<div class="space-y-2 mb-4">')
-    .replace(/<div class="assumption-item">/g, '<div class="flex items-start gap-2 text-gray-600">')
-    // Deal status card
-    .replace(/<div class="deal-status">/g, '<div class="mt-4 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">')
-    .replace(/<div class="status-icon">/g, '<div class="text-3xl text-center mb-2">')
-    .replace(/<div class="status-grid">/g, '<div class="grid grid-cols-3 gap-4 text-center">')
-    // Network cards
-    .replace(/<div class="network-card">/g, '<div class="p-3 mb-2 bg-white rounded-lg border border-gray-200">')
-    .replace(/<span class="preferred-badge">/g, '<span class="inline-block px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full">')
-    // Lists
-    .replace(/• (.*?)$/gm, '<li class="ml-4">• $1</li>')
-    .replace(/✓ (.*?)$/gm, '<li class="ml-4 text-green-600">✓ $1</li>')
-    .replace(/→ (.*?)$/gm, '<div class="ml-4 text-sm text-gray-600">→ $1</div>')
+    // Justification and assumptions - ultra compact
+    .replace(/<div class="justification-list">/g, '<div class="space-y-0 mb-1">')
+    .replace(/<div class="justification-item">/g, '<div class="flex items-start gap-1 text-sm text-gray-700 leading-tight">')
+    .replace(/<div class="assumptions-list">/g, '<div class="space-y-0 mb-1">')
+    .replace(/<div class="assumption-item">/g, '<div class="flex items-start gap-1 text-sm text-gray-600 leading-tight">')
+    // Deal status card - ultra compact
+    .replace(/<div class="deal-status">/g, '<div class="mt-1 p-2 bg-gradient-to-r from-green-50 to-emerald-50 rounded border border-green-200">')
+    .replace(/<div class="status-icon">/g, '<div class="text-lg text-center mb-0.5">')
+    .replace(/<div class="status-grid">/g, '<div class="grid grid-cols-3 gap-1 text-center text-sm">')
+    // Network cards - ultra compact
+    .replace(/<div class="network-card">/g, '<div class="p-1 mb-0.5 bg-white rounded border border-gray-200">')
+    .replace(/<span class="preferred-badge">/g, '<span class="inline-block px-1 py-0.5 text-xs bg-green-100 text-green-700 rounded">')
+    // Lists - ultra compact
+    .replace(/• (.*?)$/gm, '<li class="ml-1 text-sm leading-tight">• $1</li>')
+    .replace(/✓ (.*?)$/gm, '<li class="ml-1 text-sm text-green-600 leading-tight">✓ $1</li>')
+    .replace(/→ (.*?)$/gm, '<div class="ml-1 text-sm text-gray-600 leading-tight">→ $1</div>')
     // Status icons
     .replace(/✅/g, '<span class="text-green-600">✅</span>')
     .replace(/❌/g, '<span class="text-red-600">❌</span>')

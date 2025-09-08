@@ -276,6 +276,38 @@ export class ComprehensiveDealService {
           technology: ['2G', '3G', '4G', '5G'],
           qualityScore: 91
         }
+      ],
+      'Israel': [
+        {
+          country: 'Israel',
+          operatorName: 'Cellcom',
+          networkName: 'Cellcom Israel',
+          tadig: 'ISRCL',
+          pricePerMB: 0.0035,
+          currency: 'EUR',
+          technology: ['2G', '3G', '4G', '5G'],
+          qualityScore: 92
+        },
+        {
+          country: 'Israel',
+          operatorName: 'Partner',
+          networkName: 'Partner Israel',
+          tadig: 'ISRPT',
+          pricePerMB: 0.0040,
+          currency: 'EUR',
+          technology: ['2G', '3G', '4G', '5G'],
+          qualityScore: 90
+        },
+        {
+          country: 'Israel',
+          operatorName: 'Pelephone',
+          networkName: 'Pelephone',
+          tadig: 'ISRPL',
+          pricePerMB: 0.0045,
+          currency: 'EUR',
+          technology: ['2G', '3G', '4G', '5G'],
+          qualityScore: 88
+        }
       ]
     };
     
@@ -625,104 +657,48 @@ Based on available pricing, we recommend a multi-network setup for optimal redun
     const dealStatus = data.dealStatus || {};
     const detailedAnalysis = data.detailedAnalysis || {};
     
-    return `## 📊 Evaluation Results
-
-### ${data.verdict || 'PENDING'}
+    return `## ${data.verdict || 'PENDING'} ✅
 
 ## 💡 Pay-as-you-go Pricing Structure
 
-<div class="pricing-grid">
-<div class="pricing-card">
-<span class="label">ACTIVE SIM FEE</span>
-<span class="value">${currency}${(payAsYouGo.activeSimFee || 0).toFixed(2)}/month</span>
-<span class="description">Platform management fee per active SIM</span>
-</div>
-<div class="pricing-card">
-<span class="label">DATA RATE</span>
-<span class="value">${currency}${(payAsYouGo.dataRate || 0).toFixed(2)}/GB</span>
-<span class="description">Blended rate across all networks</span>
-</div>
-<div class="pricing-card">
-<span class="label">TOTAL/SIM</span>
-<span class="value success">${currency}${(payAsYouGo.totalPerSim || 0).toFixed(2)}</span>
-<span class="description">Monthly cost per SIM with ${packagePricing.dataIncluded || 1}GB</span>
-</div>
-<div class="pricing-card">
-<span class="label">DISCOUNT</span>
-<span class="value accent">${(payAsYouGo.discount || 0).toFixed(1)}% OFF</span>
-<span class="description">Volume discount for ${data.simCount || 1000}+ SIMs</span>
-</div>
-</div>
+Active SIM fee: **${currency}${(payAsYouGo.activeSimFee || 0).toFixed(2)}/month** (Platform management fee per active SIM)
+Data Rate: **${currency}${(payAsYouGo.dataRate || 0).toFixed(2)}/GB** (Blended rate across all networks)
+Total/SIM: **${currency}${(payAsYouGo.totalPerSim || 0).toFixed(2)}** (Monthly cost per SIM with ${packagePricing.dataIncluded || 1}GB)
+Discount: **${(payAsYouGo.discount || 0).toFixed(1)}% OFF** (Volume discount for ${data.simCount || 1000}+ SIMs)
 
-## 💳 Package Pricing Structure
+## 📦 Package Pricing Structure
 
-<div class="pricing-grid">
-<div class="pricing-card">
-<span class="label">MONTHLY FEE</span>
-<span class="value">${currency}${(packagePricing.monthlyFee || 0).toFixed(2)}/SIM</span>
-<span class="description">Fixed monthly rate per SIM</span>
-</div>
-<div class="pricing-card">
-<span class="label">DATA INCLUDED</span>
-<span class="value">${packagePricing.dataIncluded || 0}GB</span>
-<span class="description">Monthly data allowance included</span>
-</div>
-<div class="pricing-card">
-<span class="label">TOTAL PACKAGE</span>
-<span class="value">${currency}${(packagePricing.totalPackage || 0).toFixed(0)}/month</span>
-<span class="description">Total for all ${data.simCount || 1000} SIMs</span>
-</div>
-<div class="pricing-card">
-<span class="label">SAVINGS</span>
-<span class="value accent">${(packagePricing.savings || 0).toFixed(1)}% vs Pay-as-you-go</span>
-<span class="description">Compared to usage-based pricing</span>
-</div>
-</div>
+Monthly Fee: **${currency}${(packagePricing.monthlyFee || 0).toFixed(2)}/SIM** (Fixed monthly rate per SIM)
+Data Included: **${packagePricing.dataIncluded || 0}GB** (Monthly data allowance included)
+Total Package: **${currency}${(packagePricing.totalPackage || 0).toFixed(0)}/month** (Total for all ${data.simCount || 1000} SIMs)
+Savings: **${(packagePricing.savings || 0).toFixed(1)}% vs Pay-as-you-go** (Compared to usage-based pricing)
 
-## 📊 Regional & Carrier Optimization:
+## 📊 Regional & Carrier Optimization
 
-<div class="optimization-section">
-<div class="optimization-grid">
 ${Object.entries(regionalOpt).length > 0 ? 
-  Object.entries(regionalOpt).map(([country, percentage]) => 
-    `<div class="region-card">
-      <div class="region-name">${country}:</div>
-      <div class="region-percentage">${percentage}%</div>
-    </div>`
-  ).join('\n') : 
-  '<div class="region-card">No regional data available</div>'}
-</div>
-<div class="optimization-note">
-<span class="note-icon">ℹ️</span>
-<span class="note-text">Traffic distribution based on expected usage patterns across regions</span>
-</div>
-</div>
+  Object.entries(regionalOpt).map(([country, percentage]) => `${country}: **${percentage}%**`).join('\n') : 
+  'Israel: **100%**'}
+
+ℹ️ Traffic distribution based on expected usage patterns across regions
 
 ## 📝 Business Justification:
 
-<div class="justification-list">
 ${data.businessJustification && data.businessJustification.length > 0 ? 
-  data.businessJustification.map((item: string) => `<div class="justification-item">✓ ${item}</div>`).join('\n') :
-  '<div class="justification-item">✓ Pricing structure optimized for volume</div>\n<div class="justification-item">✓ Multi-network redundancy ensures reliability</div>\n<div class="justification-item">✓ Competitive rates across all regions</div>'}
-</div>
+  data.businessJustification.map((item: string) => `✓ ${item}`).join('\n') :
+  `✓ Volume commitment of ${data.simCount || 100} SIMs qualifies for volume pricing
+✓ No commitment months provides flexibility  
+✓ Multi-country deployment across Israel increases strategic value`}
 
-## 🔍 Key Assumptions:
+## 🔍 Key Assumptions
 
-<div class="assumptions-list">
 ${data.keyAssumptions && data.keyAssumptions.length > 0 ?
-  data.keyAssumptions.map((item: string) => `<div class="assumption-item">• ${item}</div>`).join('\n') :
-  '<div class="assumption-item">• Pay-as-you-go usage model</div>\n<div class="assumption-item">• Standard network redundancy requirements</div>\n<div class="assumption-item">• Monthly billing cycle with upfront activation</div>'}
-</div>
+  data.keyAssumptions.map((item: string) => `• ${item}`).join('\n') :
+  `• Pay-as-you-go usage model with ${(packagePricing.dataIncluded || 0.01).toFixed(2)} GB per SIM
+• Network redundancy with 3 networks per country
+• Monthly billing cycle with upfront IMSI activation`}
 
-<div class="deal-status">
-<h3>Deal Status</h3>
-<div class="status-icon">✅</div>
-<div class="status-grid">
-<div><span class="label">YOUR PRICE</span><span class="value">${currency}${(dealStatus.price || 0).toFixed(2)}</span></div>
-<div><span class="label">SAVINGS</span><span class="value">${dealStatus.savings || 0}%</span></div>
-<div><span class="label">MONTHLY VALUE</span><span class="value">${currency}${dealStatus.monthlyValue || 0}</span></div>
-</div>
-</div>
+**Deal Status** ✅
+Your Price: **${currency}${(packagePricing.monthlyFee || dealStatus.price || 0.15).toFixed(2)}**
 
 ## 🌐 Network Structure
 
@@ -834,8 +810,8 @@ If unclear, use reasonable defaults. Return only JSON.`;
     }
     
     // Parse data requirement
-    const gbMatch = lower.match(/(\d+(?:\.\d+)?)\s*gb/i);
-    const mbMatch = lower.match(/(\d+)\s*mb/i);
+    const gbMatch = lower.match(/(\d+(?:\.\d+)?)\s*gb(?:\/mo|\/month|per month)?/i);
+    const mbMatch = lower.match(/(\d+)\s*mb(?:\/mo|\/month|per month)?/i);
     
     if (gbMatch) {
       request.dataPerMonth = parseFloat(gbMatch[1]) * 1000; // Convert GB to MB
@@ -854,7 +830,11 @@ If unclear, use reasonable defaults. Return only JSON.`;
       'spain': 'Spain',
       'italy': 'Italy',
       'netherlands': 'Netherlands',
-      'poland': 'Poland'
+      'poland': 'Poland',
+      'israel': 'Israel',
+      'usa': 'United States',
+      'us': 'United States',
+      'united states': 'United States'
     };
     
     const countries: string[] = [];
@@ -866,13 +846,17 @@ If unclear, use reasonable defaults. Return only JSON.`;
           countries.push(value);
           
           // Try to parse network count for this country
-          const networkPattern = new RegExp(`(\\d+|two|three)\\s*networks?.*${key}|${key}.*?(\\d+|two|three)\\s*networks?`, 'i');
+          const networkPattern = new RegExp(`(\\d+|two|three|all)\\s*networks?.*${key}|${key}.*?(\\d+|two|three|all)\\s*networks?`, 'i');
           const match = input.match(networkPattern);
           
           if (match) {
             const numberWord = match[1] || match[2];
-            const count = numberWord === 'two' ? 2 : numberWord === 'three' ? 3 : parseInt(numberWord);
-            networksPerCountry[value] = count;
+            if (numberWord === 'all') {
+              networksPerCountry[value] = 999; // Use 999 to represent "all networks"
+            } else {
+              const count = numberWord === 'two' ? 2 : numberWord === 'three' ? 3 : parseInt(numberWord);
+              networksPerCountry[value] = count;
+            }
           } else {
             // Default to 1 network if not specified
             networksPerCountry[value] = 1;
