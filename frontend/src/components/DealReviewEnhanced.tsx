@@ -270,7 +270,7 @@ I'll help you analyze your deal profitability. To provide accurate pricing, I ne
                   : 'bg-white border border-gray-200 text-gray-800'
               }`}
             >
-              <div className="whitespace-pre-wrap" 
+              <div className="whitespace-pre-wrap text-sm leading-4" 
                    dangerouslySetInnerHTML={{ __html: formatMessageContent(message.content) }} />
               
               {message.dealData && (
@@ -287,7 +287,7 @@ I'll help you analyze your deal profitability. To provide accurate pricing, I ne
             <div className="bg-white border border-gray-200 px-4 py-3 rounded-2xl">
               <div className="flex items-center space-x-2">
                 <Loader2 className="w-4 h-4 animate-spin text-[#5B9BD5]" />
-                <span className="text-sm text-gray-600">Analyzing deal with real operator data...</span>
+                <span className="text-sm leading-4 text-gray-600">Analyzing deal with real operator data...</span>
               </div>
             </div>
           </div>
@@ -321,7 +321,7 @@ I'll help you analyze your deal profitability. To provide accurate pricing, I ne
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="E.g., '1000 SIMs with 1GB in UK (2 networks) and Belgium (1 network), 24-month commitment'"
-            className="flex-1 px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5B9BD5] focus:border-transparent text-sm"
+            className="flex-1 px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5B9BD5] focus:border-transparent text-sm leading-4"
             disabled={loading}
           />
           <button
@@ -334,7 +334,7 @@ I'll help you analyze your deal profitability. To provide accurate pricing, I ne
             ) : (
               <Send className="w-5 h-5" />
             )}
-            <span>{loading ? 'Analyzing...' : 'Analyze'}</span>
+            <span className="text-sm leading-4">{loading ? 'Analyzing...' : 'Analyze'}</span>
           </button>
         </div>
       </div>
@@ -346,43 +346,43 @@ I'll help you analyze your deal profitability. To provide accurate pricing, I ne
 function formatMessageContent(content: string): string {
   return content
     // Headers - minimal spacing, smaller font
-    .replace(/### (.*?)$/gm, '<h3 class="text-sm font-semibold mt-1 mb-0.5 text-gray-800">$1</h3>')
-    .replace(/## (.*?)$/gm, '<h2 class="text-sm font-bold mt-2 mb-0.5 text-gray-900">$1</h2>')
+    .replace(/### (.*?)$/gm, '<h3 class="text-sm leading-4 font-semibold mt-1 mb-0.5 text-gray-800">$1</h3>')
+    .replace(/## (.*?)$/gm, '<h2 class="text-sm leading-4 font-bold mt-2 mb-0.5 text-gray-900">$1</h2>')
     // Bold text
-    .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-sm">$1</strong>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-sm leading-4">$1</strong>')
     // Replace grid with very compact list format - uppercase labels
     .replace(/<div class="pricing-grid">/g, '<div class="space-y-0 mb-1">')
-    .replace(/<div class="pricing-card">/g, '<div class="text-sm leading-tight">')
-    .replace(/<span class="label">/g, '<span class="font-semibold text-gray-800 uppercase">')
-    .replace(/<span class="value">/g, '<span class="font-semibold text-gray-900">')
-    .replace(/<span class="value success">/g, '<span class="font-semibold text-green-600">')
-    .replace(/<span class="value accent">/g, '<span class="font-semibold text-blue-600">')
-    .replace(/<span class="description">/g, '<span class="text-sm text-gray-500 ml-2">(')
+    .replace(/<div class="pricing-card">/g, '<div class="text-sm leading-4">')
+    .replace(/<span class="label">/g, '<span class="font-semibold text-gray-800 uppercase text-sm leading-4">')
+    .replace(/<span class="value">/g, '<span class="font-semibold text-gray-900 text-sm leading-4">')
+    .replace(/<span class="value success">/g, '<span class="font-semibold text-green-600 text-sm leading-4">')
+    .replace(/<span class="value accent">/g, '<span class="font-semibold text-blue-600 text-sm leading-4">')
+    .replace(/<span class="description">/g, '<span class="text-sm leading-4 text-gray-500 ml-2">(')
     // Optimization section - ultra compact
     .replace(/<div class="optimization-section">/g, '<div class="mb-0.5">')
-    .replace(/<div class="optimization-grid">/g, '<div class="text-sm space-y-0">')
-    .replace(/<div class="region-card">/g, '<div class="flex justify-between items-center text-sm">')
-    .replace(/<div class="region-name">/g, '<div class="font-medium text-gray-700">')
-    .replace(/<div class="region-percentage">/g, '<div class="font-semibold text-gray-900">')
-    .replace(/<div class="optimization-note">/g, '<div class="text-xs text-gray-600">')
+    .replace(/<div class="optimization-grid">/g, '<div class="text-sm leading-4 space-y-0">')
+    .replace(/<div class="region-card">/g, '<div class="flex justify-between items-center text-sm leading-4">')
+    .replace(/<div class="region-name">/g, '<div class="font-medium text-gray-700 text-sm leading-4">')
+    .replace(/<div class="region-percentage">/g, '<div class="font-semibold text-gray-900 text-sm leading-4">')
+    .replace(/<div class="optimization-note">/g, '<div class="text-sm leading-4 text-gray-600">')
     .replace(/<span class="note-icon">/g, '<span class="text-blue-500">')
     .replace(/<span class="note-text">/g, '<span>')
     // Justification and assumptions - ultra compact
     .replace(/<div class="justification-list">/g, '<div class="space-y-0 mb-1">')
-    .replace(/<div class="justification-item">/g, '<div class="flex items-start gap-1 text-sm text-gray-700 leading-tight">')
+    .replace(/<div class="justification-item">/g, '<div class="flex items-start gap-1 text-sm text-gray-700 leading-4">')
     .replace(/<div class="assumptions-list">/g, '<div class="space-y-0 mb-1">')
-    .replace(/<div class="assumption-item">/g, '<div class="flex items-start gap-1 text-sm text-gray-600 leading-tight">')
+    .replace(/<div class="assumption-item">/g, '<div class="flex items-start gap-1 text-sm text-gray-600 leading-4">')
     // Deal status card - ultra compact
     .replace(/<div class="deal-status">/g, '<div class="mt-1 p-2 bg-gradient-to-r from-green-50 to-emerald-50 rounded border border-green-200">')
     .replace(/<div class="status-icon">/g, '<div class="text-lg text-center mb-0.5">')
-    .replace(/<div class="status-grid">/g, '<div class="grid grid-cols-3 gap-1 text-center text-sm">')
+    .replace(/<div class="status-grid">/g, '<div class="grid grid-cols-3 gap-1 text-center text-sm leading-4">')
     // Network cards - ultra compact
     .replace(/<div class="network-card">/g, '<div class="p-1 mb-0.5 bg-white rounded border border-gray-200">')
-    .replace(/<span class="preferred-badge">/g, '<span class="inline-block px-1 py-0.5 text-xs bg-green-100 text-green-700 rounded">')
+    .replace(/<span class="preferred-badge">/g, '<span class="inline-block px-1 py-0.5 text-sm leading-4 bg-green-100 text-green-700 rounded">')
     // Lists - ultra compact
-    .replace(/• (.*?)$/gm, '<li class="ml-1 text-sm leading-tight">• $1</li>')
-    .replace(/✓ (.*?)$/gm, '<li class="ml-1 text-sm text-green-600 leading-tight">✓ $1</li>')
-    .replace(/→ (.*?)$/gm, '<div class="ml-1 text-sm text-gray-600 leading-tight">→ $1</div>')
+    .replace(/• (.*?)$/gm, '<li class="ml-1 text-sm leading-4">• $1</li>')
+    .replace(/✓ (.*?)$/gm, '<li class="ml-1 text-sm leading-4 text-green-600">✓ $1</li>')
+    .replace(/→ (.*?)$/gm, '<div class="ml-1 text-sm leading-4 text-gray-600">→ $1</div>')
     // Status icons
     .replace(/✅/g, '<span class="text-green-600">✅</span>')
     .replace(/❌/g, '<span class="text-red-600">❌</span>')
