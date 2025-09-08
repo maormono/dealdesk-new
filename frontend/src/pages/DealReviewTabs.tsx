@@ -55,7 +55,7 @@ export const DealReviewTabs: React.FC = () => {
       <div className="fixed bottom-6 right-6 z-50">
         {/* Bubble Tag */}
         <div className="absolute -top-12 right-0 bg-gray-900 text-white px-3 py-2 rounded-lg text-sm font-medium shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 pointer-events-none">
-          Deal Analyzer
+          AI Deal Analyzer
           {/* Arrow pointing down */}
           <div className="absolute top-full right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900"></div>
         </div>
@@ -67,7 +67,7 @@ export const DealReviewTabs: React.FC = () => {
               ? 'bg-gradient-to-br from-[#5B9BD5] to-[#9B7BB6] shadow-[#5B9BD5]/30' 
               : 'bg-gradient-to-br from-[#5B9BD5] to-[#9B7BB6] shadow-[#5B9BD5]/30 hover:shadow-[#5B9BD5]/50'
           }`}
-          title="Deal Analyzer"
+          title="AI Deal Analyzer"
         >
           <div className="absolute inset-0 rounded-full bg-white/10 group-hover:bg-white/20 transition-all duration-300" />
           {showDealAnalyzer ? (
@@ -84,7 +84,7 @@ export const DealReviewTabs: React.FC = () => {
         
         {/* Permanent Label */}
         <div className="absolute top-16 left-1/2 transform -translate-x-1/2 text-gray-600 text-xs font-medium whitespace-nowrap">
-          Deal Analyzer
+          AI Deal Analyzer
         </div>
       </div>
     </div>
