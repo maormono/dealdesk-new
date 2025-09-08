@@ -869,7 +869,7 @@ If unclear, use reasonable defaults. Return only JSON.`;
     request.networksPerCountry = networksPerCountry;
     
     // Parse commitment
-    const commitMatch = lower.match(/(\d+)\s*months?/);
+    const commitMatch = lower.match(/(\d+)\s*(?:mo\.?|months?)/);
     if (commitMatch) {
       request.commitmentMonths = parseInt(commitMatch[1]);
     }
