@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Users, DollarSign, Database, Shield, ChevronLeft, Calculator } from 'lucide-react';
+import { Settings, Users, DollarSign, Database, Shield, Calculator } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { DealRules } from '../components/admin/DealRules';
-import { UserManagement } from './UserManagement';
-import { TestWeightedPricing } from '../components/TestWeightedPricing';
 import { supabase } from '../lib/supabase';
 import { getUserDealDeskPermissions } from '../lib/permissions';
 import { AccessDenied } from './AccessDenied';
+import { DealRules } from '../components/admin/DealRules';
+import { UserManagement } from './UserManagement';
+import { TestWeightedPricing } from '../components/TestWeightedPricing';
 
-type AdminTab = 'rules' | 'users' | 'operators' | 'security' | 'test';
+type AdminSection = 'users' | 'rules' | 'operators' | 'security' | 'test' | 'system';
 
 export const Admin: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<AdminTab>('rules');
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [activeSection, setActiveSection] = useState<AdminSection>('users');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -29,7 +29,6 @@ export const Admin: React.FC = () => {
         return;
       }
 
-      // Check if user has admin role in DealDesk
       const permissions = await getUserDealDeskPermissions(user.id);
       const hasAdminAccess = permissions.role === 'admin';
 
@@ -61,98 +60,108 @@ export const Admin: React.FC = () => {
     return <AccessDenied />;
   }
 
-  const tabs = [
-    { id: 'rules' as AdminTab, label: 'Deal Rules', icon: DollarSign },
-    { id: 'users' as AdminTab, label: 'Users', icon: Users },
-    { id: 'operators' as AdminTab, label: 'Operators', icon: Database },
-    { id: 'security' as AdminTab, label: 'Security', icon: Shield },
-    { id: 'test' as AdminTab, label: 'Test Pricing', icon: Calculator },
+  const renderTabContent = () => {
+    switch (activeSection) {
+      case 'users':
+        return <UserManagement />;
+      case 'rules':
+        return <DealRules />;
+      case 'test':
+        return <TestWeightedPricing />;
+      case 'operators':
+        return (
+          <div className="p-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Operator Configuration</h3>
+            <p className="text-gray-500">Operator pricing and configuration coming soon...</p>
+          </div>
+        );
+      case 'security':
+        return (
+          <div className="p-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Security Settings</h3>
+            <p className="text-gray-500">Security configuration coming soon...</p>
+          </div>
+        );
+      case 'system':
+        return (
+          <div className="p-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">System Configuration</h3>
+            <p className="text-gray-500">System configuration coming soon...</p>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
+  const adminTabs = [
+    {
+      id: 'users' as AdminSection,
+      label: 'Users',
+      icon: Users
+    },
+    {
+      id: 'rules' as AdminSection,
+      label: 'Deal Rules',
+      icon: DollarSign
+    },
+    {
+      id: 'operators' as AdminSection,
+      label: 'Operators',
+      icon: Database
+    },
+    {
+      id: 'security' as AdminSection,
+      label: 'Security',
+      icon: Shield
+    },
+    {
+      id: 'test' as AdminSection,
+      label: 'Test Pricing',
+      icon: Calculator
+    },
+    {
+      id: 'system' as AdminSection,
+      label: 'System',
+      icon: Settings
+    }
   ];
 
   return (
     <div className="bg-gray-50 pt-20 flex-1">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => navigate('/')}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <ChevronLeft className="w-5 h-5 text-gray-600" />
-              </button>
-              <div className="flex items-center space-x-4">
-                <div className="p-3 bg-gradient-to-br from-[#5B9BD5] to-[#9B7BB6] rounded-xl">
-                  <Settings className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-semibold text-gray-900">Admin Panel</h1>
-                  <p className="text-sm text-gray-500 mt-0.5">System configuration and management</p>
-                </div>
-              </div>
+      <main className="px-4 sm:px-6 lg:px-8 py-8">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <h2 className="text-xl font-semibold text-gray-900 tracking-tight mb-6">Admin Panel</h2>
+          
+          {/* Tab Navigation */}
+          <div className="border-b border-gray-200 mb-6">
+            <div className="flex space-x-1">
+              {adminTabs.map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveSection(tab.id)}
+                    className={`flex items-center space-x-2 px-4 py-3 text-sm font-medium transition-all border-b-2 whitespace-nowrap ${
+                      activeSection === tab.id
+                        ? 'text-blue-600 border-blue-600'
+                        : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span>{tab.label}</span>
+                  </button>
+                );
+              })}
             </div>
+          </div>
+          
+          {/* Tab Content */}
+          <div className="min-h-[600px]">
+            {renderTabContent()}
           </div>
         </div>
-
-        {/* Tab Navigation */}
-        <div className="px-8">
-          <div className="flex space-x-1">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center space-x-2 px-4 py-3 text-sm font-medium transition-all border-b-2 ${
-                    activeTab === tab.id
-                      ? 'text-[#5B9BD5] border-[#5B9BD5]'
-                      : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span>{tab.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* Tab Content */}
-      <div className="py-8">
-        {activeTab === 'rules' && <DealRules />}
-        
-        {activeTab === 'users' && (
-          <div className="max-w-7xl mx-auto">
-            <UserManagement />
-          </div>
-        )}
-        
-        {activeTab === 'operators' && (
-          <div className="max-w-4xl mx-auto p-6">
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Operator Configuration</h3>
-              <p className="text-gray-500">Operator pricing and configuration coming soon...</p>
-            </div>
-          </div>
-        )}
-        
-        {activeTab === 'security' && (
-          <div className="max-w-4xl mx-auto p-6">
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Security Settings</h3>
-              <p className="text-gray-500">Security configuration coming soon...</p>
-            </div>
-          </div>
-        )}
-        
-        {activeTab === 'test' && (
-          <div className="max-w-4xl mx-auto p-6">
-            <TestWeightedPricing />
-          </div>
-        )}
-      </div>
+      </main>
     </div>
   );
 };
