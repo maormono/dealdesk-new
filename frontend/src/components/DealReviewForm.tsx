@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calculator, Plus, X, Loader2, TrendingUp, AlertCircle, Globe, Smartphone, DollarSign, Wifi, Network, Edit } from 'lucide-react';
+import { Calculator, Plus, X, Loader2, TrendingUp, AlertCircle, Globe, Smartphone, DollarSign, Wifi, Network, Edit, Maximize2, Minimize2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { dealConfig } from '../config/dealConfig';
 import type { DealRequest, DealEvaluation } from '../config/dealConfig';
@@ -13,9 +13,11 @@ import '../styles/monogoto-theme.css';
 interface DealReviewFormProps {
   initialDeal?: Partial<DealRequest>;
   onEvaluation?: (evaluation: DealEvaluation, deal: DealRequest) => void;
+  onExpandToggle?: () => void;
+  isExpanded?: boolean;
 }
 
-export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onEvaluation }) => {
+export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onEvaluation, onExpandToggle, isExpanded = false }) => {
   const [loading, setLoading] = useState(false);
   const [countries, setCountries] = useState<string[]>([]);
   const [availableCountries, setAvailableCountries] = useState<string[]>([]);
@@ -42,6 +44,7 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
   const [enhancedAnalysis, setEnhancedAnalysis] = useState<any>(null);
   const [comprehensiveAnalysis, setComprehensiveAnalysis] = useState<any>(null);
   const [showResults, setShowResults] = useState(false);
+  const [isResultsExpanded, setIsResultsExpanded] = useState(false);
   const evaluationService = new DealEvaluationService();
   const enhancedService = new EnhancedDealService();
   const comprehensiveService = new ComprehensiveDealService();
@@ -190,29 +193,40 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
   if (showResults && evaluation) {
     return (
       <div className="max-w-5xl mx-auto p-6">
-        {/* Edit Deal Button */}
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Deal Evaluation Results</h2>
-          <button
-            onClick={handleEditDeal}
-            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors flex items-center space-x-2"
-          >
-            <Edit className="w-4 h-4" />
-            <span>Edit Deal</span>
-          </button>
-        </div>
         
         {/* Evaluation Results - Monogoto Apple Style */}
         <div className="bg-gradient-to-br from-white via-green-50/30 to-emerald-50/50 rounded-2xl shadow-sm border border-green-100/50 p-6">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-3">
               <div className="p-2.5 bg-white/80 backdrop-blur rounded-xl shadow-sm border border-green-200/30">
                 <TrendingUp className="w-6 h-6 text-green-600" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900">Evaluation Results</h3>
+              <h3 className="text-lg font-semibold text-gray-900">Evaluation Results</h3>
             </div>
-            <div className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
-              {evaluation.verdict === 'approved' ? 'APPROVED' : 'NEEDS REVIEW'}
+            <div className="flex items-center space-x-2">
+              <div className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                {evaluation.verdict === 'approved' ? 'APPROVED' : 'NEEDS REVIEW'}
+              </div>
+              <button
+                onClick={handleEditDeal}
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors flex items-center space-x-2"
+              >
+                <Edit className="w-4 h-4" />
+                <span>Edit Deal</span>
+              </button>
+              {onExpandToggle && (
+                <button
+                  onClick={() => {setIsResultsExpanded(!isResultsExpanded); onExpandToggle();}}
+                  className="p-1 hover:bg-white/50 rounded-lg transition-colors"
+                  title={isResultsExpanded ? "Collapse to sidebar" : "Expand to 50% width"}
+                >
+                  {isResultsExpanded ? (
+                    <Minimize2 className="w-4 h-4 text-gray-600" />
+                  ) : (
+                    <Maximize2 className="w-4 h-4 text-gray-600" />
+                  )}
+                </button>
+              )}
             </div>
           </div>
           
@@ -221,12 +235,12 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
             {/* Deal Bottom Line - Executive Summary */}
             {comprehensiveAnalysis && comprehensiveAnalysis.recommendation && (
               <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 rounded-2xl p-6 border border-blue-200/50 shadow-sm">
-                <h4 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                <h4 className="text-sm font-bold text-gray-900 mb-4 flex items-center">
                   🎯 Deal Recommendation & Bottom Line
                 </h4>
                 <div 
-                  className="prose prose-sm max-w-none text-gray-800"
-                  dangerouslySetInnerHTML={{ __html: comprehensiveAnalysis.recommendation }}
+                  className="text-sm leading-relaxed max-w-none text-gray-800"
+                  dangerouslySetInnerHTML={{ __html: formatDealContent(comprehensiveAnalysis.recommendation) }}
                 />
               </div>
             )}
@@ -234,12 +248,12 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
             {/* Fallback Bottom Line if comprehensive analysis fails */}
             {(!comprehensiveAnalysis || !comprehensiveAnalysis.recommendation) && enhancedAnalysis && (
               <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-cyan-50 rounded-2xl p-6 border border-emerald-200/50 shadow-sm">
-                <h4 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                <h4 className="text-sm font-bold text-gray-900 mb-4 flex items-center">
                   🎯 Deal Summary & Bottom Line
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <h5 className="font-semibold text-gray-800 mb-2">💰 Financial Summary</h5>
+                    <h5 className="text-sm font-semibold text-gray-800 mb-2">💰 Financial Summary</h5>
                     <ul className="space-y-1 text-sm text-gray-700">
                       <li>• Monthly per SIM: <strong>${enhancedAnalysis.payAsYouGo?.listPrice?.toFixed(2) || 'N/A'}</strong></li>
                       <li>• Total monthly: <strong>${((enhancedAnalysis.payAsYouGo?.listPrice || 0) * formData.simQuantity).toFixed(0)}</strong></li>
@@ -248,11 +262,11 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
                     </ul>
                   </div>
                   <div>
-                    <h5 className="font-semibold text-gray-800 mb-2">✅ Recommendation</h5>
+                    <h5 className="text-sm font-semibold text-gray-800 mb-2">✅ Recommendation</h5>
                     <div className="bg-white/60 rounded-lg p-3 border border-emerald-200/30">
                       <div className="flex items-center space-x-2 mb-2">
                         <span className="text-2xl">{evaluation?.verdict === 'approved' ? '✅' : '⚠️'}</span>
-                        <span className="font-bold text-lg">
+                        <span className="font-bold text-sm">
                           {evaluation?.verdict === 'approved' ? 'APPROVED' : 'NEEDS REVIEW'}
                         </span>
                       </div>
@@ -284,23 +298,23 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
             
             {enhancedAnalysis && enhancedAnalysis.payAsYouGo && (
               <div className="bg-white/60 rounded-xl p-4 border border-green-100/30">
-                <h4 className="font-semibold text-gray-900 mb-3">💰 Pay-as-you-go Pricing Structure</h4>
+                <h4 className="text-sm font-semibold text-gray-900 mb-3">💰 Pay-as-you-go Pricing Structure</h4>
                 <div className="grid grid-cols-4 gap-4 text-center">
                   <div>
                     <div className="text-xs text-gray-500 mb-1">ACTIVE SIM FEE</div>
-                    <div className="text-lg font-semibold text-gray-900">${enhancedAnalysis.payAsYouGo.activeSimFee?.toFixed(2) || '0.00'}/month</div>
+                    <div className="text-sm font-semibold text-gray-900">${enhancedAnalysis.payAsYouGo.activeSimFee?.toFixed(2) || '0.00'}/month</div>
                   </div>
                   <div>
                     <div className="text-xs text-gray-500 mb-1">DATA RATE</div>
-                    <div className="text-lg font-semibold text-gray-900">${enhancedAnalysis.payAsYouGo.dataFee ? (enhancedAnalysis.payAsYouGo.dataFee * 1024).toFixed(2) : '0.00'}/GB</div>
+                    <div className="text-sm font-semibold text-gray-900">${enhancedAnalysis.payAsYouGo.dataFee ? (enhancedAnalysis.payAsYouGo.dataFee * 1024).toFixed(2) : '0.00'}/GB</div>
                   </div>
                   <div>
                     <div className="text-xs text-gray-500 mb-1">TOTAL/SIM</div>
-                    <div className="text-lg font-semibold text-green-600">${enhancedAnalysis.payAsYouGo.listPrice?.toFixed(2) || '0.00'}</div>
+                    <div className="text-sm font-semibold text-green-600">${enhancedAnalysis.payAsYouGo.listPrice?.toFixed(2) || '0.00'}</div>
                   </div>
                   <div>
                     <div className="text-xs text-gray-500 mb-1">DISCOUNT</div>
-                    <div className="text-lg font-semibold text-blue-600">{enhancedAnalysis.payAsYouGo.discountPercentage?.toFixed(1) || '0.0'}% OFF</div>
+                    <div className="text-sm font-semibold text-blue-600">{enhancedAnalysis.payAsYouGo.discountPercentage?.toFixed(1) || '0.0'}% OFF</div>
                   </div>
                 </div>
               </div>
@@ -309,7 +323,7 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
             {/* Enhanced Analysis Sections */}
             {enhancedAnalysis && enhancedAnalysis.reasoning && enhancedAnalysis.reasoning.length > 0 && (
               <div className="bg-white/60 rounded-xl p-4 border border-green-100/30">
-                <h4 className="font-semibold text-gray-900 mb-3">💡 Enhanced Analysis:</h4>
+                <h4 className="text-sm font-semibold text-gray-900 mb-3">💡 Enhanced Analysis:</h4>
                 <ul className="space-y-2">
                   {enhancedAnalysis.reasoning.map((item: string, index: number) => (
                     <li key={index} className="flex items-start space-x-2 text-sm text-gray-700">
@@ -323,7 +337,7 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
             
             {enhancedAnalysis && enhancedAnalysis.assumptions && enhancedAnalysis.assumptions.length > 0 && (
               <div className="bg-white/60 rounded-xl p-4 border border-green-100/30">
-                <h4 className="font-semibold text-gray-900 mb-3">📋 Analysis Assumptions:</h4>
+                <h4 className="text-sm font-semibold text-gray-900 mb-3">📋 Analysis Assumptions:</h4>
                 <ul className="space-y-1">
                   {enhancedAnalysis.assumptions.map((item: string, index: number) => (
                     <li key={index} className="text-sm text-gray-600">• {item}</li>
@@ -334,7 +348,7 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
             
             {enhancedAnalysis && enhancedAnalysis.warnings && enhancedAnalysis.warnings.length > 0 && (
               <div className="bg-white/60 rounded-xl p-4 border border-amber-100/30">
-                <h4 className="font-semibold text-gray-900 mb-3">⚠️ Important Notes:</h4>
+                <h4 className="text-sm font-semibold text-gray-900 mb-3">⚠️ Important Notes:</h4>
                 <ul className="space-y-1">
                   {enhancedAnalysis.warnings.map((item: string, index: number) => (
                     <li key={index} className="text-sm text-amber-700">⚠️ {item}</li>
@@ -345,7 +359,7 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
             
             {enhancedAnalysis && enhancedAnalysis.usageDistribution && Object.keys(enhancedAnalysis.usageDistribution).length > 0 && (
               <div className="bg-white/60 rounded-xl p-4 border border-green-100/30">
-                <h4 className="font-semibold text-gray-900 mb-3">🌍 Usage Distribution Analysis:</h4>
+                <h4 className="text-sm font-semibold text-gray-900 mb-3">🌍 Usage Distribution Analysis:</h4>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {Object.entries(enhancedAnalysis.usageDistribution).map(([country, percentage]) => (
                     <div key={country} className="flex justify-between items-center bg-gray-50 rounded-lg px-3 py-2">
@@ -359,15 +373,58 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
             
             {evaluation.notes && evaluation.notes.length > 0 && (
               <div className="bg-white/60 rounded-xl p-4 border border-green-100/30">
-                <h4 className="font-semibold text-gray-900 mb-3">📝 Deal Notes & Analysis:</h4>
-                <ul className="space-y-2">
-                  {evaluation.notes.map((item: string, index: number) => (
-                    <li key={index} className="flex items-start space-x-2 text-sm text-gray-700">
-                      <span className="text-green-500 mt-0.5">✓</span>
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
+                <h4 className="text-sm font-semibold text-gray-900 mb-3">📝 Deal Notes & Analysis:</h4>
+                <div className="space-y-2">
+                  {evaluation.notes.map((item: string, index: number) => {
+                    // Format the note content to make headers bold
+                    if (item.includes('**Deal Overview**')) {
+                      return (
+                        <div key={index} className="text-sm text-gray-700">
+                          <span className="font-semibold">Deal Overview</span>
+                          {item.replace('**Deal Overview**', '')}
+                        </div>
+                      );
+                    }
+                    if (item.includes('**Network Selection Reasoning**')) {
+                      return (
+                        <div key={index} className="text-sm text-gray-700">
+                          <span className="font-semibold">Network Selection Reasoning</span>
+                          {item.replace('**Network Selection Reasoning**', '')}
+                        </div>
+                      );
+                    }
+                    if (item.includes('**Cost Breakdown per SIM**')) {
+                      return (
+                        <div key={index} className="text-sm text-gray-700">
+                          <span className="font-semibold">Cost Breakdown per SIM</span>
+                          {item.replace('**Cost Breakdown per SIM**', '')}
+                        </div>
+                      );
+                    }
+                    if (item.includes('**Profitability Analysis**')) {
+                      return (
+                        <div key={index} className="text-sm text-gray-700">
+                          <span className="font-semibold">Profitability Analysis</span>
+                          {item.replace('**Profitability Analysis**', '')}
+                        </div>
+                      );
+                    }
+                    if (item.includes('**Alternative Network Options**')) {
+                      return (
+                        <div key={index} className="text-sm text-gray-700">
+                          <span className="font-semibold">Alternative Network Options</span>
+                          {item.replace('**Alternative Network Options**', '')}
+                        </div>
+                      );
+                    }
+                    // Default formatting without checkmarks
+                    return (
+                      <div key={index} className="text-sm text-gray-700">
+                        <span>{item}</span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
@@ -787,4 +844,41 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
     </div>
   );
 };
+
+// Helper function to format message content with organized styling
+function formatDealContent(content: string): string {
+  return content
+    // Headers - smaller font, better spacing
+    .replace(/### (.*?)$/gm, '<h3 class="text-sm font-semibold mt-2 mb-1 text-gray-800">$1</h3>')
+    .replace(/## (.*?)$/gm, '<h2 class="text-sm font-bold mt-3 mb-1 text-gray-900">$1</h2>')
+    // Bold text
+    .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-sm">$1</strong>')
+    // Replace grid with compact list format
+    .replace(/<div class="pricing-grid">/g, '<div class="space-y-1 mb-2">')
+    .replace(/<div class="pricing-card">/g, '<div class="text-sm">')
+    .replace(/<span class="label">/g, '<span class="font-semibold text-gray-800 uppercase text-sm">')
+    .replace(/<span class="value">/g, '<span class="font-semibold text-gray-900 text-sm">')
+    .replace(/<span class="value success">/g, '<span class="font-semibold text-green-600 text-sm">')
+    .replace(/<span class="value accent">/g, '<span class="font-semibold text-blue-600 text-sm">')
+    .replace(/<span class="description">/g, '<span class="text-sm text-gray-500 ml-2">(')
+    // Optimization section - compact
+    .replace(/<div class="optimization-section">/g, '<div class="mb-1">')
+    .replace(/<div class="optimization-grid">/g, '<div class="text-sm space-y-1">')
+    .replace(/<div class="region-card">/g, '<div class="flex justify-between items-center text-sm">')
+    .replace(/<div class="region-name">/g, '<div class="font-medium text-gray-700 text-sm">')
+    .replace(/<div class="region-percentage">/g, '<div class="font-semibold text-gray-900 text-sm">')
+    .replace(/<div class="optimization-note">/g, '<div class="text-sm text-gray-600">')
+    .replace(/<span class="note-icon">/g, '<span class="text-blue-500">')
+    .replace(/<span class="note-text">/g, '<span>')
+    // Lists - compact
+    .replace(/• (.*?)$/gm, '<li class="ml-1 text-sm">• $1</li>')
+    .replace(/✓ (.*?)$/gm, '<li class="ml-1 text-sm text-green-600">✓ $1</li>')
+    .replace(/→ (.*?)$/gm, '<div class="ml-1 text-sm text-gray-600">→ $1</div>')
+    // Status icons
+    .replace(/✅/g, '<span class="text-green-600">✅</span>')
+    .replace(/❌/g, '<span class="text-red-600">❌</span>')
+    .replace(/⚠️/g, '<span class="text-yellow-600">⚠️</span>')
+    // Line breaks
+    .replace(/\n/g, '<br>');
+}
 

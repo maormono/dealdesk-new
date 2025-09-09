@@ -38,6 +38,8 @@ export const DealReviewTabs: React.FC = () => {
                   <DealReviewForm 
                     initialDeal={sharedDeal}
                     onEvaluation={handleFormEvaluation}
+                    onExpandToggle={handleAnalyzerExpandToggle}
+                    isExpanded={isAnalyzerExpanded}
                   />
                 </div>
               </div>
