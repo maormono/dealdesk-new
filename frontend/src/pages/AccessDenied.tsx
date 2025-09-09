@@ -6,7 +6,7 @@ const MONOGOTO_OS_URL = import.meta.env.VITE_MONOGOTO_OS_URL || 'https://monogot
 
 export function AccessDenied() {
   return (
-    <div className="min-h-screen bg-gray-50 pt-20 flex items-center justify-center px-4">
+    <div className="bg-gray-50 pt-20 flex-1 flex items-center justify-center px-4">
       <div className="max-w-md w-full text-center">
         <div className="mb-8">
           <div className="mx-auto w-24 h-24 bg-red-100 rounded-full flex items-center justify-center">

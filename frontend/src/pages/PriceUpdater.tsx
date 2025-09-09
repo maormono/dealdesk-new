@@ -165,7 +165,7 @@ export const PriceUpdater: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-20">
+    <div className="bg-gray-50 pt-20 flex-1">
       {/* Page Header */}
       <header className="bg-white/80 backdrop-blur-xl border-b border-gray-100 shadow-sm">
         <div className="px-8 py-6">

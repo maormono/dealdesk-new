@@ -20,7 +20,7 @@ function HomePage() {
   const [currency, setCurrency] = useState<'EUR' | 'USD'>('USD');
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-20">
+    <div className="bg-gray-50 pt-20 flex-1">
       {/* Main Content */}
       <main className="px-4 sm:px-6 lg:px-8 py-8">
         <div className={showAIAdvisor ? 'grid grid-cols-1 xl:grid-cols-4 gap-6' : ''}>
@@ -40,19 +40,6 @@ function HomePage() {
           )}
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="mt-auto py-6 px-4 border-t border-gray-200 bg-white">
-        <div className="max-w-7xl mx-auto text-center text-sm text-gray-500">
-          <div className="flex items-center justify-center space-x-4">
-            <p>© 2025 Monogoto - DealDesk Platform</p>
-            <div className="flex items-center space-x-2">
-              <FileSpreadsheet className="w-4 h-4" />
-              <span>MVP v1.0</span>
-            </div>
-          </div>
-        </div>
-      </footer>
       
       {/* Floating AI Advisor Button - Intercom Style */}
       <div className="fixed bottom-6 right-6 z-50">
@@ -96,12 +83,25 @@ function HomePage() {
 
 function ProtectedLayout({ children }: { children: React.ReactNode }) {
   return (
-    <>
+    <div className="min-h-screen flex flex-col">
       {/* Fixed Navigation Header */}
       <NavigationHeader />
       {/* Page Content */}
       {children}
-    </>
+      
+      {/* Sticky Footer */}
+      <footer className="mt-auto py-3 px-4 border-t border-gray-200 bg-white">
+        <div className="max-w-7xl mx-auto text-center text-xs text-gray-500">
+          <div className="flex items-center justify-center space-x-4">
+            <p>© 2025 Monogoto - DealDesk Platform</p>
+            <div className="flex items-center space-x-2">
+              <FileSpreadsheet className="w-4 h-4" />
+              <span>MVP v1.0</span>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </div>
   );
 }
 
