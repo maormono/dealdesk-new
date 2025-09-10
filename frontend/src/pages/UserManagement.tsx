@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useUser } from '../contexts/UserContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -9,14 +9,10 @@ import {
   Shield, 
   DollarSign, 
   UserX, 
-  ChevronLeft,
   AlertCircle,
   CheckCircle,
-  Mail,
-  Calendar,
   Activity,
   Edit2,
-  Trash2,
   Save,
   X
 } from 'lucide-react';
@@ -353,31 +349,68 @@ export function UserManagement() {
   }
 
   return (
-    <div className="bg-gray-50 pt-20 flex-1">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Link 
-                to="/"
-                className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                <ChevronLeft className="w-5 h-5 mr-1" />
-                Back to Dashboard
-              </Link>
-              <div className="h-6 w-px bg-gray-300" />
-              <div className="flex items-center space-x-2">
-                <Users className="w-6 h-6 text-purple-600" />
-                <h1 className="text-2xl font-semibold text-gray-900">User Management</h1>
+    <div className="p-6">
+      {/* Statistics Cards */}
+      {stats && (
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Total Users</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.total_users}</p>
               </div>
+              <Users className="w-8 h-8 text-gray-400" />
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Admins</p>
+                <p className="text-2xl font-bold text-purple-600">{stats.admin_count}</p>
+              </div>
+              <Shield className="w-8 h-8 text-purple-400" />
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Sales</p>
+                <p className="text-2xl font-bold text-blue-600">{stats.sales_count}</p>
+              </div>
+              <DollarSign className="w-8 h-8 text-blue-400" />
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Viewers</p>
+                <p className="text-2xl font-bold text-gray-600">{stats.viewer_count}</p>
+              </div>
+              <Users className="w-8 h-8 text-gray-400" />
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Active (7d)</p>
+                <p className="text-2xl font-bold text-green-600">{stats.users_last_7_days}</p>
+              </div>
+              <Activity className="w-8 h-8 text-green-400" />
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Active (30d)</p>
+                <p className="text-2xl font-bold text-green-600">{stats.users_last_30_days}</p>
+              </div>
+              <Activity className="w-8 h-8 text-green-400" />
             </div>
           </div>
         </div>
-      </header>
+      )}
 
-      {/* Main Content */}
-      <main className="px-4 sm:px-6 lg:px-8 py-8">
+      <main>
         {/* Message Alert */}
         {message && (
           <div className={`mb-6 p-4 rounded-lg flex items-center space-x-2 ${
@@ -391,66 +424,6 @@ export function UserManagement() {
               <AlertCircle className="w-5 h-5" />
             )}
             <span>{message.text}</span>
-          </div>
-        )}
-
-        {/* Statistics Cards */}
-        {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Total Users</p>
-                  <p className="text-2xl font-bold text-gray-900">{stats.total_users}</p>
-                </div>
-                <Users className="w-8 h-8 text-gray-400" />
-              </div>
-            </div>
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Admins</p>
-                  <p className="text-2xl font-bold text-purple-600">{stats.admin_count}</p>
-                </div>
-                <Shield className="w-8 h-8 text-purple-400" />
-              </div>
-            </div>
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Sales</p>
-                  <p className="text-2xl font-bold text-blue-600">{stats.sales_count}</p>
-                </div>
-                <DollarSign className="w-8 h-8 text-blue-400" />
-              </div>
-            </div>
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Viewers</p>
-                  <p className="text-2xl font-bold text-gray-600">{stats.viewer_count}</p>
-                </div>
-                <Users className="w-8 h-8 text-gray-400" />
-              </div>
-            </div>
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Active (7d)</p>
-                  <p className="text-2xl font-bold text-green-600">{stats.users_last_7_days}</p>
-                </div>
-                <Activity className="w-8 h-8 text-green-400" />
-              </div>
-            </div>
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Active (30d)</p>
-                  <p className="text-2xl font-bold text-green-600">{stats.users_last_30_days}</p>
-                </div>
-                <Activity className="w-8 h-8 text-green-400" />
-              </div>
-            </div>
           </div>
         )}
 
