@@ -306,7 +306,7 @@ The system handles three distinct Excel formats:
 - Environment variables properly configured for production deployment
 
 ### Deployment
-- Changes successfully pushed to GitHub repository: `https://github.com/maormono/dealdesk`
+- Changes successfully pushed to GitHub repository: `https://github.com/maormono/dealdesk-new`
 - Netlify auto-deployment configured for production: `https://deal-desk.netlify.app/`
 - All environment variables configured for Supabase integration
 

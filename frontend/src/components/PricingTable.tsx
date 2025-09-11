@@ -79,13 +79,15 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
   const [showHiddenNetworks, setShowHiddenNetworks] = useState(false);
   
   // Search and sort state
+  const [networkSearch, setNetworkSearch] = useState('');
   const [countrySearch, setCountrySearch] = useState('');
   const [tadigSearch, setTagidSearch] = useState('');
   const [sourceSearch, setSourceSearch] = useState('');
-  const [sortField, setSortField] = useState<'network' | null>(null);
+  const [sortField, setSortField] = useState<'network' | 'country' | 'tadig' | 'source' | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   
   // Search box visibility state
+  const [showNetworkSearch, setShowNetworkSearch] = useState(false);
   const [showCountrySearch, setShowCountrySearch] = useState(false);
   const [showTagidSearch, setShowTagidSearch] = useState(false);
   const [showSourceSearch, setShowSourceSearch] = useState(false);
@@ -361,7 +363,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
     }
   };
 
-  const handleSort = (field: 'network') => {
+  const handleSort = (field: 'network' | 'country' | 'tadig' | 'source') => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
@@ -370,23 +372,33 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
     }
   };
 
-  const toggleSearchBox = (field: 'country' | 'tadig' | 'source') => {
-    if (field === 'country') {
+  const toggleSearchBox = (field: 'network' | 'country' | 'tadig' | 'source') => {
+    if (field === 'network') {
+      setShowNetworkSearch(!showNetworkSearch);
+      if (!showNetworkSearch) {
+        // Hide other search boxes when opening one
+        setShowCountrySearch(false);
+        setShowTagidSearch(false);
+        setShowSourceSearch(false);
+      }
+    } else if (field === 'country') {
       setShowCountrySearch(!showCountrySearch);
       if (!showCountrySearch) {
-        // Hide other search boxes when opening one
+        setShowNetworkSearch(false);
         setShowTagidSearch(false);
         setShowSourceSearch(false);
       }
     } else if (field === 'tadig') {
       setShowTagidSearch(!showTagidSearch);
       if (!showTagidSearch) {
+        setShowNetworkSearch(false);
         setShowCountrySearch(false);
         setShowSourceSearch(false);
       }
     } else if (field === 'source') {
       setShowSourceSearch(!showSourceSearch);
       if (!showSourceSearch) {
+        setShowNetworkSearch(false);
         setShowCountrySearch(false);
         setShowTagidSearch(false);
       }
@@ -436,6 +448,10 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
     }
     
     // Apply column-specific search filters
+    if (networkSearch && !network.network_name.toLowerCase().includes(networkSearch.toLowerCase().trim())) {
+      return false;
+    }
+    
     if (countrySearch && !network.country.toLowerCase().includes(countrySearch.toLowerCase().trim())) {
       return false;
     }
@@ -481,6 +497,19 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
   const sortedNetworks = [...groupedNetworks].sort((a, b) => {
     if (sortField === 'network') {
       const comparison = a.network_name.localeCompare(b.network_name);
+      return sortDirection === 'asc' ? comparison : -comparison;
+    } else if (sortField === 'country') {
+      const comparison = a.country.localeCompare(b.country);
+      return sortDirection === 'asc' ? comparison : -comparison;
+    } else if (sortField === 'tadig') {
+      // Sort by first TADIG code
+      const comparison = a.tadigs[0]?.localeCompare(b.tadigs[0] || '') || 0;
+      return sortDirection === 'asc' ? comparison : -comparison;
+    } else if (sortField === 'source') {
+      // Sort by first source operator
+      const aSource = a.sources[0]?.operator || '';
+      const bSource = b.sources[0]?.operator || '';
+      const comparison = aSource.localeCompare(bSource);
       return sortDirection === 'asc' ? comparison : -comparison;
     }
     return 0;
@@ -744,10 +773,11 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
           </div>
       
           {/* Active filter indicator */}
-          {(searchTerm || countrySearch || tadigSearch || sourceSearch || selectedOperators.size > 0) && (
+          {(searchTerm || networkSearch || countrySearch || tadigSearch || sourceSearch || selectedOperators.size > 0) && (
             <div className="mt-3 flex items-center gap-2 text-sm text-gray-500">
               <span>Active filters: 
                 {searchTerm && <strong className="text-gray-700 ml-1">General: "{searchTerm}"</strong>}
+                {networkSearch && <strong className="text-gray-700 ml-1">Network: "{networkSearch}"</strong>}
                 {countrySearch && <strong className="text-gray-700 ml-1">Country: "{countrySearch}"</strong>}
                 {tadigSearch && <strong className="text-gray-700 ml-1">TADIG: "{tadigSearch}"</strong>}
                 {sourceSearch && <strong className="text-gray-700 ml-1">Source: "{sourceSearch}"</strong>}
@@ -756,11 +786,13 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
               <button
                 onClick={() => {
                   setSearchTerm('');
+                  setNetworkSearch('');
                   setCountrySearch('');
                   setTagidSearch('');
                   setSourceSearch('');
                   setSelectedOperators(new Set());
                   // Hide all search boxes
+                  setShowNetworkSearch(false);
                   setShowCountrySearch(false);
                   setShowTagidSearch(false);
                   setShowSourceSearch(false);
@@ -777,17 +809,17 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
       {/* Table - Apple Style */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto max-h-96 overflow-y-auto">
-          <table className="w-full table-fixed">
+          <table className="w-full min-w-[1200px]">
           <colgroup>
-            <col className="w-[20%]" /> {/* Network */}
-            <col className="w-[12%]" /> {/* Country */}
-            <col className="w-[8%]" /> {/* TADIG */}
-            <col className="w-[8%]" /> {/* Sources */}
-            <col className="w-[10%]" /> {/* Data */}
-            <col className="w-[8%]" /> {/* SMS */}
-            <col className="w-[8%]" /> {/* IMSI */}
-            <col className="w-[10%]" /> {/* IoT */}
-            <col className="w-[16%]" /> {/* Notes */}
+            <col className="w-[240px]" /> {/* Network */}
+            <col className="w-[140px]" /> {/* Country */}
+            <col className="w-[100px]" /> {/* TADIG */}
+            <col className="w-[100px]" /> {/* Sources */}
+            <col className="w-[120px]" /> {/* Data */}
+            <col className="w-[100px]" /> {/* SMS */}
+            <col className="w-[100px]" /> {/* IMSI */}
+            <col className="w-[120px]" /> {/* IoT */}
+            <col /> {/* Notes - flexible width takes remaining space */}
           </colgroup>
             <thead className="bg-gradient-to-b from-gray-50 to-white sticky top-0 z-10">
             <tr>
@@ -807,11 +839,41 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
                       <ArrowUpDown className="w-3 h-3 text-gray-400" />
                     )}
                   </button>
+                  <button
+                    onClick={() => toggleSearchBox('network')}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 rounded"
+                    title="Search networks"
+                  >
+                    <Search className="w-3 h-3 text-gray-400" />
+                  </button>
                 </div>
+                {showNetworkSearch && (
+                  <input
+                    type="text"
+                    placeholder="Search networks..."
+                    value={networkSearch}
+                    onChange={(e) => setNetworkSearch(e.target.value)}
+                    className="mt-1 w-full px-2 py-1 text-xs bg-gray-50 border-0 rounded focus:outline-none focus:ring-1 focus:ring-blue-300 focus:bg-white placeholder-gray-400"
+                    autoFocus
+                  />
+                )}
               </th>
                 <th className="px-2 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-200">
                 <div className="flex items-center gap-1 group">
                   <span>Country</span>
+                  <button 
+                    onClick={() => handleSort('country')}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 rounded"
+                    title="Sort countries"
+                  >
+                    {sortField === 'country' ? (
+                      sortDirection === 'asc' ? 
+                      <ArrowUp className="w-3 h-3 text-gray-500" /> : 
+                      <ArrowDown className="w-3 h-3 text-gray-500" />
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 text-gray-400" />
+                    )}
+                  </button>
                   <button
                     onClick={() => toggleSearchBox('country')}
                     className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 rounded"
@@ -834,6 +896,19 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
                 <th className="px-2 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-200">
                 <div className="flex items-center gap-1 group">
                   <span>TADIG</span>
+                  <button 
+                    onClick={() => handleSort('tadig')}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 rounded"
+                    title="Sort TADIG codes"
+                  >
+                    {sortField === 'tadig' ? (
+                      sortDirection === 'asc' ? 
+                      <ArrowUp className="w-3 h-3 text-gray-500" /> : 
+                      <ArrowDown className="w-3 h-3 text-gray-500" />
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 text-gray-400" />
+                    )}
+                  </button>
                   <button
                     onClick={() => toggleSearchBox('tadig')}
                     className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 rounded"
@@ -856,6 +931,19 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
                 <th className="px-2 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-200">
                 <div className="flex items-center gap-1 group">
                   <span>Sources</span>
+                  <button 
+                    onClick={() => handleSort('source')}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 rounded"
+                    title="Sort sources"
+                  >
+                    {sortField === 'source' ? (
+                      sortDirection === 'asc' ? 
+                      <ArrowUp className="w-3 h-3 text-gray-500" /> : 
+                      <ArrowDown className="w-3 h-3 text-gray-500" />
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 text-gray-400" />
+                    )}
+                  </button>
                   <button
                     onClick={() => toggleSearchBox('source')}
                     className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 rounded"
@@ -989,7 +1077,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
                           if (source.nb_iot) technologies.push('NB-IoT');
                           
                           return (
-                            <div key={i} className={`text-xs ${config?.color || 'text-gray-600'}`}>
+                            <div key={i} className={`text-xs whitespace-nowrap ${config?.color || 'text-gray-600'}`}>
                               {technologies.length > 0 ? (
                                 <span className="font-medium">{technologies.join(', ')}</span>
                               ) : (
@@ -1005,7 +1093,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
                         {network.sources.map((source, i) => {
                           const config = operatorConfig[source.operator as keyof typeof operatorConfig];
                           return (
-                            <div key={i} className={`text-xs ${config?.color || 'text-gray-600'}`}>
+                            <div key={i} className={`text-xs whitespace-nowrap ${config?.color || 'text-gray-600'}`}>
                               {source.notes && 
                                 source.notes !== 'X' && 
                                 source.notes !== 'XX' && 
