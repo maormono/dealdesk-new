@@ -85,6 +85,11 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
   const [sortField, setSortField] = useState<'network' | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   
+  // Search box visibility state
+  const [showCountrySearch, setShowCountrySearch] = useState(false);
+  const [showTagidSearch, setShowTagidSearch] = useState(false);
+  const [showSourceSearch, setShowSourceSearch] = useState(false);
+  
   // Price threshold: $1/MB = approximately €0.90/MB at 1.1 exchange rate
   const MAX_REASONABLE_PRICE_EUR_MB = 0.90;
 
@@ -362,6 +367,29 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
     } else {
       setSortField(field);
       setSortDirection('asc');
+    }
+  };
+
+  const toggleSearchBox = (field: 'country' | 'tadig' | 'source') => {
+    if (field === 'country') {
+      setShowCountrySearch(!showCountrySearch);
+      if (!showCountrySearch) {
+        // Hide other search boxes when opening one
+        setShowTagidSearch(false);
+        setShowSourceSearch(false);
+      }
+    } else if (field === 'tadig') {
+      setShowTagidSearch(!showTagidSearch);
+      if (!showTagidSearch) {
+        setShowCountrySearch(false);
+        setShowSourceSearch(false);
+      }
+    } else if (field === 'source') {
+      setShowSourceSearch(!showSourceSearch);
+      if (!showSourceSearch) {
+        setShowCountrySearch(false);
+        setShowTagidSearch(false);
+      }
     }
   };
 
@@ -732,6 +760,10 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
                   setTagidSearch('');
                   setSourceSearch('');
                   setSelectedOperators(new Set());
+                  // Hide all search boxes
+                  setShowCountrySearch(false);
+                  setShowTagidSearch(false);
+                  setShowSourceSearch(false);
                 }}
                 className="text-[#5B9BD5] hover:text-[#5B9BD5]/80 font-medium"
               >
@@ -780,47 +812,68 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
                 <th className="px-2 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-200">
                 <div className="flex items-center gap-1 group">
                   <span>Country</span>
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={() => toggleSearchBox('country')}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 rounded"
+                    title="Search countries"
+                  >
                     <Search className="w-3 h-3 text-gray-400" />
-                  </div>
+                  </button>
                 </div>
-                <input
-                  type="text"
-                  placeholder="Search countries..."
-                  value={countrySearch}
-                  onChange={(e) => setCountrySearch(e.target.value)}
-                  className="mt-1 w-full px-2 py-1 text-xs bg-gray-50 border-0 rounded focus:outline-none focus:ring-1 focus:ring-blue-300 focus:bg-white placeholder-gray-400"
-                />
+                {showCountrySearch && (
+                  <input
+                    type="text"
+                    placeholder="Search countries..."
+                    value={countrySearch}
+                    onChange={(e) => setCountrySearch(e.target.value)}
+                    className="mt-1 w-full px-2 py-1 text-xs bg-gray-50 border-0 rounded focus:outline-none focus:ring-1 focus:ring-blue-300 focus:bg-white placeholder-gray-400"
+                    autoFocus
+                  />
+                )}
               </th>
                 <th className="px-2 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-200">
                 <div className="flex items-center gap-1 group">
                   <span>TADIG</span>
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={() => toggleSearchBox('tadig')}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 rounded"
+                    title="Search TADIG codes"
+                  >
                     <Search className="w-3 h-3 text-gray-400" />
-                  </div>
+                  </button>
                 </div>
-                <input
-                  type="text"
-                  placeholder="Search TADIG..."
-                  value={tadigSearch}
-                  onChange={(e) => setTagidSearch(e.target.value)}
-                  className="mt-1 w-full px-2 py-1 text-xs bg-gray-50 border-0 rounded focus:outline-none focus:ring-1 focus:ring-blue-300 focus:bg-white placeholder-gray-400"
-                />
+                {showTagidSearch && (
+                  <input
+                    type="text"
+                    placeholder="Search TADIG..."
+                    value={tadigSearch}
+                    onChange={(e) => setTagidSearch(e.target.value)}
+                    className="mt-1 w-full px-2 py-1 text-xs bg-gray-50 border-0 rounded focus:outline-none focus:ring-1 focus:ring-blue-300 focus:bg-white placeholder-gray-400"
+                    autoFocus
+                  />
+                )}
               </th>
                 <th className="px-2 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-200">
                 <div className="flex items-center gap-1 group">
                   <span>Sources</span>
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={() => toggleSearchBox('source')}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 rounded"
+                    title="Search sources"
+                  >
                     <Search className="w-3 h-3 text-gray-400" />
-                  </div>
+                  </button>
                 </div>
-                <input
-                  type="text"
-                  placeholder="Search sources..."
-                  value={sourceSearch}
-                  onChange={(e) => setSourceSearch(e.target.value)}
-                  className="mt-1 w-full px-2 py-1 text-xs bg-gray-50 border-0 rounded focus:outline-none focus:ring-1 focus:ring-blue-300 focus:bg-white placeholder-gray-400"
-                />
+                {showSourceSearch && (
+                  <input
+                    type="text"
+                    placeholder="Search sources..."
+                    value={sourceSearch}
+                    onChange={(e) => setSourceSearch(e.target.value)}
+                    className="mt-1 w-full px-2 py-1 text-xs bg-gray-50 border-0 rounded focus:outline-none focus:ring-1 focus:ring-blue-300 focus:bg-white placeholder-gray-400"
+                    autoFocus
+                  />
+                )}
               </th>
                 <th className="px-2 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-200">
                 <div className="flex items-center gap-1">
