@@ -8,7 +8,7 @@ import { DealRules } from '../components/admin/DealRules';
 import { UserManagement } from './UserManagement';
 import { TestWeightedPricing } from '../components/TestWeightedPricing';
 
-type AdminSection = 'users' | 'rules' | 'operators' | 'security' | 'test' | 'system';
+type AdminSection = 'users' | 'rules' | 'security' | 'test' | 'system';
 
 export const Admin: React.FC = () => {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -68,13 +68,6 @@ export const Admin: React.FC = () => {
         return <DealRules />;
       case 'test':
         return <TestWeightedPricing />;
-      case 'operators':
-        return (
-          <div className="p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Operator Configuration</h3>
-            <p className="text-gray-500">Operator pricing and configuration coming soon...</p>
-          </div>
-        );
       case 'security':
         return (
           <div className="p-6">
@@ -104,11 +97,6 @@ export const Admin: React.FC = () => {
       id: 'rules' as AdminSection,
       label: 'Deal Rules',
       icon: DollarSign
-    },
-    {
-      id: 'operators' as AdminSection,
-      label: 'Operators',
-      icon: Database
     },
     {
       id: 'security' as AdminSection,
