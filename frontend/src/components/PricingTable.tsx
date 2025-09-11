@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { NotesDisplay } from './NotesDisplay';
 import { supabase } from '../lib/supabase';
 import { useUser } from '../contexts/UserContext';
 import { ChevronDown, ChevronUp, Wifi, Smartphone, Globe, DollarSign, Euro, Lock, Download, Eye, EyeOff, Filter } from 'lucide-react';
@@ -725,85 +724,66 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
           </colgroup>
             <thead className="bg-gradient-to-b from-gray-50 to-white sticky top-0 z-10">
             <tr>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                <th className="px-2 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
                 Network
               </th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                <th className="px-2 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
                 Country
               </th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                <th className="px-2 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
                 TADIG
               </th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                <th className="px-2 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
                 Sources
               </th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                <th className="px-2 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
                 <div className="flex items-center gap-1">
                   <span>Data</span>
                   {isSales && <Lock className="w-3 h-3 text-blue-500" />}
                 </div>
               </th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                <th className="px-2 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
                 <div className="flex items-center gap-1">
                   <span>SMS</span>
                   {isSales && <Lock className="w-3 h-3 text-blue-500" />}
                 </div>
               </th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                <th className="px-2 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
                 <div className="flex items-center gap-1">
                   <span>IMSI</span>
                   {isSales && <Lock className="w-3 h-3 text-blue-500" />}
                 </div>
               </th>
-                <th className="px-4 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                <th className="px-2 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
                 IoT
               </th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                <th className="px-2 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
                 Notes
               </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
             {groupedNetworks.map((network, index) => {
-              const isExpanded = expandedRows.has(index);
-              const hasMultipleTadigs = network.tadigs.length > 1;
-              const hasNotes = network.sources.some(s => s.notes);
-              const needsExpansion = hasMultipleTadigs || hasNotes;
 
               return (
                 <React.Fragment key={index}>
                   <tr className="hover:bg-gray-50/50 border-b border-gray-50 transition-colors">
                     <td className="px-2 py-2">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="font-medium text-gray-900 text-sm" title={network.network_name}>
-                            {network.network_name}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {network.sources.length} source{network.sources.length !== 1 ? 's' : ''}
-                          </div>
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900 text-sm" title={network.network_name}>
+                          {network.network_name}
                         </div>
-                        {needsExpansion && (
-                          <button
-                            onClick={() => toggleRowExpansion(index)}
-                            className="ml-1 p-0.5 hover:bg-gray-200 rounded transition-colors"
-                          >
-                            {isExpanded ? (
-                              <ChevronUp className="w-3.5 h-3.5 text-gray-500" />
-                            ) : (
-                              <ChevronDown className="w-3.5 h-3.5 text-gray-500" />
-                            )}
-                          </button>
-                        )}
+                        <div className="text-xs text-gray-500">
+                          {network.sources.length} source{network.sources.length !== 1 ? 's' : ''}
+                        </div>
                       </div>
                     </td>
                     <td className="px-2 py-2 text-gray-700 text-sm">{network.country}</td>
                     <td className="px-2 py-2">
-                      <div className="font-mono text-xs">
-                        <span className="font-semibold">{network.tadigs[0]}</span>
-                        {hasMultipleTadigs && !isExpanded && (
-                          <span className="text-gray-500"> +{network.tadigs.length - 1}</span>
-                        )}
+                      <div className="font-mono text-xs space-y-0.5">
+                        {network.tadigs.map((tadig, i) => (
+                          <div key={i} className="font-semibold">{tadig}</div>
+                        ))}
                       </div>
                     </td>
                     <td className="px-2 py-2">
@@ -823,37 +803,43 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
                       </div>
                     </td>
                     <td className="px-2 py-2">
-                      {network.sources.map((source, i) => {
-                        const config = operatorConfig[source.operator as keyof typeof operatorConfig];
-                        const formatted = formatDataPrice(source.data_cost || 0);
-                        return formatted ? (
-                          <div key={i} className={`text-xs ${config?.color || 'text-gray-600'}`}>
-                            {formatted}
-                          </div>
-                        ) : null;
-                      }).filter(Boolean)}
+                      <div className="space-y-0.5">
+                        {network.sources.map((source, i) => {
+                          const config = operatorConfig[source.operator as keyof typeof operatorConfig];
+                          const formatted = formatDataPrice(source.data_cost || 0);
+                          return (
+                            <div key={i} className={`text-xs ${config?.color || 'text-gray-600'}`}>
+                              {formatted}
+                            </div>
+                          );
+                        })}
+                      </div>
                     </td>
                     <td className="px-2 py-2">
-                      {network.sources.map((source, i) => {
-                        const config = operatorConfig[source.operator as keyof typeof operatorConfig];
-                        const formatted = formatCurrency(source.sms_cost || 0);
-                        return formatted ? (
-                          <div key={i} className={`text-xs ${config?.color || 'text-gray-600'}`}>
-                            {formatted}
-                          </div>
-                        ) : null;
-                      }).filter(Boolean)}
+                      <div className="space-y-0.5">
+                        {network.sources.map((source, i) => {
+                          const config = operatorConfig[source.operator as keyof typeof operatorConfig];
+                          const formatted = formatCurrency(source.sms_cost || 0);
+                          return (
+                            <div key={i} className={`text-xs ${config?.color || 'text-gray-600'}`}>
+                              {formatted}
+                            </div>
+                          );
+                        })}
+                      </div>
                     </td>
                     <td className="px-2 py-2">
-                      {network.sources.map((source, i) => {
-                        const config = operatorConfig[source.operator as keyof typeof operatorConfig];
-                        const formatted = formatCurrency(source.imsi_cost || 0);
-                        return formatted ? (
-                          <div key={i} className={`text-xs ${config?.color || 'text-gray-600'}`}>
-                            {formatted}
-                          </div>
-                        ) : null;
-                      }).filter(Boolean)}
+                      <div className="space-y-0.5">
+                        {network.sources.map((source, i) => {
+                          const config = operatorConfig[source.operator as keyof typeof operatorConfig];
+                          const formatted = formatCurrency(source.imsi_cost || 0);
+                          return (
+                            <div key={i} className={`text-xs ${config?.color || 'text-gray-600'}`}>
+                              {formatted}
+                            </div>
+                          );
+                        })}
+                      </div>
                     </td>
                     <td className="px-2 py-2">
                       <div className="space-y-0.5">
@@ -863,78 +849,29 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
                           if (source.lte_m) technologies.push('CAT-M');
                           if (source.nb_iot) technologies.push('NB-IoT');
                           
-                          if (technologies.length === 0) return null;
-                          
                           return (
-                            <div
-                              key={i}
-                              className={`text-xs font-medium ${config?.color || 'text-gray-600'}`}
-                            >
-                              {technologies.join(', ')}
+                            <div key={i} className={`text-xs ${config?.color || 'text-gray-600'}`}>
+                              {technologies.length > 0 && (
+                                <span className="font-medium">{technologies.join(', ')}</span>
+                              )}
                             </div>
                           );
-                        }).filter(Boolean)}
-                        {network.sources.every(s => !s.lte_m && !s.nb_iot) && (
-                          <span className="text-gray-300 text-xs">—</span>
-                        )}
+                        })}
                       </div>
                     </td>
                     <td className="px-2 py-2">
-                      {!isExpanded && hasNotes ? (
-                        <div className="truncate">
-                          <NotesDisplay 
-                            notes={network.sources.find(s => s.notes)?.notes}
-                            operator={network.sources.find(s => s.notes)?.operator || ''}
-                          />
-                        </div>
-                      ) : (
-                        <div className="space-y-1">
-                          {network.sources.filter(s => s.notes).map((source, i) => (
-                            <NotesDisplay 
-                              key={i}
-                              notes={source.notes}
-                              operator={source.operator}
-                            />
-                          ))}
-                        </div>
-                      )}
+                      <div className="space-y-0.5">
+                        {network.sources.map((source, i) => {
+                          const config = operatorConfig[source.operator as keyof typeof operatorConfig];
+                          return (
+                            <div key={i} className={`text-xs ${config?.color || 'text-gray-600'}`}>
+                              {source.notes && <span>{source.notes}</span>}
+                            </div>
+                          );
+                        })}
+                      </div>
                     </td>
                   </tr>
-                  {isExpanded && needsExpansion && (
-                    <tr className="bg-gray-50">
-                      <td colSpan={9} className="px-4 py-3">
-                        <div className="space-y-2">
-                          {hasMultipleTadigs && (
-                            <div>
-                              <span className="text-xs font-semibold text-gray-600">All TADIGs:</span>
-                              <div className="mt-1 flex flex-wrap gap-1">
-                                {network.tadigs.map((tadig, i) => (
-                                  <span key={i} className="inline-block px-2 py-0.5 bg-white border border-gray-300 rounded text-xs font-mono">
-                                    {tadig}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          {hasNotes && (
-                            <div>
-                              <span className="text-xs font-semibold text-gray-600">Notes & Restrictions:</span>
-                              <div className="mt-1 space-y-1">
-                                {network.sources.filter(s => s.notes).map((source, i) => (
-                                  <div key={i} className="flex items-start gap-2">
-                                    <NotesDisplay 
-                                      notes={source.notes}
-                                      operator={source.operator}
-                                    />
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  )}
                 </React.Fragment>
               );
             })}

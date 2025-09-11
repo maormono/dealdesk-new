@@ -194,20 +194,10 @@ export function UserManagement() {
     if (!editForm) return;
 
     try {
-      // Determine permissions based on role
-      const permissions = {
-        can_see_costs: editForm.role === 'admin' || editForm.role === 'sales',
-        can_edit_pricing: editForm.role === 'admin',
-        can_export_data: editForm.role === 'admin' || editForm.role === 'sales'
-      };
-
       const { error } = await supabase.rpc('update_user_role', {
         target_user_id: userId,
         new_role: editForm.role,
-        new_can_see_costs: permissions.can_see_costs,
-        new_can_edit_pricing: permissions.can_edit_pricing,
-        new_can_export_data: permissions.can_export_data,
-        new_markup_percentage: editForm.markup
+        new_markup: editForm.markup
       });
 
       if (error) throw error;
@@ -226,7 +216,7 @@ export function UserManagement() {
     if (!confirm('Are you sure you want to deactivate this user?')) return;
 
     try {
-      const { error } = await supabase.rpc('delete_user_profile', {
+      const { error } = await supabase.rpc('deactivate_user', {
         target_user_id: userId
       });
 
