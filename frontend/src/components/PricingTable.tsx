@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useUser } from '../contexts/UserContext';
-import { ChevronDown, ChevronUp, Wifi, Smartphone, Globe, DollarSign, Euro, Lock, Download, Eye, EyeOff, Filter } from 'lucide-react';
+import { Wifi, Smartphone, Globe, DollarSign, Euro, Lock, Download, Eye, EyeOff, Filter, Search, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import '../styles/monogoto-theme.css';
 
 interface NetworkData {
@@ -67,7 +67,7 @@ interface PricingTableProps {
 }
 
 export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurrency, onCurrencyChange }) => {
-  const { userRole, getPriceLabel, formatPrice: formatRolePrice, isSales } = useUser();
+  const { isSales } = useUser();
   const [networks, setNetworks] = useState<NetworkData[]>([]);
   const [allNetworks, setAllNetworks] = useState<NetworkData[]>([]); // Store all networks including hidden ones
   const [loading, setLoading] = useState(true);
@@ -75,9 +75,15 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
   const [currency, setCurrency] = useState<'EUR' | 'USD'>(propCurrency || 'USD');
   const [dataUnit, setDataUnit] = useState<'MB' | 'GB'>('MB');
   const [exchangeRate, setExchangeRate] = useState(1.1); // Default EUR to USD rate
-  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const [selectedOperators, setSelectedOperators] = useState<Set<string>>(new Set());
   const [showHiddenNetworks, setShowHiddenNetworks] = useState(false);
+  
+  // Search and sort state
+  const [countrySearch, setCountrySearch] = useState('');
+  const [tadigSearch, setTagidSearch] = useState('');
+  const [sourceSearch, setSourceSearch] = useState('');
+  const [sortField, setSortField] = useState<'network' | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   
   // Price threshold: $1/MB = approximately €0.90/MB at 1.1 exchange rate
   const MAX_REASONABLE_PRICE_EUR_MB = 0.90;
@@ -250,7 +256,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
             return;
           }
         }
-        } catch (backendError) {
+        } catch {
           console.log('Backend API not available, falling back to Supabase');
         }
       }
@@ -350,6 +356,15 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
     }
   };
 
+  const handleSort = (field: 'network') => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
   const groupNetworks = (networks: NetworkData[]): GroupedNetwork[] => {
     const grouped: Record<string, GroupedNetwork> = {};
 
@@ -392,6 +407,20 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
       return false;
     }
     
+    // Apply column-specific search filters
+    if (countrySearch && !network.country.toLowerCase().includes(countrySearch.toLowerCase().trim())) {
+      return false;
+    }
+    
+    if (tadigSearch && !network.tadig.toLowerCase().includes(tadigSearch.toLowerCase().trim())) {
+      return false;
+    }
+    
+    if (sourceSearch && !network.operator.toLowerCase().includes(sourceSearch.toLowerCase().trim())) {
+      return false;
+    }
+    
+    // Apply general search term (legacy search functionality)
     if (!searchTerm) return true;
     const search = searchTerm.toLowerCase().trim();
     
@@ -419,6 +448,15 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
   });
 
   const groupedNetworks = groupNetworks(filteredNetworks);
+  
+  // Apply sorting
+  const sortedNetworks = [...groupedNetworks].sort((a, b) => {
+    if (sortField === 'network') {
+      const comparison = a.network_name.localeCompare(b.network_name);
+      return sortDirection === 'asc' ? comparison : -comparison;
+    }
+    return 0;
+  });
   
   // Export functionality
   const exportToCSV = () => {
@@ -462,15 +500,6 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
     setSelectedOperators(newSelected);
   };
 
-  const toggleRowExpansion = (index: number) => {
-    const newExpanded = new Set(expandedRows);
-    if (newExpanded.has(index)) {
-      newExpanded.delete(index);
-    } else {
-      newExpanded.add(index);
-    }
-    setExpandedRows(newExpanded);
-  };
 
   if (loading) {
     return (
@@ -687,15 +716,21 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
           </div>
       
           {/* Active filter indicator */}
-          {(searchTerm || selectedOperators.size > 0) && (
+          {(searchTerm || countrySearch || tadigSearch || sourceSearch || selectedOperators.size > 0) && (
             <div className="mt-3 flex items-center gap-2 text-sm text-gray-500">
               <span>Active filters: 
-                {searchTerm && <strong className="text-gray-700 ml-1">"{searchTerm}"</strong>}
-                {selectedOperators.size > 0 && <strong className="text-gray-700 ml-1">{Array.from(selectedOperators).join(', ')}</strong>}
+                {searchTerm && <strong className="text-gray-700 ml-1">General: "{searchTerm}"</strong>}
+                {countrySearch && <strong className="text-gray-700 ml-1">Country: "{countrySearch}"</strong>}
+                {tadigSearch && <strong className="text-gray-700 ml-1">TADIG: "{tadigSearch}"</strong>}
+                {sourceSearch && <strong className="text-gray-700 ml-1">Source: "{sourceSearch}"</strong>}
+                {selectedOperators.size > 0 && <strong className="text-gray-700 ml-1">Operators: {Array.from(selectedOperators).join(', ')}</strong>}
               </span>
               <button
                 onClick={() => {
                   setSearchTerm('');
+                  setCountrySearch('');
+                  setTagidSearch('');
+                  setSourceSearch('');
                   setSelectedOperators(new Set());
                 }}
                 className="text-[#5B9BD5] hover:text-[#5B9BD5]/80 font-medium"
@@ -724,46 +759,97 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
           </colgroup>
             <thead className="bg-gradient-to-b from-gray-50 to-white sticky top-0 z-10">
             <tr>
-                <th className="px-2 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                Network
+                <th className="px-2 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-200">
+                <div className="flex items-center gap-1 group">
+                  <span>Network</span>
+                  <button 
+                    onClick={() => handleSort('network')}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 rounded"
+                    title="Sort networks"
+                  >
+                    {sortField === 'network' ? (
+                      sortDirection === 'asc' ? 
+                      <ArrowUp className="w-3 h-3 text-gray-500" /> : 
+                      <ArrowDown className="w-3 h-3 text-gray-500" />
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 text-gray-400" />
+                    )}
+                  </button>
+                </div>
               </th>
-                <th className="px-2 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                Country
+                <th className="px-2 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-200">
+                <div className="flex items-center gap-1 group">
+                  <span>Country</span>
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Search className="w-3 h-3 text-gray-400" />
+                  </div>
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search countries..."
+                  value={countrySearch}
+                  onChange={(e) => setCountrySearch(e.target.value)}
+                  className="mt-1 w-full px-2 py-1 text-xs bg-gray-50 border-0 rounded focus:outline-none focus:ring-1 focus:ring-blue-300 focus:bg-white placeholder-gray-400"
+                />
               </th>
-                <th className="px-2 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                TADIG
+                <th className="px-2 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-200">
+                <div className="flex items-center gap-1 group">
+                  <span>TADIG</span>
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Search className="w-3 h-3 text-gray-400" />
+                  </div>
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search TADIG..."
+                  value={tadigSearch}
+                  onChange={(e) => setTagidSearch(e.target.value)}
+                  className="mt-1 w-full px-2 py-1 text-xs bg-gray-50 border-0 rounded focus:outline-none focus:ring-1 focus:ring-blue-300 focus:bg-white placeholder-gray-400"
+                />
               </th>
-                <th className="px-2 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                Sources
+                <th className="px-2 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-200">
+                <div className="flex items-center gap-1 group">
+                  <span>Sources</span>
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Search className="w-3 h-3 text-gray-400" />
+                  </div>
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search sources..."
+                  value={sourceSearch}
+                  onChange={(e) => setSourceSearch(e.target.value)}
+                  className="mt-1 w-full px-2 py-1 text-xs bg-gray-50 border-0 rounded focus:outline-none focus:ring-1 focus:ring-blue-300 focus:bg-white placeholder-gray-400"
+                />
               </th>
-                <th className="px-2 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                <th className="px-2 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-200">
                 <div className="flex items-center gap-1">
                   <span>Data</span>
                   {isSales && <Lock className="w-3 h-3 text-blue-500" />}
                 </div>
               </th>
-                <th className="px-2 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                <th className="px-2 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-200">
                 <div className="flex items-center gap-1">
                   <span>SMS</span>
                   {isSales && <Lock className="w-3 h-3 text-blue-500" />}
                 </div>
               </th>
-                <th className="px-2 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                <th className="px-2 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-200">
                 <div className="flex items-center gap-1">
                   <span>IMSI</span>
                   {isSales && <Lock className="w-3 h-3 text-blue-500" />}
                 </div>
               </th>
-                <th className="px-2 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                <th className="px-2 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-200">
                 IoT
               </th>
-                <th className="px-2 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                <th className="px-2 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-200">
                 Notes
               </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {groupedNetworks.map((network, index) => {
+            {sortedNetworks.map((network, index) => {
 
               return (
                 <React.Fragment key={index}>
@@ -809,7 +895,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
                           const formatted = formatDataPrice(source.data_cost || 0);
                           return (
                             <div key={i} className={`text-xs ${config?.color || 'text-gray-600'}`}>
-                              {formatted}
+                              {formatted || <span className="text-gray-300">-</span>}
                             </div>
                           );
                         })}
@@ -822,7 +908,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
                           const formatted = formatCurrency(source.sms_cost || 0);
                           return (
                             <div key={i} className={`text-xs ${config?.color || 'text-gray-600'}`}>
-                              {formatted}
+                              {formatted || <span className="text-gray-300">-</span>}
                             </div>
                           );
                         })}
@@ -835,7 +921,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
                           const formatted = formatCurrency(source.imsi_cost || 0);
                           return (
                             <div key={i} className={`text-xs ${config?.color || 'text-gray-600'}`}>
-                              {formatted}
+                              {formatted || <span className="text-gray-300">-</span>}
                             </div>
                           );
                         })}
@@ -851,8 +937,10 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
                           
                           return (
                             <div key={i} className={`text-xs ${config?.color || 'text-gray-600'}`}>
-                              {technologies.length > 0 && (
+                              {technologies.length > 0 ? (
                                 <span className="font-medium">{technologies.join(', ')}</span>
+                              ) : (
+                                <span className="text-gray-300">-</span>
                               )}
                             </div>
                           );
@@ -865,7 +953,12 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
                           const config = operatorConfig[source.operator as keyof typeof operatorConfig];
                           return (
                             <div key={i} className={`text-xs ${config?.color || 'text-gray-600'}`}>
-                              {source.notes && <span>{source.notes}</span>}
+                              {source.notes && 
+                                source.notes !== 'X' && 
+                                source.notes !== 'XX' && 
+                                !(source.notes.toLowerCase().includes('access fee') && source.imsi_cost > 0) ? 
+                                <span>{source.notes}</span> : 
+                                <span className="text-gray-300">-</span>}
                             </div>
                           );
                         })}
