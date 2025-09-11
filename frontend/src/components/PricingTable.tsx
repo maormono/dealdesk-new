@@ -120,23 +120,24 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
     const converted = convertCurrency(adjustedValue);
     
     const decimals = dataUnit === 'GB' ? 2 : 4;
+    const symbol = currency === 'EUR' ? '€' : '$';
+    const unit = `/${dataUnit}`;
     
     if (includeSymbol) {
-      const symbol = currency === 'EUR' ? '€' : '$';
-      return `${symbol}${converted.toFixed(decimals)}`;
+      return `${symbol}${converted.toFixed(decimals)}${unit}`;
     }
-    return converted.toFixed(decimals);
+    return `${symbol}${converted.toFixed(decimals)}${unit}`;
   };
 
   const formatCurrency = (value: number, decimals: number = 2, includeSymbol: boolean = false): string => {
     if (value === 0 || value === null || value === undefined) return '';
     
     const converted = convertCurrency(value);
+    const symbol = currency === 'EUR' ? '€' : '$';
     if (includeSymbol) {
-      const symbol = currency === 'EUR' ? '€' : '$';
       return `${symbol}${converted.toFixed(decimals)}`;
     }
-    return converted.toFixed(decimals);
+    return `${symbol}${converted.toFixed(decimals)}`;
   };
 
   const loadNetworks = async () => {
@@ -738,19 +739,19 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
               </th>
                 <th className="px-4 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
                 <div className="flex items-center gap-1">
-                  <span>Data<br/>({currency}/{dataUnit})</span>
+                  <span>Data</span>
                   {isSales && <Lock className="w-3 h-3 text-blue-500" />}
                 </div>
               </th>
                 <th className="px-4 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
                 <div className="flex items-center gap-1">
-                  <span>SMS<br/>({currency})</span>
+                  <span>SMS</span>
                   {isSales && <Lock className="w-3 h-3 text-blue-500" />}
                 </div>
               </th>
                 <th className="px-4 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
                 <div className="flex items-center gap-1">
-                  <span>IMSI<br/>({currency})</span>
+                  <span>IMSI</span>
                   {isSales && <Lock className="w-3 h-3 text-blue-500" />}
                 </div>
               </th>
