@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Upload, LogOut, Calculator, Shield, Book, X, ArrowLeft, Database } from 'lucide-react';
+import { LogOut, Calculator, Shield, Book, X, ArrowLeft, Database } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useUser } from '../contexts/UserContext';
 import { NotesDictionary } from './NotesDisplay';
@@ -67,18 +67,6 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = () => {
               >
                 <Calculator className="w-4 h-4" />
                 <span>Deal Review</span>
-              </Link>
-              
-              <Link 
-                to="/price-updater"
-                className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg text-sm transition-all border whitespace-nowrap ${
-                  isActivePage('/price-updater')
-                    ? 'bg-slate-700 hover:bg-slate-800 text-white shadow-sm border-slate-700'
-                    : 'bg-gray-100 hover:bg-gray-200 text-gray-700 border-gray-200'
-                }`}
-              >
-                <Upload className="w-4 h-4" />
-                <span>Price Updater</span>
               </Link>
               
               {isAdmin && (

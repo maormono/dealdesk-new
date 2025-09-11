@@ -3,7 +3,6 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { PricingTable } from './components/PricingTable';
 import { AIAdvisor } from './components/AIAdvisor';
 import { NavigationHeader } from './components/NavigationHeader';
-import { PriceUpdater } from './pages/PriceUpdater';
 import { DealReviewTabs } from './pages/DealReviewTabs';
 import { UserManagement } from './pages/UserManagement';
 import { Admin } from './pages/Admin';
@@ -124,13 +123,6 @@ function App() {
                   </ProtectedLayout>
                 </ProtectedRoute>
               </AuthHandler>
-            } />
-            <Route path="/price-updater" element={
-              <ProtectedRoute>
-                <ProtectedLayout>
-                  <PriceUpdater />
-                </ProtectedLayout>
-              </ProtectedRoute>
             } />
             <Route path="/deal-review" element={
               <ProtectedRoute>
