@@ -711,10 +711,14 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
           </div>
           <div className="flex items-baseline space-x-2">
             <div className="text-xl font-semibold text-gray-900 tracking-tight">
-              {formatDataPrice(
-                filteredNetworks.reduce((sum, n) => sum + n.data_cost, 0) / Math.max(filteredNetworks.length, 1), 
-                true
-              )}
+              {(() => {
+                const avgPrice = filteredNetworks.reduce((sum, n) => sum + n.data_cost, 0) / Math.max(filteredNetworks.length, 1);
+                const adjustedValue = dataUnit === 'GB' ? avgPrice * 1024 : avgPrice;
+                const converted = convertCurrency(adjustedValue);
+                const decimals = dataUnit === 'GB' ? 2 : 4;
+                const symbol = currency === 'EUR' ? '€' : '$';
+                return `${symbol}${converted.toFixed(decimals)}`;
+              })()}
             </div>
             <div className="text-sm text-gray-500">per {dataUnit}</div>
           </div>

@@ -14,27 +14,47 @@ import { AuthProvider } from './contexts/AuthContext';
 import { UserProvider } from './contexts/UserContext';
 import { FileSpreadsheet, Bot, Sparkles } from 'lucide-react';
 
+type ExpandState = 'normal' | 'half' | 'full';
+
 function HomePage() {
   const [showAIAdvisor, setShowAIAdvisor] = useState(false);
+  const [aiAdvisorExpandState, setAIAdvisorExpandState] = useState<ExpandState>('normal');
   const [currency, setCurrency] = useState<'EUR' | 'USD'>('USD');
+
+  const handleAIAdvisorToggleExpand = () => {
+    setAIAdvisorExpandState(prev => {
+      switch (prev) {
+        case 'normal': return 'half';
+        case 'half': return 'full';
+        case 'full': return 'normal';
+        default: return 'normal';
+      }
+    });
+  };
 
   return (
     <div className="bg-gray-50 pt-20 flex-1">
       {/* Main Content */}
       <main className="px-4 sm:px-6 lg:px-8 py-8">
-        <div className={showAIAdvisor ? 'grid grid-cols-1 xl:grid-cols-4 gap-6' : ''}>
-          {/* Pricing Table - Full width when closed, 3/4 when open */}
-          <div className={showAIAdvisor ? 'xl:col-span-3' : 'w-full'}>
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-              <h2 className="text-xl font-semibold text-gray-900 tracking-tight mb-6">Network Pricing Database</h2>
-              <PricingTable currency={currency} onCurrencyChange={setCurrency} />
-            </div>
+        <div className={showAIAdvisor ? (aiAdvisorExpandState === 'half' ? 'grid grid-cols-1 xl:grid-cols-2 gap-6' : 'grid grid-cols-1 xl:grid-cols-4 gap-6') : ''}>
+          {/* Pricing Table - Full width when closed, 3/4 when normal, 1/2 when half expanded */}
+          <div className={showAIAdvisor ? (aiAdvisorExpandState === 'half' ? 'xl:col-span-1' : 'xl:col-span-3') : 'w-full'}>
+            {aiAdvisorExpandState !== 'full' && (
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                <h2 className="text-xl font-semibold text-gray-900 tracking-tight mb-6">Network Pricing Database</h2>
+                <PricingTable currency={currency} onCurrencyChange={setCurrency} />
+              </div>
+            )}
           </div>
           
           {/* AI Advisor Panel - Right side */}
           {showAIAdvisor && (
-            <div className="xl:col-span-1">
-              <AIAdvisor currency={currency} />
+            <div className={aiAdvisorExpandState === 'half' ? 'xl:col-span-1' : 'xl:col-span-1'}>
+              <AIAdvisor 
+                currency={currency} 
+                expandState={aiAdvisorExpandState}
+                onToggleExpand={handleAIAdvisorToggleExpand}
+              />
             </div>
           )}
         </div>

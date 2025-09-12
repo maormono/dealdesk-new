@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Send, Sparkles, Loader2, Bot } from 'lucide-react';
+import { Send, Sparkles, Loader2, Bot, Maximize2, Minimize2, Maximize } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface NetworkData {
@@ -29,11 +29,15 @@ interface QueryResult {
   suggestions?: string[];
 }
 
+type ExpandState = 'normal' | 'half' | 'full';
+
 interface AIAdvisorProps {
   currency?: 'EUR' | 'USD';
+  expandState?: ExpandState;
+  onToggleExpand?: () => void;
 }
 
-export const AIAdvisor: React.FC<AIAdvisorProps> = ({ currency = 'USD' }) => {
+export const AIAdvisor: React.FC<AIAdvisorProps> = ({ currency = 'USD', expandState = 'normal', onToggleExpand }) => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -408,18 +412,56 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ currency = 'USD' }) => {
     }
   };
 
+  const getHeightClass = () => {
+    switch (expandState) {
+      case 'normal': return 'h-[600px]';
+      case 'half': return 'h-[85vh] min-h-[700px]';
+      case 'full': return 'fixed inset-0 z-50';
+      default: return 'h-[600px]';
+    }
+  };
+
+  const getExpandIcon = () => {
+    switch (expandState) {
+      case 'normal': return <Maximize2 className="w-4 h-4" />;
+      case 'half': return <Maximize className="w-4 h-4" />;
+      case 'full': return <Minimize2 className="w-4 h-4" />;
+      default: return <Maximize2 className="w-4 h-4" />;
+    }
+  };
+
+  const getExpandTooltip = () => {
+    switch (expandState) {
+      case 'normal': return 'Expand to half width';
+      case 'half': return 'Expand to full screen';
+      case 'full': return 'Return to normal size';
+      default: return 'Expand';
+    }
+  };
+
   return (
-    <div className="flex flex-col h-[600px] bg-white rounded-lg shadow-sm border border-gray-200">
+    <div className={`flex flex-col ${getHeightClass()} bg-white rounded-lg shadow-sm border border-gray-200`}>
       {/* Header */}
       <div className="px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-pink-50 to-rose-50">
-        <div className="flex items-center space-x-2">
-          <div className="p-2 bg-gradient-to-br from-pink-500 to-rose-600 rounded-lg">
-            <Bot className="w-5 h-5 text-white" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <div className="p-2 bg-gradient-to-br from-pink-500 to-rose-600 rounded-lg">
+              <Bot className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900">AI Pricing Advisor</h3>
+              <p className="text-xs text-gray-500">Powered by Natural Language Analysis</p>
+            </div>
           </div>
-          <div>
-            <h3 className="font-semibold text-gray-900">AI Pricing Advisor</h3>
-            <p className="text-xs text-gray-500">Powered by Natural Language Analysis</p>
-          </div>
+          {onToggleExpand && (
+            <button
+              onClick={onToggleExpand}
+              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              title={getExpandTooltip()}
+            >
+              {getExpandIcon()}
+            </button>
+          )}
         </div>
       </div>
 

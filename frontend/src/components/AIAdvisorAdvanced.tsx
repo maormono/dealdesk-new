@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Sparkles, Loader2, Bot, Brain, TrendingUp, AlertCircle, Globe, Smartphone, DollarSign, Wifi, Network, Plus, X } from 'lucide-react';
+import { Send, Sparkles, Loader2, Bot, Brain, TrendingUp, AlertCircle, Globe, Smartphone, DollarSign, Wifi, Network, Plus, X, Maximize2, Minimize2, Maximize } from 'lucide-react';
 import { AIAdvisorService } from '../services/aiService';
 import { supabase } from '../lib/supabase';
 
@@ -28,7 +28,17 @@ interface DealQuery {
   queryText?: string;
 }
 
-export const AIAdvisorAdvanced: React.FC = () => {
+type ExpandState = 'normal' | 'half' | 'full';
+
+interface AIAdvisorAdvancedProps {
+  expandState?: ExpandState;
+  onToggleExpand?: () => void;
+}
+
+export const AIAdvisorAdvanced: React.FC<AIAdvisorAdvancedProps> = ({ 
+  expandState = 'normal',
+  onToggleExpand 
+}) => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -241,8 +251,35 @@ export const AIAdvisorAdvanced: React.FC = () => {
     );
   }
 
+  const getHeightClass = () => {
+    switch (expandState) {
+      case 'normal': return 'h-[85vh] min-h-[700px]';
+      case 'half': return 'h-[90vh] min-h-[800px]';
+      case 'full': return 'fixed inset-0 z-50';
+      default: return 'h-[85vh] min-h-[700px]';
+    }
+  };
+
+  const getExpandIcon = () => {
+    switch (expandState) {
+      case 'normal': return <Maximize2 className="w-4 h-4" />;
+      case 'half': return <Maximize className="w-4 h-4" />;
+      case 'full': return <Minimize2 className="w-4 h-4" />;
+      default: return <Maximize2 className="w-4 h-4" />;
+    }
+  };
+
+  const getExpandTooltip = () => {
+    switch (expandState) {
+      case 'normal': return 'Expand to larger size';
+      case 'half': return 'Expand to full screen';
+      case 'full': return 'Return to normal size';
+      default: return 'Expand';
+    }
+  };
+
   return (
-    <div className="flex flex-col h-[85vh] min-h-[700px] bg-white rounded-lg shadow-lg border border-gray-200">
+    <div className={`flex flex-col ${getHeightClass()} bg-white rounded-lg shadow-lg border border-gray-200`}>
       {/* Header */}
       <div className="px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-purple-600 to-blue-600">
         <div className="flex items-center justify-between">
@@ -261,6 +298,15 @@ export const AIAdvisorAdvanced: React.FC = () => {
           >
             {showStructuredInput ? 'Hide Form' : 'Show Form'}
           </button>
+          {onToggleExpand && (
+            <button
+              onClick={onToggleExpand}
+              className="p-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition-colors"
+              title={getExpandTooltip()}
+            >
+              {getExpandIcon()}
+            </button>
+          )}
         </div>
       </div>
 

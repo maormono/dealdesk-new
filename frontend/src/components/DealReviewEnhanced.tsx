@@ -4,7 +4,8 @@ import {
   Send, 
   Loader2,
   Maximize2,
-  Minimize2
+  Minimize2,
+  Maximize
 } from 'lucide-react';
 import { ComprehensiveDealService } from '../services/comprehensiveDealService';
 import type { DealRequestMandatory } from '../services/comprehensiveDealService';
@@ -17,12 +18,14 @@ interface Message {
   dealData?: Partial<DealRequestMandatory>;
 }
 
+type ExpandState = 'normal' | 'half' | 'full';
+
 interface DealReviewEnhancedProps {
   onExpandToggle?: () => void;
-  isExpanded?: boolean;
+  expandState?: ExpandState;
 }
 
-export const DealReviewEnhanced: React.FC<DealReviewEnhancedProps> = ({ onExpandToggle, isExpanded = false }) => {
+export const DealReviewEnhanced: React.FC<DealReviewEnhancedProps> = ({ onExpandToggle, expandState = 'normal' }) => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -190,8 +193,35 @@ export const DealReviewEnhanced: React.FC<DealReviewEnhancedProps> = ({ onExpand
   };
   
   
+  const getHeightClass = () => {
+    switch (expandState) {
+      case 'normal': return 'h-[600px]';
+      case 'half': return 'h-[85vh] min-h-[700px]';
+      case 'full': return 'fixed inset-0 z-50';
+      default: return 'h-[600px]';
+    }
+  };
+
+  const getExpandIcon = () => {
+    switch (expandState) {
+      case 'normal': return <Maximize2 className="w-4 h-4 text-gray-600" />;
+      case 'half': return <Maximize className="w-4 h-4 text-gray-600" />;
+      case 'full': return <Minimize2 className="w-4 h-4 text-gray-600" />;
+      default: return <Maximize2 className="w-4 h-4 text-gray-600" />;
+    }
+  };
+
+  const getExpandTooltip = () => {
+    switch (expandState) {
+      case 'normal': return 'Expand to half width';
+      case 'half': return 'Expand to full screen';
+      case 'full': return 'Return to normal size';
+      default: return 'Expand';
+    }
+  };
+
   return (
-    <div className="flex flex-col h-[600px] bg-white rounded-lg shadow-sm border border-gray-200">
+    <div className={`flex flex-col ${getHeightClass()} bg-white rounded-lg shadow-sm border border-gray-200`}>
       {/* Header */}
       <div className="px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
         <div className="flex items-center justify-between">
@@ -210,13 +240,9 @@ export const DealReviewEnhanced: React.FC<DealReviewEnhancedProps> = ({ onExpand
             <button
               onClick={onExpandToggle}
               className="p-1 hover:bg-white/50 rounded-lg transition-colors"
-              title={isExpanded ? "Collapse to sidebar" : "Expand to 50% width"}
+              title={getExpandTooltip()}
             >
-              {isExpanded ? (
-                <Minimize2 className="w-4 h-4 text-gray-600" />
-              ) : (
-                <Maximize2 className="w-4 h-4 text-gray-600" />
-              )}
+              {getExpandIcon()}
             </button>
           )}
         </div>

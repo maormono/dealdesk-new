@@ -5,11 +5,13 @@ import { DealReviewEnhanced } from '../components/DealReviewEnhanced';
 import type { DealRequest, DealEvaluation } from '../config/dealConfig';
 import '../styles/monogoto-theme.css';
 
+type ExpandState = 'normal' | 'half' | 'full';
+
 export const DealReviewTabs: React.FC = () => {
   const [sharedDeal, setSharedDeal] = useState<Partial<DealRequest> | undefined>();
   const [sharedEvaluation, setSharedEvaluation] = useState<DealEvaluation | undefined>();
   const [showDealAnalyzer, setShowDealAnalyzer] = useState(false);
-  const [isAnalyzerExpanded, setIsAnalyzerExpanded] = useState(false);
+  const [analyzerExpandState, setAnalyzerExpandState] = useState<ExpandState>('normal');
 
   // Handler for when form evaluation is complete
   const handleFormEvaluation = (evaluation: DealEvaluation, deal: DealRequest) => {
@@ -17,41 +19,50 @@ export const DealReviewTabs: React.FC = () => {
     setSharedDeal(deal);
   };
 
-  // Handler for expanding/collapsing the analyzer
+  // Handler for 3-stage expanding/collapsing the analyzer
   const handleAnalyzerExpandToggle = () => {
-    setIsAnalyzerExpanded(!isAnalyzerExpanded);
+    setAnalyzerExpandState(prev => {
+      switch (prev) {
+        case 'normal': return 'half';
+        case 'half': return 'full';
+        case 'full': return 'normal';
+        default: return 'normal';
+      }
+    });
   };
 
   return (
     <div className="bg-gray-50 pt-20 flex-1">
       {/* Main Content */}
       <main className="px-4 sm:px-6 lg:px-8 py-8">
-        <div className={showDealAnalyzer ? `grid grid-cols-1 ${isAnalyzerExpanded ? 'xl:grid-cols-2' : 'xl:grid-cols-4'} gap-6` : ''}>
+        <div className={showDealAnalyzer ? `grid grid-cols-1 ${analyzerExpandState === 'half' ? 'xl:grid-cols-2' : 'xl:grid-cols-4'} gap-6` : ''}>
           {/* Deal Review Form - Full width when closed, responsive when open */}
-          <div className={showDealAnalyzer ? (isAnalyzerExpanded ? 'xl:col-span-1' : 'xl:col-span-3') : 'w-full'}>
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-              <h2 className="text-xl font-semibold text-gray-900 tracking-tight mb-6">Deal Review</h2>
-              
-              {/* Content */}
-              <div className="min-h-[600px]">
-                <div className="h-full overflow-y-auto">
-                  <DealReviewForm 
-                    initialDeal={sharedDeal}
-                    onEvaluation={handleFormEvaluation}
-                    onExpandToggle={handleAnalyzerExpandToggle}
-                    isExpanded={isAnalyzerExpanded}
-                  />
+          <div className={showDealAnalyzer ? (analyzerExpandState === 'half' ? 'xl:col-span-1' : 'xl:col-span-3') : 'w-full'}>
+            {analyzerExpandState !== 'full' && (
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                <h2 className="text-xl font-semibold text-gray-900 tracking-tight mb-6">Deal Review</h2>
+                
+                {/* Content */}
+                <div className="min-h-[600px]">
+                  <div className="h-full overflow-y-auto">
+                    <DealReviewForm 
+                      initialDeal={sharedDeal}
+                      onEvaluation={handleFormEvaluation}
+                      onExpandToggle={handleAnalyzerExpandToggle}
+                      isExpanded={analyzerExpandState !== 'normal'}
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
           
           {/* Deal Analyzer Panel - Right side */}
           {showDealAnalyzer && (
-            <div className={isAnalyzerExpanded ? 'xl:col-span-1' : 'xl:col-span-1'}>
+            <div className={analyzerExpandState === 'half' ? 'xl:col-span-1' : 'xl:col-span-1'}>
               <DealReviewEnhanced 
                 onExpandToggle={handleAnalyzerExpandToggle}
-                isExpanded={isAnalyzerExpanded}
+                expandState={analyzerExpandState}
               />
             </div>
           )}
