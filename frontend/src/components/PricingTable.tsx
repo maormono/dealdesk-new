@@ -16,6 +16,12 @@ interface NetworkData {
   lte_m?: boolean;
   nb_iot?: boolean;
   restrictions?: string;
+  // Network generation fields
+  gsm?: boolean;
+  gprs2G?: boolean;
+  umts3G?: boolean;
+  lte4G?: boolean;
+  lte5G?: boolean;
 }
 
 interface GroupedNetwork {
@@ -30,6 +36,12 @@ interface GroupedNetwork {
     notes?: string;
     lte_m?: boolean;
     nb_iot?: boolean;
+    // Network generation fields
+    gsm?: boolean;
+    gprs2G?: boolean;
+    umts3G?: boolean;
+    lte4G?: boolean;
+    lte5G?: boolean;
   }>;
 }
 
@@ -83,7 +95,8 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
   const [countrySearch, setCountrySearch] = useState('');
   const [tadigSearch, setTagidSearch] = useState('');
   const [sourceSearch, setSourceSearch] = useState('');
-  const [sortField, setSortField] = useState<'network' | 'country' | 'tadig' | 'source' | null>(null);
+  const [generationSearch, setGenerationSearch] = useState('');
+  const [sortField, setSortField] = useState<'network' | 'country' | 'tadig' | 'source' | 'generation' | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   
   // Search box visibility state
@@ -91,6 +104,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
   const [showCountrySearch, setShowCountrySearch] = useState(false);
   const [showTagidSearch, setShowTagidSearch] = useState(false);
   const [showSourceSearch, setShowSourceSearch] = useState(false);
+  const [showGenerationSearch, setShowGenerationSearch] = useState(false);
   
   // Price threshold: $1/MB = approximately €0.90/MB at 1.1 exchange rate
   const MAX_REASONABLE_PRICE_EUR_MB = 0.90;
@@ -194,7 +208,13 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
               notes: item.restrictions || '',
               lte_m: item.lteM || false,
               nb_iot: item.nbIot || false,
-              restrictions: item.restrictions || ''
+              restrictions: item.restrictions || '',
+              // Network generation fields
+              gsm: item.gsm || false,
+              gprs2G: item.gprs2G || false,
+              umts3G: item.umts3G || false,
+              lte4G: item.lte4G || false,
+              lte5G: item.lte5G || false,
             };
           });
           
@@ -324,7 +344,13 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
               notes: pricing.notes,
               lte_m: pricing.lte_m || false,
               nb_iot: pricing.nb_iot || false,
-              restrictions: pricing.notes
+              restrictions: pricing.notes,
+              // Network generation fields (Supabase may not have these yet)
+              gsm: pricing.gsm || false,
+              gprs2G: pricing.gprs2G || false,
+              umts3G: pricing.umts3G || false,
+              lte4G: pricing.lte4G || false,
+              lte5G: pricing.lte5G || false,
             });
           });
         });
@@ -363,7 +389,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
     }
   };
 
-  const handleSort = (field: 'network' | 'country' | 'tadig' | 'source') => {
+  const handleSort = (field: 'network' | 'country' | 'tadig' | 'source' | 'generation') => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
@@ -372,7 +398,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
     }
   };
 
-  const toggleSearchBox = (field: 'network' | 'country' | 'tadig' | 'source') => {
+  const toggleSearchBox = (field: 'network' | 'country' | 'tadig' | 'source' | 'generation') => {
     if (field === 'network') {
       setShowNetworkSearch(!showNetworkSearch);
       if (!showNetworkSearch) {
@@ -380,6 +406,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
         setShowCountrySearch(false);
         setShowTagidSearch(false);
         setShowSourceSearch(false);
+        setShowGenerationSearch(false);
       }
     } else if (field === 'country') {
       setShowCountrySearch(!showCountrySearch);
@@ -387,6 +414,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
         setShowNetworkSearch(false);
         setShowTagidSearch(false);
         setShowSourceSearch(false);
+        setShowGenerationSearch(false);
       }
     } else if (field === 'tadig') {
       setShowTagidSearch(!showTagidSearch);
@@ -394,6 +422,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
         setShowNetworkSearch(false);
         setShowCountrySearch(false);
         setShowSourceSearch(false);
+        setShowGenerationSearch(false);
       }
     } else if (field === 'source') {
       setShowSourceSearch(!showSourceSearch);
@@ -401,6 +430,15 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
         setShowNetworkSearch(false);
         setShowCountrySearch(false);
         setShowTagidSearch(false);
+        setShowGenerationSearch(false);
+      }
+    } else if (field === 'generation') {
+      setShowGenerationSearch(!showGenerationSearch);
+      if (!showGenerationSearch) {
+        setShowNetworkSearch(false);
+        setShowCountrySearch(false);
+        setShowTagidSearch(false);
+        setShowSourceSearch(false);
       }
     }
   };
@@ -431,7 +469,13 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
         imsi_cost: network.imsi_cost,
         notes: network.notes,
         lte_m: network.lte_m,
-        nb_iot: network.nb_iot
+        nb_iot: network.nb_iot,
+        // Network generation fields
+        gsm: network.gsm,
+        gprs2G: network.gprs2G,
+        umts3G: network.umts3G,
+        lte4G: network.lte4G,
+        lte5G: network.lte5G,
       });
     });
 
@@ -462,6 +506,20 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
     
     if (sourceSearch && !network.operator.toLowerCase().includes(sourceSearch.toLowerCase().trim())) {
       return false;
+    }
+    
+    if (generationSearch) {
+      // Build generation string for this network
+      const generations = [];
+      if (network.gsm) generations.push('2G');
+      if (network.gprs2G) generations.push('2G');
+      if (network.umts3G) generations.push('3G');
+      if (network.lte4G) generations.push('4G');
+      if (network.lte5G) generations.push('5G');
+      const generationString = generations.join(', ');
+      if (!generationString.toLowerCase().includes(generationSearch.toLowerCase().trim())) {
+        return false;
+      }
     }
     
     // Apply general search term (legacy search functionality)
@@ -511,25 +569,52 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
       const bSource = b.sources[0]?.operator || '';
       const comparison = aSource.localeCompare(bSource);
       return sortDirection === 'asc' ? comparison : -comparison;
+    } else if (sortField === 'generation') {
+      // Sort by generation level (2G=2, 3G=3, 4G=4, 5G=5)
+      const getMaxGeneration = (sources: any[]) => {
+        let maxGen = 0;
+        sources.forEach(source => {
+          if (source.lte5G) maxGen = Math.max(maxGen, 5);
+          else if (source.lte4G) maxGen = Math.max(maxGen, 4);
+          else if (source.umts3G) maxGen = Math.max(maxGen, 3);
+          else if (source.gprs2G || source.gsm) maxGen = Math.max(maxGen, 2);
+        });
+        return maxGen;
+      };
+      const aGeneration = getMaxGeneration(a.sources);
+      const bGeneration = getMaxGeneration(b.sources);
+      const comparison = aGeneration - bGeneration;
+      return sortDirection === 'asc' ? comparison : -comparison;
     }
     return 0;
   });
   
   // Export functionality
   const exportToCSV = () => {
-    const headers = ['Network', 'Country', 'TADIG', 'Operator', `Data (${currency}/${dataUnit})`, `SMS (${currency})`, `IMSI (${currency})`, 'LTE-M', 'NB-IoT', 'Notes'];
-    const rows = filteredNetworks.map(network => [
-      network.network_name,
-      network.country,
-      network.tadig,
-      network.operator,
-      formatDataPrice(network.data_cost),
-      formatCurrency(network.sms_cost, 3),
-      formatCurrency(network.imsi_cost, 2),
-      network.lte_m ? 'Yes' : 'No',
-      network.nb_iot ? 'Yes' : 'No',
-      network.notes || ''
-    ]);
+    const headers = ['Country', 'Network', 'TADIG', 'Operator', `Data (${currency}/${dataUnit})`, `SMS (${currency})`, `IMSI (${currency})`, 'Network Gen.', 'CAT-M', 'NB-IoT', 'Notes'];
+    const rows = filteredNetworks.map(network => {
+      // Build generation string for CSV
+      const generations = [];
+      if (network.gsm) generations.push('2G');
+      if (network.gprs2G && !generations.includes('2G')) generations.push('2G');
+      if (network.umts3G) generations.push('3G');
+      if (network.lte4G) generations.push('4G');
+      if (network.lte5G) generations.push('5G');
+      
+      return [
+        network.country,
+        network.network_name,
+        network.tadig,
+        network.operator,
+        formatDataPrice(network.data_cost),
+        formatCurrency(network.sms_cost, 3),
+        formatCurrency(network.imsi_cost, 2),
+        generations.join(', ') || 'N/A',
+        network.lte_m ? 'Yes' : 'No',
+        network.nb_iot ? 'Yes' : 'No',
+        network.notes || ''
+      ];
+    });
     
     const csvContent = [
       headers.join(','),
@@ -638,7 +723,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
         <div className="group bg-white rounded-2xl p-4 shadow-sm hover:shadow-lg transition-all duration-500 border border-gray-100">
           <div className="flex items-center justify-between mb-2">
             <Wifi className="w-5 h-5 text-[#5B9BD5] opacity-70" />
-            <span className="text-xs font-medium text-gray-400">IoT</span>
+            <span className="text-xs font-medium text-gray-400">LP-WAN</span>
           </div>
           <div className="flex items-baseline space-x-2">
             <div className="text-xl font-semibold text-gray-900 tracking-tight">
@@ -653,7 +738,47 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
       <div className="mb-6">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
           <div className="flex gap-3 items-center">
-            <div className="flex-1 relative">
+            {/* Operator Filter - Left Side */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600 mr-1">Operators:</span>
+              <div className="flex gap-2">
+                {['A1', 'Telefonica', 'Tele2'].map(operator => {
+                  const config = operatorConfig[operator as keyof typeof operatorConfig];
+                  return (
+                    <button
+                      key={operator}
+                      onClick={() => toggleOperator(operator)}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all border ${
+                        selectedOperators.has(operator)
+                          ? `${config.bgColor} ${config.color} ${config.borderColor} border-2`
+                          : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
+                      }`}
+                    >
+                      {config.label}
+                    </button>
+                  );
+                })}
+                
+                {/* Hidden Networks Button - Next to T2 */}
+                <button
+                  onClick={() => setShowHiddenNetworks(!showHiddenNetworks)}
+                  className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-sm font-medium transition-all border ${
+                    showHiddenNetworks
+                      ? 'bg-orange-50 text-orange-600 border-orange-200'
+                      : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
+                  }`}
+                  title="Hidden Networks"
+                >
+                  {showHiddenNetworks ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                  <span className="px-1.5 py-0.5 bg-white rounded text-xs">
+                    {allNetworks.length - networks.length}
+                  </span>
+                </button>
+              </div>
+            </div>
+            
+            {/* Search Bar - Center */}
+            <div className="flex-1 relative mx-4">
               <input
                 type="text"
                 placeholder="Search networks, countries, TADIG codes..."
@@ -663,7 +788,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
               />
             </div>
             
-            {/* Data Unit Toggle - Pill Style */}
+            {/* Data Unit Toggle - Right Side */}
             <div className="flex items-center bg-gray-50 rounded-xl p-1">
               <button
                 onClick={() => setDataUnit('MB')}
@@ -687,7 +812,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
               </button>
             </div>
             
-            {/* Currency Toggle - Pill Style */}
+            {/* Currency Toggle - Right Side */}
             <div className="flex items-center bg-gray-50 rounded-xl p-1">
               <button
                 onClick={() => {
@@ -717,7 +842,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
               </button>
             </div>
             
-            {/* Export Button - Minimized */}
+            {/* Export Button - Far Right */}
             <button
               onClick={exportToCSV}
               className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-all"
@@ -726,54 +851,9 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
               <Download className="w-4 h-4" />
             </button>
           </div>
-          
-          {/* Filter Controls Row */}
-          <div className="mt-4 flex gap-3 items-center">
-            {/* Operator Filter */}
-            <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-gray-500" />
-              <span className="text-sm text-gray-600 mr-2">Operators:</span>
-              <div className="flex gap-2">
-                {['A1', 'Telefonica', 'Tele2'].map(operator => {
-                  const config = operatorConfig[operator as keyof typeof operatorConfig];
-                  return (
-                    <button
-                      key={operator}
-                      onClick={() => toggleOperator(operator)}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all border ${
-                        selectedOperators.has(operator)
-                          ? `${config.bgColor} ${config.color} ${config.borderColor} border-2`
-                          : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
-                      }`}
-                    >
-                      {config.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-            
-            {/* Show Hidden Networks Toggle */}
-            <div className="flex items-center gap-2 ml-auto">
-              <button
-                onClick={() => setShowHiddenNetworks(!showHiddenNetworks)}
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-medium transition-all border ${
-                  showHiddenNetworks
-                    ? 'bg-orange-50 text-orange-600 border-orange-200'
-                    : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
-                }`}
-              >
-                {showHiddenNetworks ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                {showHiddenNetworks ? 'Showing All' : 'Hidden Networks'}
-                <span className="px-1.5 py-0.5 bg-white rounded text-xs">
-                  {showHiddenNetworks ? allNetworks.length - networks.length : 0}
-                </span>
-              </button>
-            </div>
-          </div>
       
           {/* Active filter indicator */}
-          {(searchTerm || networkSearch || countrySearch || tadigSearch || sourceSearch || selectedOperators.size > 0) && (
+          {(searchTerm || networkSearch || countrySearch || tadigSearch || sourceSearch || generationSearch || selectedOperators.size > 0) && (
             <div className="mt-3 flex items-center gap-2 text-sm text-gray-500">
               <span>Active filters: 
                 {searchTerm && <strong className="text-gray-700 ml-1">General: "{searchTerm}"</strong>}
@@ -781,6 +861,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
                 {countrySearch && <strong className="text-gray-700 ml-1">Country: "{countrySearch}"</strong>}
                 {tadigSearch && <strong className="text-gray-700 ml-1">TADIG: "{tadigSearch}"</strong>}
                 {sourceSearch && <strong className="text-gray-700 ml-1">Source: "{sourceSearch}"</strong>}
+                {generationSearch && <strong className="text-gray-700 ml-1">Generation: "{generationSearch}"</strong>}
                 {selectedOperators.size > 0 && <strong className="text-gray-700 ml-1">Operators: {Array.from(selectedOperators).join(', ')}</strong>}
               </span>
               <button
@@ -790,12 +871,14 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
                   setCountrySearch('');
                   setTagidSearch('');
                   setSourceSearch('');
+                  setGenerationSearch('');
                   setSelectedOperators(new Set());
                   // Hide all search boxes
                   setShowNetworkSearch(false);
                   setShowCountrySearch(false);
                   setShowTagidSearch(false);
                   setShowSourceSearch(false);
+                  setShowGenerationSearch(false);
                 }}
                 className="text-[#5B9BD5] hover:text-[#5B9BD5]/80 font-medium"
               >
@@ -811,53 +894,19 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
         <div className="overflow-x-auto max-h-96 overflow-y-auto">
           <table className="w-full min-w-[1200px]">
           <colgroup>
-            <col className="w-[240px]" /> {/* Network */}
             <col className="w-[140px]" /> {/* Country */}
+            <col className="w-[240px]" /> {/* Network */}
             <col className="w-[100px]" /> {/* TADIG */}
             <col className="w-[100px]" /> {/* Sources */}
             <col className="w-[120px]" /> {/* Data */}
             <col className="w-[100px]" /> {/* SMS */}
             <col className="w-[100px]" /> {/* IMSI */}
-            <col className="w-[120px]" /> {/* IoT */}
+            <col className="w-[130px]" /> {/* Network Gen. */}
+            <col className="w-[120px]" /> {/* LP-WAN Tech */}
             <col /> {/* Notes - flexible width takes remaining space */}
           </colgroup>
             <thead className="bg-gradient-to-b from-gray-50 to-white sticky top-0 z-10">
             <tr>
-                <th className="px-2 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-200">
-                <div className="flex items-center gap-1 group">
-                  <span>Network</span>
-                  <button 
-                    onClick={() => handleSort('network')}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 rounded"
-                    title="Sort networks"
-                  >
-                    {sortField === 'network' ? (
-                      sortDirection === 'asc' ? 
-                      <ArrowUp className="w-3 h-3 text-gray-500" /> : 
-                      <ArrowDown className="w-3 h-3 text-gray-500" />
-                    ) : (
-                      <ArrowUpDown className="w-3 h-3 text-gray-400" />
-                    )}
-                  </button>
-                  <button
-                    onClick={() => toggleSearchBox('network')}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 rounded"
-                    title="Search networks"
-                  >
-                    <Search className="w-3 h-3 text-gray-400" />
-                  </button>
-                </div>
-                {showNetworkSearch && (
-                  <input
-                    type="text"
-                    placeholder="Search networks..."
-                    value={networkSearch}
-                    onChange={(e) => setNetworkSearch(e.target.value)}
-                    className="mt-1 w-full px-2 py-1 text-xs bg-gray-50 border-0 rounded focus:outline-none focus:ring-1 focus:ring-blue-300 focus:bg-white placeholder-gray-400"
-                    autoFocus
-                  />
-                )}
-              </th>
                 <th className="px-2 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-200">
                 <div className="flex items-center gap-1 group">
                   <span>Country</span>
@@ -888,6 +937,41 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
                     placeholder="Search countries..."
                     value={countrySearch}
                     onChange={(e) => setCountrySearch(e.target.value)}
+                    className="mt-1 w-full px-2 py-1 text-xs bg-gray-50 border-0 rounded focus:outline-none focus:ring-1 focus:ring-blue-300 focus:bg-white placeholder-gray-400"
+                    autoFocus
+                  />
+                )}
+              </th>
+                <th className="px-2 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-200">
+                <div className="flex items-center gap-1 group">
+                  <span>Network</span>
+                  <button 
+                    onClick={() => handleSort('network')}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 rounded"
+                    title="Sort networks"
+                  >
+                    {sortField === 'network' ? (
+                      sortDirection === 'asc' ? 
+                      <ArrowUp className="w-3 h-3 text-gray-500" /> : 
+                      <ArrowDown className="w-3 h-3 text-gray-500" />
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 text-gray-400" />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => toggleSearchBox('network')}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 rounded"
+                    title="Search networks"
+                  >
+                    <Search className="w-3 h-3 text-gray-400" />
+                  </button>
+                </div>
+                {showNetworkSearch && (
+                  <input
+                    type="text"
+                    placeholder="Search networks..."
+                    value={networkSearch}
+                    onChange={(e) => setNetworkSearch(e.target.value)}
                     className="mt-1 w-full px-2 py-1 text-xs bg-gray-50 border-0 rounded focus:outline-none focus:ring-1 focus:ring-blue-300 focus:bg-white placeholder-gray-400"
                     autoFocus
                   />
@@ -981,8 +1065,43 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
                   {isSales && <Lock className="w-3 h-3 text-blue-500" />}
                 </div>
               </th>
-                <th className="px-2 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-200">
-                IoT
+                <th className="px-2 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-200">
+                <div className="flex items-center gap-1 group whitespace-nowrap">
+                  <span>Network Gen.</span>
+                  <button 
+                    onClick={() => handleSort('generation')}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 rounded"
+                    title="Sort network generations"
+                  >
+                    {sortField === 'generation' ? (
+                      sortDirection === 'asc' ? 
+                      <ArrowUp className="w-3 h-3 text-gray-500" /> : 
+                      <ArrowDown className="w-3 h-3 text-gray-500" />
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 text-gray-400" />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => toggleSearchBox('generation')}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 rounded"
+                    title="Search network generations"
+                  >
+                    <Search className="w-3 h-3 text-gray-400" />
+                  </button>
+                </div>
+                {showGenerationSearch && (
+                  <input
+                    type="text"
+                    placeholder="Search generations..."
+                    value={generationSearch}
+                    onChange={(e) => setGenerationSearch(e.target.value)}
+                    className="mt-1 w-full px-2 py-1 text-xs bg-gray-50 border-0 rounded focus:outline-none focus:ring-1 focus:ring-blue-300 focus:bg-white placeholder-gray-400"
+                    autoFocus
+                  />
+                )}
+              </th>
+                <th className="px-2 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-200 whitespace-nowrap">
+                LP-WAN Tech.
               </th>
                 <th className="px-2 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-200">
                 Notes
@@ -995,6 +1114,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
               return (
                 <React.Fragment key={index}>
                   <tr className="hover:bg-gray-50/50 border-b border-gray-50 transition-colors">
+                    <td className="px-2 py-2 text-gray-700 text-sm">{network.country}</td>
                     <td className="px-2 py-2">
                       <div className="flex-1">
                         <div className="font-medium text-gray-900 text-sm" title={network.network_name}>
@@ -1005,7 +1125,6 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
                         </div>
                       </div>
                     </td>
-                    <td className="px-2 py-2 text-gray-700 text-sm">{network.country}</td>
                     <td className="px-2 py-2">
                       <div className="font-mono text-xs space-y-0.5">
                         {network.tadigs.map((tadig, i) => (
@@ -1035,7 +1154,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
                           const config = operatorConfig[source.operator as keyof typeof operatorConfig];
                           const formatted = formatDataPrice(source.data_cost || 0);
                           return (
-                            <div key={i} className={`text-xs ${config?.color || 'text-gray-600'}`}>
+                            <div key={i} className={`text-xs whitespace-nowrap ${config?.color || 'text-gray-600'}`}>
                               {formatted || <span className="text-gray-300">-</span>}
                             </div>
                           );
@@ -1063,6 +1182,29 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
                           return (
                             <div key={i} className={`text-xs ${config?.color || 'text-gray-600'}`}>
                               {formatted || <span className="text-gray-300">-</span>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </td>
+                    <td className="px-2 py-2">
+                      <div className="space-y-0.5">
+                        {network.sources.map((source, i) => {
+                          const config = operatorConfig[source.operator as keyof typeof operatorConfig];
+                          const generations = [];
+                          if (source.gsm) generations.push('2G');
+                          if (source.gprs2G && !generations.includes('2G')) generations.push('2G');
+                          if (source.umts3G) generations.push('3G');
+                          if (source.lte4G) generations.push('4G');
+                          if (source.lte5G) generations.push('5G');
+                          
+                          return (
+                            <div key={i} className={`text-xs whitespace-nowrap ${config?.color || 'text-gray-600'}`}>
+                              {generations.length > 0 ? (
+                                <span className="font-medium">{generations.join(', ')}</span>
+                              ) : (
+                                <span className="text-gray-300">-</span>
+                              )}
                             </div>
                           );
                         })}
