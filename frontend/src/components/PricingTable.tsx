@@ -721,11 +721,11 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
         </div>
         
         <div className="group bg-white rounded-2xl p-4 shadow-sm hover:shadow-lg transition-all duration-500 border border-gray-100">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-2">
             <Wifi className="w-5 h-5 text-[#5B9BD5] opacity-70" />
             <span className="text-xs font-medium text-gray-400">LP-WAN</span>
           </div>
-          <div className="flex items-center justify-between">
+          <div className="flex items-baseline justify-between">
             <div className="flex items-baseline space-x-2">
               <div className="text-xl font-semibold text-gray-900 tracking-tight">
                 {filteredNetworks.filter(n => n.nb_iot).length}
