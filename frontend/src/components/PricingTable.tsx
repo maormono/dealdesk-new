@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useUser } from '../contexts/UserContext';
-import { Wifi, Smartphone, Globe, DollarSign, Euro, Lock, Download, Eye, EyeOff, Filter, Search, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Wifi, Smartphone, Globe, DollarSign, Euro, Lock, Download, Eye, EyeOff, Search, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import '../styles/monogoto-theme.css';
 
 interface NetworkData {
@@ -721,15 +721,23 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
         </div>
         
         <div className="group bg-white rounded-2xl p-4 shadow-sm hover:shadow-lg transition-all duration-500 border border-gray-100">
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center justify-between mb-3">
             <Wifi className="w-5 h-5 text-[#5B9BD5] opacity-70" />
             <span className="text-xs font-medium text-gray-400">LP-WAN</span>
           </div>
-          <div className="flex items-baseline space-x-2">
-            <div className="text-xl font-semibold text-gray-900 tracking-tight">
-              {filteredNetworks.filter(n => n.lte_m || n.nb_iot).length}
+          <div className="flex items-center justify-between">
+            <div className="flex items-baseline space-x-2">
+              <div className="text-xl font-semibold text-gray-900 tracking-tight">
+                {filteredNetworks.filter(n => n.nb_iot).length}
+              </div>
+              <div className="text-sm text-gray-500">NB-IoT</div>
             </div>
-            <div className="text-sm text-gray-500">Enabled</div>
+            <div className="flex items-baseline space-x-2">
+              <div className="text-xl font-semibold text-gray-900 tracking-tight">
+                {filteredNetworks.filter(n => n.lte_m).length}
+              </div>
+              <div className="text-sm text-gray-500">LTE Cat-M</div>
+            </div>
           </div>
         </div>
       </div>
