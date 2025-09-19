@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Auth } from '@supabase/auth-ui-react'
 import { ThemeSupa } from '@supabase/auth-ui-shared'
 import { supabase, isEmailAllowed } from '../lib/supabase'
@@ -8,6 +8,8 @@ import { Shield, Globe, Zap, Lock } from 'lucide-react'
 
 export default function Login() {
   const [error, setError] = useState<string | null>(null)
+  const [showPassword, setShowPassword] = useState(false)
+  const authContainerRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -29,6 +31,81 @@ export default function Login() {
       authListener.subscription.unsubscribe()
     }
   }, [navigate])
+
+  // Add password visibility toggle functionality to Supabase Auth UI
+  useEffect(() => {
+    const addPasswordToggle = () => {
+      if (!authContainerRef.current) return
+      
+      const passwordInputs = authContainerRef.current.querySelectorAll('input[type="password"]')
+      
+      passwordInputs.forEach((input: Element) => {
+        const passwordInput = input as HTMLInputElement
+        const container = passwordInput.parentElement
+        
+        if (!container || container.querySelector('.password-toggle')) {
+          return // Already has toggle or no container
+        }
+        
+        // Create toggle button
+        const toggleButton = document.createElement('button')
+        toggleButton.type = 'button'
+        toggleButton.className = 'password-toggle absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 z-10'
+        toggleButton.innerHTML = `
+          <svg class="eye-icon w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+          </svg>
+          <svg class="eye-off-icon w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L12 12m-2.122-2.122L7.756 7.756M12 12l2.122 2.122m0 0l2.122 2.122M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18"></path>
+          </svg>
+        `
+        
+        // Make container relative and add padding for button
+        container.style.position = 'relative'
+        passwordInput.style.paddingRight = '3rem'
+        
+        // Add click handler
+        toggleButton.addEventListener('click', () => {
+          const isPassword = passwordInput.type === 'password'
+          passwordInput.type = isPassword ? 'text' : 'password'
+          
+          const eyeIcon = toggleButton.querySelector('.eye-icon') as HTMLElement
+          const eyeOffIcon = toggleButton.querySelector('.eye-off-icon') as HTMLElement
+          
+          if (isPassword) {
+            eyeIcon.classList.add('hidden')
+            eyeOffIcon.classList.remove('hidden')
+          } else {
+            eyeIcon.classList.remove('hidden')
+            eyeOffIcon.classList.add('hidden')
+          }
+        })
+        
+        container.appendChild(toggleButton)
+      })
+    }
+
+    // Add toggle functionality when component mounts and when auth UI changes
+    const observer = new MutationObserver(() => {
+      setTimeout(addPasswordToggle, 100)
+    })
+    
+    if (authContainerRef.current) {
+      observer.observe(authContainerRef.current, {
+        childList: true,
+        subtree: true
+      })
+    }
+    
+    // Initial call
+    setTimeout(addPasswordToggle, 100)
+    
+    return () => {
+      observer.disconnect()
+    }
+  }, [])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
@@ -64,7 +141,7 @@ export default function Login() {
         </div>
 
         {/* Login Card */}
-        <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl p-8 border border-white/20">
+        <div ref={authContainerRef} className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl p-8 border border-white/20">
           {error && (
             <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg animate-shake">
               <p className="text-red-700 text-sm flex items-center">
@@ -169,7 +246,7 @@ export default function Login() {
               },
             }}
             providers={['google']}
-            redirectTo={import.meta.env.VITE_SITE_URL || window.location.origin}
+            redirectTo={window.location.origin}
             onlyThirdPartyProviders={false}
             magicLink={true}
             showLinks={true}

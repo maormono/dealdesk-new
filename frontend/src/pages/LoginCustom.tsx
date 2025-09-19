@@ -93,8 +93,8 @@ export default function LoginCustom() {
         return;
       }
 
-      // Use the configured site URL or fall back to current origin
-      const redirectUrl = import.meta.env.VITE_SITE_URL || window.location.origin;
+      // Use current origin for development
+      const redirectUrl = window.location.origin;
       
       const { error } = await supabase.auth.signInWithOtp({
         email,
