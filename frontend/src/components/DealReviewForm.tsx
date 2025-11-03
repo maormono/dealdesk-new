@@ -8,6 +8,7 @@ import { EnhancedDealService } from '../services/enhancedDealService';
 import { ComprehensiveDealService } from '../services/comprehensiveDealService';
 import type { DealRequestMandatory } from '../services/comprehensiveDealService';
 import { formatDealForSales } from '../utils/dealFormatter';
+import { DealProposalView } from './DealProposalView';
 import '../styles/monogoto-theme.css';
 
 interface DealReviewFormProps {
@@ -313,46 +314,40 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
   if (showResults && evaluation) {
     return (
       <div className="max-w-5xl mx-auto p-6">
-        
-        {/* Evaluation Results - Monogoto Apple Style */}
-        <div className="bg-gradient-to-br from-white via-green-50/30 to-emerald-50/50 rounded-2xl shadow-sm border border-green-100/50 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-3">
-              <div className="p-2.5 bg-white/80 backdrop-blur rounded-xl shadow-sm border border-green-200/30">
-                <TrendingUp className="w-6 h-6 text-green-600" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900">Evaluation Results</h3>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
-                {evaluation.verdict === 'approved' ? 'APPROVED' : 'NEEDS REVIEW'}
-              </div>
-              <button
-                onClick={handleEditDeal}
-                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors flex items-center space-x-2"
-              >
-                <Edit className="w-4 h-4" />
-                <span>Edit Deal</span>
-              </button>
-              {onExpandToggle && (
-                <button
-                  onClick={() => {setIsResultsExpanded(!isResultsExpanded); onExpandToggle();}}
-                  className="p-1 hover:bg-white/50 rounded-lg transition-colors"
-                  title={isResultsExpanded ? "Collapse to sidebar" : "Expand to 50% width"}
-                >
-                  {isResultsExpanded ? (
-                    <Minimize2 className="w-4 h-4 text-gray-600" />
-                  ) : (
-                    <Maximize2 className="w-4 h-4 text-gray-600" />
-                  )}
-                </button>
+        <div className="flex justify-end mb-4 gap-2">
+          <button
+            onClick={handleEditDeal}
+            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors flex items-center space-x-2"
+          >
+            <Edit className="w-4 h-4" />
+            <span>Edit Deal</span>
+          </button>
+          {onExpandToggle && (
+            <button
+              onClick={() => {setIsResultsExpanded(!isResultsExpanded); onExpandToggle();}}
+              className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              title={isResultsExpanded ? "Collapse to sidebar" : "Expand to 50% width"}
+            >
+              {isResultsExpanded ? (
+                <Minimize2 className="w-5 h-5 text-gray-600" />
+              ) : (
+                <Maximize2 className="w-5 h-5 text-gray-600" />
               )}
-            </div>
-          </div>
-          
-          {/* Evaluation Content */}
-          <div className="space-y-6">
-            {/* Deal Bottom Line - Executive Summary */}
+            </button>
+          )}
+        </div>
+
+        {/* New Professional Deal Proposal View */}
+        <DealProposalView
+          formData={formData}
+          evaluation={evaluation}
+          enhancedAnalysis={enhancedAnalysis}
+          comprehensiveAnalysis={comprehensiveAnalysis}
+        />
+
+        {/* Keep old evaluation content hidden for debugging - can be removed later */}
+        {/* {false && (
+          <div className="space-y-6 mt-6">
             {comprehensiveAnalysis && comprehensiveAnalysis.recommendation && (
               <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 rounded-2xl p-6 border border-blue-200/50 shadow-sm">
                 <h4 className="text-sm font-bold text-gray-900 mb-4 flex items-center">
@@ -491,7 +486,7 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
               </div>
             )}
             
-            {evaluation.notes && evaluation.notes.length > 0 && (
+            {evaluation && evaluation.notes && evaluation.notes.length > 0 && (
               <div className="bg-white/60 rounded-xl p-4 border border-green-100/30">
                 <h4 className="text-sm font-semibold text-gray-900 mb-3">📝 Deal Notes & Analysis:</h4>
                 <div className="space-y-2">
@@ -548,8 +543,8 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
               </div>
             )}
           </div>
-        </div>
-      </div>
+        )}
+      </div> */}
     );
   }
 
