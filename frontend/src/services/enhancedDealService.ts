@@ -70,7 +70,8 @@ export class EnhancedDealService {
     const payAsYouGoOption = this.calculatePayAsYouGoPricing(
       payAsYouGoCosts,
       rules,
-      request.simCount
+      request.simCount,
+      request.requestedPrice
     );
     
     // Package calculation (for comparison, deprecated)
@@ -83,7 +84,8 @@ export class EnhancedDealService {
     const packageOption = this.calculatePackagePricing(
       packageCosts,
       rules,
-      request.simCount
+      request.simCount,
+      request.requestedPrice
     );
     
     // Step 5: Send to Gemini for intelligent analysis
@@ -138,7 +140,7 @@ export class EnhancedDealService {
     return result;
   }
   
-  private calculatePayAsYouGoPricing(costs: any, rules: any, simCount: number): PricingOption {
+  private calculatePayAsYouGoPricing(costs: any, rules: any, simCount: number, requestedPrice?: number): PricingOption {
     // Validate rules exist
     if (!rules || typeof rules.officialMarkup !== 'number' || typeof rules.officialSimProfit !== 'number') {
       console.error('Invalid rules object:', rules);
@@ -149,21 +151,21 @@ export class EnhancedDealService {
         ...rules
       };
     }
-    
+
     // Active SIM fee: Apply markup to IMSI costs + fixed profit
     // If IMSI cost is 0 (like in Israel), the fee is just the fixed profit
     const imsiCost = costs.imsiCost || 0;
     const markupPercent = rules.officialMarkup || 50;
     const simProfit = rules.officialSimProfit || 35;
     const activeSimFee = (imsiCost * (1 + markupPercent / 100)) + (simProfit / 100);
-    
+
     // Data fee per MB: Calculate the average weighted cost per MB
     let dataFeePerMB = 0;
     if (costs.totalDataMB > 0 && costs.weightedDataPerMB > 0) {
       // Use the weighted average cost per MB from the detailed breakdown
       dataFeePerMB = costs.weightedDataPerMB * (1 + markupPercent / 100);
     }
-    
+
     // Log for debugging
     console.log('Pay-as-you-go pricing calculation:', {
       imsiCost: imsiCost,
@@ -172,14 +174,22 @@ export class EnhancedDealService {
       dataFeePerMB: dataFeePerMB.toFixed(4),
       markup: markupPercent,
       simProfit: simProfit,
-      rulesReceived: rules
+      rulesReceived: rules,
+      requestedPrice: requestedPrice
     });
-    
-    // Total cost per SIM with markup
-    const totalCostWithMarkup = (costs.totalCostPerSim * (1 + markupPercent / 100)) + (simProfit / 100);
-    
-    const totalMonthlyPrice = totalCostWithMarkup * simCount;
-    const listPrice = totalCostWithMarkup;
+
+    // If customer has a requested price, use that as the list price
+    // Otherwise calculate based on costs
+    let listPrice: number;
+    if (requestedPrice && requestedPrice > 0) {
+      listPrice = requestedPrice; // Use customer's target price
+    } else {
+      // Total cost per SIM with markup (standard calculation)
+      const totalCostWithMarkup = (costs.totalCostPerSim * (1 + markupPercent / 100)) + (simProfit / 100);
+      listPrice = totalCostWithMarkup;
+    }
+
+    const totalMonthlyPrice = listPrice * simCount;
     
     return {
       model: 'payAsYouGo',
@@ -196,8 +206,11 @@ export class EnhancedDealService {
     };
   }
   
-  private calculatePackagePricing(costs: any, rules: any, simCount: number): PricingOption {
-    const packagePrice = (costs.totalCostPerSim * (1 + rules.officialMarkup / 100)) + (rules.officialSimProfit / 100);
+  private calculatePackagePricing(costs: any, rules: any, simCount: number, requestedPrice?: number): PricingOption {
+    // Use requested price if provided, otherwise calculate from costs
+    const packagePrice = requestedPrice && requestedPrice > 0
+      ? requestedPrice
+      : (costs.totalCostPerSim * (1 + rules.officialMarkup / 100)) + (rules.officialSimProfit / 100);
     const totalMonthlyPrice = packagePrice * simCount;
     
     return {

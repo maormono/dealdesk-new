@@ -922,13 +922,21 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
           {formData.countries.length > 0 && (
             <div className="mt-6">
               <label className="block text-sm font-medium text-gray-500 mb-3">
-                Preferred Carriers <span className="text-xs text-gray-400">(Optional)</span>
+                Preferred Carriers <span className="text-xs text-gray-400">(Optional - Select multiple for redundancy)</span>
               </label>
               {formData.countries.map(country => {
                 const carriers = availableCarriers.get(country) || [];
+                const selectedInCountry = carriers.filter(c => formData.carriers.includes(c)).length;
                 return (
                   <div key={country} className="mb-4">
-                    <p className="text-sm font-medium text-gray-600 mb-2">{country}</p>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-sm font-medium text-gray-600">{country}</p>
+                      {selectedInCountry > 0 && (
+                        <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
+                          {selectedInCountry} network{selectedInCountry > 1 ? 's' : ''} selected
+                        </span>
+                      )}
+                    </div>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                       {carriers.map(carrier => (
                         <label key={carrier} className="flex items-center space-x-2">
