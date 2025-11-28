@@ -2,6 +2,7 @@ import xlsx from 'xlsx';
 const XLSX = xlsx;
 import * as fs from 'fs';
 import * as path from 'path';
+import { MNOMapper } from './mnoMapper.js';
 
 /**
  * COMPREHENSIVE PARSER - PRODUCTION VERSION WITH ALL FIXES
@@ -70,9 +71,11 @@ export interface NetworkPricing {
 export class ComprehensiveParser {
   private allData: NetworkPricing[] = [];
   private tadigToNetwork: Map<string, string> = new Map();
+  private mnoMapper: MNOMapper;
 
   constructor() {
     this.initializeTadigMapping();
+    this.mnoMapper = new MNOMapper();
   }
 
   private initializeTadigMapping() {
@@ -644,25 +647,45 @@ export class ComprehensiveParser {
 
   async loadAllData(): Promise<NetworkPricing[]> {
     console.log('🔄 Starting comprehensive data parsing...\n');
-    
+
+    // Load MNO mappings first for name translation
+    await this.mnoMapper.loadMappings();
+
     const [a1Data, telefonicaData, tele2Data] = await Promise.all([
       this.parseA1File(),
       this.parseTelefonicaFile(),
       this.parseTele2File()
     ]);
-    
-    this.allData = [...a1Data, ...telefonicaData, ...tele2Data];
-    
+
+    // Apply MNO name translation to all records
+    const translatedA1 = a1Data.map(record => this.translateNetworkNames(record));
+    const translatedTelefonica = telefonicaData.map(record => this.translateNetworkNames(record));
+    const translatedTele2 = tele2Data.map(record => this.translateNetworkNames(record));
+
+    this.allData = [...translatedA1, ...translatedTelefonica, ...translatedTele2];
+
     console.log(`\n📊 Total records loaded: ${this.allData.length}`);
     console.log(`   A1: ${a1Data.length} records`);
     console.log(`   Telefonica: ${telefonicaData.length} records`);
     console.log(`   Tele2: ${tele2Data.length} records`);
-    
+
     // Count unique TADIGs
     const uniqueTadigs = new Set(this.allData.map(d => d.tadig));
     console.log(`   Unique TADIGs: ${uniqueTadigs.size}`);
-    
+
     return this.allData;
+  }
+
+  /**
+   * Translate network and country names using MNO master database
+   */
+  private translateNetworkNames(record: NetworkPricing): NetworkPricing {
+    const translated = this.mnoMapper.translate(record.tadig, record.country, record.network);
+    return {
+      ...record,
+      country: translated.country,
+      network: translated.network
+    };
   }
 
   searchNetworks(query: string): NetworkPricing[] {
