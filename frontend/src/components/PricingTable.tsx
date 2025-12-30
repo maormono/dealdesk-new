@@ -9,12 +9,15 @@ interface NetworkData {
   country: string;
   tadig: string;
   operator: string;
+  identity?: string; // B, O, E, U, etc.
   data_cost: number;
   sms_cost: number;
   imsi_cost: number;
   notes?: string;
   lte_m?: boolean;
+  lte_m_double?: boolean; // Double checkmark (✓✓)
   nb_iot?: boolean;
+  nb_iot_double?: boolean; // Double checkmark (✓✓)
   restrictions?: string;
   // Network generation fields
   gsm?: boolean;
@@ -30,12 +33,15 @@ interface GroupedNetwork {
   tadigs: string[];
   sources: Array<{
     operator: string;
+    identity?: string; // B, O, E, U, etc.
     data_cost: number;
     sms_cost: number;
     imsi_cost: number;
     notes?: string;
     lte_m?: boolean;
+    lte_m_double?: boolean; // Double checkmark (✓✓)
     nb_iot?: boolean;
+    nb_iot_double?: boolean; // Double checkmark (✓✓)
     // Network generation fields
     gsm?: boolean;
     gprs2G?: boolean;
@@ -45,32 +51,74 @@ interface GroupedNetwork {
   }>;
 }
 
-// Using Monogoto brand colors
-const operatorConfig = {
-  'A1': { 
-    color: 'text-[#5B9BD5]', 
-    bgColor: 'bg-[#5B9BD5]/10', 
+// Using Monogoto brand colors - keyed by operator OR identity
+const operatorConfig: Record<string, { color: string; bgColor: string; borderColor: string; label: string }> = {
+  // Legacy operator-based colors
+  'A1': {
+    color: 'text-[#5B9BD5]',
+    bgColor: 'bg-[#5B9BD5]/10',
     borderColor: 'border-[#5B9BD5]/20',
-    label: 'A1' 
+    label: 'A1'
   },
-  'Telefonica': { 
-    color: 'text-[#EC6B9D]', 
-    bgColor: 'bg-[#EC6B9D]/10', 
+  'Telefonica': {
+    color: 'text-[#EC6B9D]',
+    bgColor: 'bg-[#EC6B9D]/10',
     borderColor: 'border-[#EC6B9D]/20',
-    label: 'TF' 
+    label: 'TF'
   },
-  'Tele2': { 
-    color: 'text-[#9B7BB6]', 
-    bgColor: 'bg-[#9B7BB6]/10', 
+  'Tele2': {
+    color: 'text-[#9B7BB6]',
+    bgColor: 'bg-[#9B7BB6]/10',
     borderColor: 'border-[#9B7BB6]/20',
-    label: 'T2' 
+    label: 'T2'
   },
-  'Monogoto': { 
-    color: 'text-[#F5B342]', 
-    bgColor: 'bg-[#F5B342]/10', 
+  'Monogoto': {
+    color: 'text-[#F5B342]',
+    bgColor: 'bg-[#F5B342]/10',
     borderColor: 'border-[#F5B342]/20',
-    label: 'MG' 
+    label: 'MG'
+  },
+  // Identity-based colors (Monogoto-B, Monogoto-O, etc.)
+  'B': {
+    color: 'text-[#5B9BD5]',
+    bgColor: 'bg-[#5B9BD5]/10',
+    borderColor: 'border-[#5B9BD5]/20',
+    label: 'Monogoto-B'
+  },
+  'O': {
+    color: 'text-[#EC6B9D]',
+    bgColor: 'bg-[#EC6B9D]/10',
+    borderColor: 'border-[#EC6B9D]/20',
+    label: 'Monogoto-O'
+  },
+  'E': {
+    color: 'text-[#9B7BB6]',
+    bgColor: 'bg-[#9B7BB6]/10',
+    borderColor: 'border-[#9B7BB6]/20',
+    label: 'Monogoto-E'
+  },
+  'U': {
+    color: 'text-[#F5B342]',
+    bgColor: 'bg-[#F5B342]/10',
+    borderColor: 'border-[#F5B342]/20',
+    label: 'Monogoto-U'
+  },
+};
+
+// Helper function to get config based on identity or operator
+const getSourceConfig = (source: { operator: string; identity?: string }) => {
+  // First try to match by identity letter (B, O, E, U)
+  if (source.identity) {
+    // Extract the letter from identity like "Monogoto-B" -> "B" or just "B" -> "B"
+    const identityLetter = source.identity.includes('-')
+      ? source.identity.split('-').pop()
+      : source.identity;
+    if (identityLetter && operatorConfig[identityLetter]) {
+      return operatorConfig[identityLetter];
+    }
   }
+  // Fall back to operator-based config
+  return operatorConfig[source.operator] || null;
 };
 
 interface PricingTableProps {
@@ -87,7 +135,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
   const [currency, setCurrency] = useState<'EUR' | 'USD'>(propCurrency || 'USD');
   const [dataUnit, setDataUnit] = useState<'MB' | 'GB'>('MB');
   const [exchangeRate, setExchangeRate] = useState(1.1); // Default EUR to USD rate
-  const [selectedOperators, setSelectedOperators] = useState<Set<string>>(new Set());
+  const [selectedIdentities, setSelectedIdentities] = useState<Set<string>>(new Set());
   const [showHiddenNetworks, setShowHiddenNetworks] = useState(false);
   
   // Search and sort state
@@ -202,12 +250,15 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
               country: item.country,
               tadig: item.tadig,
               operator: item.source || 'Unknown',
+              identity: item.identity || '',
               data_cost: adjustedDataPrice,
               sms_cost: adjustedSmsPrice,
               imsi_cost: adjustedImsiPrice,
               notes: item.restrictions || '',
               lte_m: item.lteM || false,
+              lte_m_double: item.lteMDouble || false,
               nb_iot: item.nbIot || false,
+              nb_iot_double: item.nbIotDouble || false,
               restrictions: item.restrictions || '',
               // Network generation fields
               gsm: item.gsm || false,
@@ -217,14 +268,10 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
               lte5G: item.lte5G || false,
             };
           });
-          
-          // Store all networks and filter hidden ones
+
+          // Store all networks - no filtering needed for new data source
           setAllNetworks(transformedData);
-          const visibleNetworks = transformedData.filter(n => {
-            const price = n.data_cost;
-            return price <= MAX_REASONABLE_PRICE_EUR_MB * (isSales ? 1.5 : 1);
-          });
-          setNetworks(visibleNetworks);
+          setNetworks(transformedData);
           return;
         }
       }
@@ -464,12 +511,15 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
 
       grouped[key].sources.push({
         operator: network.operator,
+        identity: network.identity,
         data_cost: network.data_cost,
         sms_cost: network.sms_cost,
         imsi_cost: network.imsi_cost,
         notes: network.notes,
         lte_m: network.lte_m,
+        lte_m_double: network.lte_m_double,
         nb_iot: network.nb_iot,
+        nb_iot_double: network.nb_iot_double,
         // Network generation fields
         gsm: network.gsm,
         gprs2G: network.gprs2G,
@@ -486,9 +536,15 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
   const visibleNetworks = showHiddenNetworks ? allNetworks : networks;
   
   const filteredNetworks = visibleNetworks.filter(network => {
-    // Apply operator filter
-    if (selectedOperators.size > 0 && !selectedOperators.has(network.operator)) {
-      return false;
+    // Apply identity filter (A1->E, TF->O, T2->B)
+    if (selectedIdentities.size > 0) {
+      // Extract identity letter from network.identity (e.g., "Monogoto-B" -> "B" or just "B" -> "B")
+      const identityLetter = network.identity?.includes('-')
+        ? network.identity.split('-').pop()
+        : network.identity;
+      if (!identityLetter || !selectedIdentities.has(identityLetter)) {
+        return false;
+      }
     }
     
     // Apply column-specific search filters
@@ -504,7 +560,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
       return false;
     }
     
-    if (sourceSearch && !network.operator.toLowerCase().includes(sourceSearch.toLowerCase().trim())) {
+    if (sourceSearch && !(network.identity || '').toLowerCase().includes(sourceSearch.toLowerCase().trim())) {
       return false;
     }
     
@@ -591,7 +647,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
   
   // Export functionality
   const exportToCSV = () => {
-    const headers = ['Country', 'Network', 'TADIG', 'Operator', `Data (${currency}/${dataUnit})`, `SMS (${currency})`, `IMSI (${currency})`, 'Network Gen.', 'CAT-M', 'NB-IoT', 'Notes'];
+    const headers = ['Country', 'Network', 'TADIG', 'Identity', `Data (${currency}/${dataUnit})`, `SMS (${currency})`, `IMSI (${currency})`, 'NETWORK TECH.', 'CAT-M', 'NB-IoT', 'Notes'];
     const rows = filteredNetworks.map(network => {
       // Build generation string for CSV
       const generations = [];
@@ -600,12 +656,12 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
       if (network.umts3G) generations.push('3G');
       if (network.lte4G) generations.push('4G');
       if (network.lte5G) generations.push('5G');
-      
+
       return [
         network.country,
         network.network_name,
         network.tadig,
-        network.operator,
+        network.identity || '',
         formatDataPrice(network.data_cost),
         formatCurrency(network.sms_cost, 3),
         formatCurrency(network.imsi_cost, 2),
@@ -632,14 +688,14 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
     document.body.removeChild(link);
   };
   
-  const toggleOperator = (operator: string) => {
-    const newSelected = new Set(selectedOperators);
-    if (newSelected.has(operator)) {
-      newSelected.delete(operator);
+  const toggleIdentity = (identity: string) => {
+    const newSelected = new Set(selectedIdentities);
+    if (newSelected.has(identity)) {
+      newSelected.delete(identity);
     } else {
-      newSelected.add(operator);
+      newSelected.add(identity);
     }
-    setSelectedOperators(newSelected);
+    setSelectedIdentities(newSelected);
   };
 
 
@@ -750,23 +806,28 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
       <div className="mb-6">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
           <div className="flex gap-3 items-center">
-            {/* Operator Filter - Left Side */}
+            {/* Carrier Filter - Left Side */}
             <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600 mr-1">Operators:</span>
+              <span className="text-sm text-gray-600 mr-1">Carriers:</span>
               <div className="flex gap-2">
-                {['A1', 'Telefonica', 'Tele2'].map(operator => {
-                  const config = operatorConfig[operator as keyof typeof operatorConfig];
+                {/* A1 -> filters by identity E, TF -> filters by identity O, T2 -> filters by identity B */}
+                {[
+                  { label: 'A1', identity: 'E', configKey: 'A1' },
+                  { label: 'TF', identity: 'O', configKey: 'Telefonica' },
+                  { label: 'T2', identity: 'B', configKey: 'Tele2' }
+                ].map(({ label, identity, configKey }) => {
+                  const config = operatorConfig[configKey as keyof typeof operatorConfig];
                   return (
                     <button
-                      key={operator}
-                      onClick={() => toggleOperator(operator)}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all border ${
-                        selectedOperators.has(operator)
+                      key={label}
+                      onClick={() => toggleIdentity(identity)}
+                      className={`px-3 py-0.5.5 rounded-lg text-sm font-medium transition-all border ${
+                        selectedIdentities.has(identity)
                           ? `${config.bgColor} ${config.color} ${config.borderColor} border-2`
                           : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
                       }`}
                     >
-                      {config.label}
+                      {label}
                     </button>
                   );
                 })}
@@ -774,7 +835,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
                 {/* Hidden Networks Button - Next to T2 */}
                 <button
                   onClick={() => setShowHiddenNetworks(!showHiddenNetworks)}
-                  className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-sm font-medium transition-all border ${
+                  className={`flex items-center gap-1 px-2 py-0.5.5 rounded-lg text-sm font-medium transition-all border ${
                     showHiddenNetworks
                       ? 'bg-orange-50 text-orange-600 border-orange-200'
                       : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
@@ -796,7 +857,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
                 placeholder="Search networks, countries, TADIG codes..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-3 py-1.5 bg-gray-50 border-0 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]/50 focus:bg-white transition-all placeholder-gray-400 text-sm"
+                className="w-full px-3 py-0.5.5 bg-gray-50 border-0 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]/50 focus:bg-white transition-all placeholder-gray-400 text-sm"
               />
             </div>
             
@@ -804,7 +865,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
             <div className="flex items-center bg-gray-50 rounded-xl p-1">
               <button
                 onClick={() => setDataUnit('MB')}
-                className={`px-3 py-1.5 rounded-lg text-sm transition-all ${
+                className={`px-3 py-0.5.5 rounded-lg text-sm transition-all ${
                   dataUnit === 'MB' 
                     ? 'bg-white text-[#5B9BD5] shadow-sm' 
                     : 'text-gray-500 hover:text-gray-700'
@@ -814,7 +875,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
               </button>
               <button
                 onClick={() => setDataUnit('GB')}
-                className={`px-3 py-1.5 rounded-lg text-sm transition-all ${
+                className={`px-3 py-0.5.5 rounded-lg text-sm transition-all ${
                   dataUnit === 'GB' 
                     ? 'bg-white text-[#5B9BD5] shadow-sm' 
                     : 'text-gray-500 hover:text-gray-700'
@@ -831,7 +892,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
                   setCurrency('USD');
                   onCurrencyChange?.('USD');
                 }}
-                className={`px-3 py-1.5 rounded-lg text-sm transition-all ${
+                className={`px-3 py-0.5.5 rounded-lg text-sm transition-all ${
                   currency === 'USD' 
                     ? 'bg-white text-[#5B9BD5] shadow-sm' 
                     : 'text-gray-500 hover:text-gray-700'
@@ -844,7 +905,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
                   setCurrency('EUR');
                   onCurrencyChange?.('EUR');
                 }}
-                className={`px-3 py-1.5 rounded-lg text-sm transition-all ${
+                className={`px-3 py-0.5.5 rounded-lg text-sm transition-all ${
                   currency === 'EUR' 
                     ? 'bg-white text-[#5B9BD5] shadow-sm' 
                     : 'text-gray-500 hover:text-gray-700'
@@ -865,16 +926,16 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
           </div>
       
           {/* Active filter indicator */}
-          {(searchTerm || networkSearch || countrySearch || tadigSearch || sourceSearch || generationSearch || selectedOperators.size > 0) && (
+          {(searchTerm || networkSearch || countrySearch || tadigSearch || sourceSearch || generationSearch || selectedIdentities.size > 0) && (
             <div className="mt-3 flex items-center gap-2 text-sm text-gray-500">
-              <span>Active filters: 
+              <span>Active filters:
                 {searchTerm && <strong className="text-gray-700 ml-1">General: "{searchTerm}"</strong>}
                 {networkSearch && <strong className="text-gray-700 ml-1">Network: "{networkSearch}"</strong>}
                 {countrySearch && <strong className="text-gray-700 ml-1">Country: "{countrySearch}"</strong>}
                 {tadigSearch && <strong className="text-gray-700 ml-1">TADIG: "{tadigSearch}"</strong>}
                 {sourceSearch && <strong className="text-gray-700 ml-1">Source: "{sourceSearch}"</strong>}
                 {generationSearch && <strong className="text-gray-700 ml-1">Generation: "{generationSearch}"</strong>}
-                {selectedOperators.size > 0 && <strong className="text-gray-700 ml-1">Operators: {Array.from(selectedOperators).join(', ')}</strong>}
+                {selectedIdentities.size > 0 && <strong className="text-gray-700 ml-1">Carriers: {Array.from(selectedIdentities).join(', ')}</strong>}
               </span>
               <button
                 onClick={() => {
@@ -884,7 +945,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
                   setTagidSearch('');
                   setSourceSearch('');
                   setGenerationSearch('');
-                  setSelectedOperators(new Set());
+                  setSelectedIdentities(new Set());
                   // Hide all search boxes
                   setShowNetworkSearch(false);
                   setShowCountrySearch(false);
@@ -909,11 +970,11 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
             <col className="w-[140px]" /> {/* Country */}
             <col className="w-[240px]" /> {/* Network */}
             <col className="w-[100px]" /> {/* TADIG */}
-            <col className="w-[100px]" /> {/* Sources */}
+            <col className="w-[100px]" /> {/* Identity */}
             <col className="w-[120px]" /> {/* Data */}
             <col className="w-[100px]" /> {/* SMS */}
             <col className="w-[100px]" /> {/* IMSI */}
-            <col className="w-[130px]" /> {/* Network Gen. */}
+            <col className="w-[130px]" /> {/* NETWORK TECH. */}
             <col className="w-[120px]" /> {/* LP-WAN Tech */}
             <col /> {/* Notes - flexible width takes remaining space */}
           </colgroup>
@@ -949,7 +1010,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
                     placeholder="Search countries..."
                     value={countrySearch}
                     onChange={(e) => setCountrySearch(e.target.value)}
-                    className="mt-1 w-full px-2 py-1 text-xs bg-gray-50 border-0 rounded focus:outline-none focus:ring-1 focus:ring-blue-300 focus:bg-white placeholder-gray-400"
+                    className="mt-1 w-full px-2 py-0.5 text-xs bg-gray-50 border-0 rounded focus:outline-none focus:ring-1 focus:ring-blue-300 focus:bg-white placeholder-gray-400"
                     autoFocus
                   />
                 )}
@@ -984,7 +1045,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
                     placeholder="Search networks..."
                     value={networkSearch}
                     onChange={(e) => setNetworkSearch(e.target.value)}
-                    className="mt-1 w-full px-2 py-1 text-xs bg-gray-50 border-0 rounded focus:outline-none focus:ring-1 focus:ring-blue-300 focus:bg-white placeholder-gray-400"
+                    className="mt-1 w-full px-2 py-0.5 text-xs bg-gray-50 border-0 rounded focus:outline-none focus:ring-1 focus:ring-blue-300 focus:bg-white placeholder-gray-400"
                     autoFocus
                   />
                 )}
@@ -1019,22 +1080,22 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
                     placeholder="Search TADIG..."
                     value={tadigSearch}
                     onChange={(e) => setTagidSearch(e.target.value)}
-                    className="mt-1 w-full px-2 py-1 text-xs bg-gray-50 border-0 rounded focus:outline-none focus:ring-1 focus:ring-blue-300 focus:bg-white placeholder-gray-400"
+                    className="mt-1 w-full px-2 py-0.5 text-xs bg-gray-50 border-0 rounded focus:outline-none focus:ring-1 focus:ring-blue-300 focus:bg-white placeholder-gray-400"
                     autoFocus
                   />
                 )}
               </th>
                 <th className="px-2 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-200">
                 <div className="flex items-center gap-1 group">
-                  <span>Sources</span>
-                  <button 
+                  <span>Identity</span>
+                  <button
                     onClick={() => handleSort('source')}
                     className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 rounded"
-                    title="Sort sources"
+                    title="Sort identity"
                   >
                     {sortField === 'source' ? (
-                      sortDirection === 'asc' ? 
-                      <ArrowUp className="w-3 h-3 text-gray-500" /> : 
+                      sortDirection === 'asc' ?
+                      <ArrowUp className="w-3 h-3 text-gray-500" /> :
                       <ArrowDown className="w-3 h-3 text-gray-500" />
                     ) : (
                       <ArrowUpDown className="w-3 h-3 text-gray-400" />
@@ -1043,7 +1104,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
                   <button
                     onClick={() => toggleSearchBox('source')}
                     className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 rounded"
-                    title="Search sources"
+                    title="Search identity"
                   >
                     <Search className="w-3 h-3 text-gray-400" />
                   </button>
@@ -1051,10 +1112,10 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
                 {showSourceSearch && (
                   <input
                     type="text"
-                    placeholder="Search sources..."
+                    placeholder="Search identity..."
                     value={sourceSearch}
                     onChange={(e) => setSourceSearch(e.target.value)}
-                    className="mt-1 w-full px-2 py-1 text-xs bg-gray-50 border-0 rounded focus:outline-none focus:ring-1 focus:ring-blue-300 focus:bg-white placeholder-gray-400"
+                    className="mt-1 w-full px-2 py-0.5 text-xs bg-gray-50 border-0 rounded focus:outline-none focus:ring-1 focus:ring-blue-300 focus:bg-white placeholder-gray-400"
                     autoFocus
                   />
                 )}
@@ -1079,7 +1140,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
               </th>
                 <th className="px-2 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-200">
                 <div className="flex items-center gap-1 group whitespace-nowrap">
-                  <span>Network Gen.</span>
+                  <span>NETWORK TECH.</span>
                   <button 
                     onClick={() => handleSort('generation')}
                     className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 rounded"
@@ -1107,7 +1168,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
                     placeholder="Search generations..."
                     value={generationSearch}
                     onChange={(e) => setGenerationSearch(e.target.value)}
-                    className="mt-1 w-full px-2 py-1 text-xs bg-gray-50 border-0 rounded focus:outline-none focus:ring-1 focus:ring-blue-300 focus:bg-white placeholder-gray-400"
+                    className="mt-1 w-full px-2 py-0.5 text-xs bg-gray-50 border-0 rounded focus:outline-none focus:ring-1 focus:ring-blue-300 focus:bg-white placeholder-gray-400"
                     autoFocus
                   />
                 )}
@@ -1120,146 +1181,141 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
-            {sortedNetworks.map((network, index) => {
-
+          <tbody>
+            {sortedNetworks.map((network, networkIndex) => {
+              // Render each source as a separate row with its identity-based background color
               return (
-                <React.Fragment key={index}>
-                  <tr className="hover:bg-gray-50/50 border-b border-gray-50 transition-colors">
-                    <td className="px-2 py-2 text-gray-700 text-sm">{network.country}</td>
-                    <td className="px-2 py-2">
-                      <div className="flex-1">
-                        <div className="font-medium text-gray-900 text-sm" title={network.network_name}>
-                          {network.network_name}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {network.sources.length} source{network.sources.length !== 1 ? 's' : ''}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-2 py-2">
-                      <div className="font-mono text-xs space-y-0.5">
-                        {network.tadigs.map((tadig, i) => (
-                          <div key={i} className="font-semibold">{tadig}</div>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="px-2 py-2">
-                      <div className="space-y-0.5">
-                        {[...new Set(network.sources.map(s => s.operator))].map((operator, i) => {
-                          const config = operatorConfig[operator as keyof typeof operatorConfig];
-                          if (!config) return null;
-                          return (
-                            <div
-                              key={i}
-                              className={`text-xs font-medium ${config.color}`}
-                            >
-                              {config.label}
+                <React.Fragment key={networkIndex}>
+                  {network.sources.map((source, sourceIndex) => {
+                    const config = getSourceConfig(source);
+                    const isFirstSource = sourceIndex === 0;
+                    const isLastSource = sourceIndex === network.sources.length - 1;
+                    const rowSpan = network.sources.length;
+
+                    // Build generation string
+                    const generations: string[] = [];
+                    if (source.gsm) generations.push('2G');
+                    if (source.gprs2G && !generations.includes('2G')) generations.push('2G');
+                    if (source.umts3G) generations.push('3G');
+                    if (source.lte4G) generations.push('4G');
+                    if (source.lte5G) generations.push('5G');
+
+                    // Build LP-WAN technologies
+                    const technologies: string[] = [];
+                    if (source.lte_m) technologies.push('CAT-M');
+                    if (source.nb_iot) technologies.push('NB-IoT');
+
+                    // Display identity value (e.g., "Monogoto-B") or fall back to operator
+                    const displayIdentity = source.identity || source.operator;
+
+                    return (
+                      <tr
+                        key={`${networkIndex}-${sourceIndex}`}
+                        className={`hover:bg-gray-50 transition-colors ${isLastSource ? 'border-b border-gray-200' : ''}`}
+                      >
+                        {/* Country - only show on first row, span all sources */}
+                        {isFirstSource && (
+                          <td
+                            className="px-2 py-0.5 text-gray-700 text-sm align-top"
+                            rowSpan={rowSpan}
+                          >
+                            {network.country}
+                          </td>
+                        )}
+                        {/* Network - only show on first row, span all sources */}
+                        {isFirstSource && (
+                          <td className="px-2 py-0.5 align-top" rowSpan={rowSpan}>
+                            <div className="flex-1">
+                              <div className="font-medium text-gray-900 text-sm" title={network.network_name}>
+                                {network.network_name}
+                              </div>
                             </div>
-                          );
-                        })}
-                      </div>
-                    </td>
-                    <td className="px-2 py-2">
-                      <div className="space-y-0.5">
-                        {network.sources.map((source, i) => {
-                          const config = operatorConfig[source.operator as keyof typeof operatorConfig];
-                          const formatted = formatDataPrice(source.data_cost || 0);
-                          return (
-                            <div key={i} className={`text-xs whitespace-nowrap ${config?.color || 'text-gray-600'}`}>
-                              {formatted || <span className="text-gray-300">-</span>}
+                          </td>
+                        )}
+                        {/* TADIG - only show on first row, span all sources */}
+                        {isFirstSource && (
+                          <td className="px-2 py-0.5 align-top" rowSpan={rowSpan}>
+                            <div className="font-mono text-xs font-semibold">
+                              {network.tadigs.join(', ')}
                             </div>
-                          );
-                        })}
-                      </div>
-                    </td>
-                    <td className="px-2 py-2">
-                      <div className="space-y-0.5">
-                        {network.sources.map((source, i) => {
-                          const config = operatorConfig[source.operator as keyof typeof operatorConfig];
-                          const formatted = formatCurrency(source.sms_cost || 0);
-                          return (
-                            <div key={i} className={`text-xs ${config?.color || 'text-gray-600'}`}>
-                              {formatted || <span className="text-gray-300">-</span>}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </td>
-                    <td className="px-2 py-2">
-                      <div className="space-y-0.5">
-                        {network.sources.map((source, i) => {
-                          const config = operatorConfig[source.operator as keyof typeof operatorConfig];
-                          const formatted = formatCurrency(source.imsi_cost || 0);
-                          return (
-                            <div key={i} className={`text-xs ${config?.color || 'text-gray-600'}`}>
-                              {formatted || <span className="text-gray-300">-</span>}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </td>
-                    <td className="px-2 py-2">
-                      <div className="space-y-0.5">
-                        {network.sources.map((source, i) => {
-                          const config = operatorConfig[source.operator as keyof typeof operatorConfig];
-                          const generations = [];
-                          if (source.gsm) generations.push('2G');
-                          if (source.gprs2G && !generations.includes('2G')) generations.push('2G');
-                          if (source.umts3G) generations.push('3G');
-                          if (source.lte4G) generations.push('4G');
-                          if (source.lte5G) generations.push('5G');
-                          
-                          return (
-                            <div key={i} className={`text-xs whitespace-nowrap ${config?.color || 'text-gray-600'}`}>
-                              {generations.length > 0 ? (
-                                <span className="font-medium">{generations.join(', ')}</span>
-                              ) : (
-                                <span className="text-gray-300">-</span>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </td>
-                    <td className="px-2 py-2">
-                      <div className="space-y-0.5">
-                        {network.sources.map((source, i) => {
-                          const config = operatorConfig[source.operator as keyof typeof operatorConfig];
-                          const technologies = [];
-                          if (source.lte_m) technologies.push('CAT-M');
-                          if (source.nb_iot) technologies.push('NB-IoT');
-                          
-                          return (
-                            <div key={i} className={`text-xs whitespace-nowrap ${config?.color || 'text-gray-600'}`}>
-                              {technologies.length > 0 ? (
-                                <span className="font-medium">{technologies.join(', ')}</span>
-                              ) : (
-                                <span className="text-gray-300">-</span>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </td>
-                    <td className="px-2 py-2">
-                      <div className="space-y-0.5">
-                        {network.sources.map((source, i) => {
-                          const config = operatorConfig[source.operator as keyof typeof operatorConfig];
-                          return (
-                            <div key={i} className={`text-xs whitespace-nowrap ${config?.color || 'text-gray-600'}`}>
-                              {source.notes && 
-                                source.notes !== 'X' && 
-                                source.notes !== 'XX' && 
-                                !(source.notes.toLowerCase().includes('access fee') && source.imsi_cost > 0) ? 
-                                <span>{source.notes}</span> : 
-                                <span className="text-gray-300">-</span>}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </td>
-                  </tr>
+                          </td>
+                        )}
+                        {/* Identity/Operator */}
+                        <td className="px-2 py-0.5">
+                          <span className={`text-xs ${config?.color || 'text-gray-600'}`}>
+                            {displayIdentity}
+                          </span>
+                        </td>
+                        {/* Data cost */}
+                        <td className="px-2 py-0.5">
+                          <span className={`text-xs whitespace-nowrap ${config?.color || 'text-gray-600'}`}>
+                            {formatDataPrice(source.data_cost || 0) || <span className="text-gray-300">-</span>}
+                          </span>
+                        </td>
+                        {/* SMS cost */}
+                        <td className="px-2 py-0.5">
+                          <span className={`text-xs ${config?.color || 'text-gray-600'}`}>
+                            {formatCurrency(source.sms_cost || 0) || <span className="text-gray-300">-</span>}
+                          </span>
+                        </td>
+                        {/* IMSI cost */}
+                        <td className="px-2 py-0.5">
+                          <span className={`text-xs ${config?.color || 'text-gray-600'}`}>
+                            {formatCurrency(source.imsi_cost || 0) || <span className="text-gray-300">-</span>}
+                          </span>
+                        </td>
+                        {/* Network Technology */}
+                        <td className="px-2 py-0.5">
+                          <span className={`text-xs whitespace-nowrap ${config?.color || 'text-gray-600'}`}>
+                            {generations.length > 0 ? (
+                              <span>{generations.join(', ')}</span>
+                            ) : (
+                              <span className="text-gray-300">-</span>
+                            )}
+                          </span>
+                        </td>
+                        {/* LP-WAN Tech */}
+                        <td className="px-2 py-0.5">
+                          <span className={`text-xs whitespace-nowrap ${config?.color || 'text-gray-600'}`}>
+                            {technologies.length > 0 ? (
+                              <span className="flex items-center gap-1">
+                                {technologies.map((tech, techIndex) => {
+                                  const isDouble = (tech === 'CAT-M' && source.lte_m_double) || (tech === 'NB-IoT' && source.nb_iot_double);
+                                  return (
+                                    <span key={techIndex} className="flex items-center gap-0.5">
+                                      {tech}
+                                      {isDouble && (
+                                        <span className="inline-flex items-center justify-center w-4 h-4 bg-green-500 rounded-full">
+                                          <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                          </svg>
+                                        </span>
+                                      )}
+                                      {techIndex < technologies.length - 1 && ', '}
+                                    </span>
+                                  );
+                                })}
+                              </span>
+                            ) : (
+                              <span className="text-gray-300">-</span>
+                            )}
+                          </span>
+                        </td>
+                        {/* Notes */}
+                        <td className="px-2 py-0.5">
+                          <span className={`text-xs whitespace-nowrap ${config?.color || 'text-gray-600'}`}>
+                            {source.notes &&
+                              source.notes !== 'X' &&
+                              source.notes !== 'XX' &&
+                              !source.notes.toLowerCase().startsWith('region:') &&
+                              !(source.notes.toLowerCase().includes('access fee') && source.imsi_cost > 0) ?
+                              <span>{source.notes}</span> :
+                              <span className="text-gray-300">-</span>}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </React.Fragment>
               );
             })}

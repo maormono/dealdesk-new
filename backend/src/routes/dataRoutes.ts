@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import { ComprehensiveParser } from '../services/comprehensiveParser.js';
+import { NetworkPricingParser } from '../services/networkPricingParser.js';
 import type { Request, Response } from 'express';
 
 const router = Router();
-const parser = new ComprehensiveParser();
+const parser = new NetworkPricingParser();
 let dataLoaded = false;
 let allData: any[] = [];
 
@@ -11,8 +11,8 @@ let allData: any[] = [];
 const ensureDataLoaded = async (req: Request, res: Response, next: Function) => {
   if (!dataLoaded) {
     try {
-      console.log('Loading data using ComprehensiveParser...');
-      allData = await parser.loadAllData();
+      console.log('Loading data using NetworkPricingParser...');
+      allData = await parser.loadData();
       dataLoaded = true;
       console.log(`Data loaded: ${allData.length} records`);
     } catch (error) {
@@ -35,15 +35,15 @@ router.get('/all', ensureDataLoaded, (req: Request, res: Response) => {
 // GET /api/data/search?tadig=GRCPF
 router.get('/search', ensureDataLoaded, (req: Request, res: Response) => {
   const { tadig } = req.query;
-  
+
   if (!tadig || typeof tadig !== 'string') {
     return res.status(400).json({ error: 'TADIG parameter required' });
   }
-  
-  const results = allData.filter(item => 
+
+  const results = allData.filter(item =>
     item.tadig?.toLowerCase().includes(tadig.toLowerCase())
   );
-  
+
   res.json({
     success: true,
     query: tadig,
@@ -55,23 +55,39 @@ router.get('/search', ensureDataLoaded, (req: Request, res: Response) => {
 // GET /api/data/compare?tadig=GRCPF
 router.get('/compare', ensureDataLoaded, (req: Request, res: Response) => {
   const { tadig } = req.query;
-  
+
   if (!tadig || typeof tadig !== 'string') {
     return res.status(400).json({ error: 'TADIG parameter required' });
   }
-  
-  const results = allData.filter(item => 
+
+  const results = allData.filter(item =>
     item.tadig === tadig.toUpperCase()
   );
-  
+
   res.json({
     success: true,
     tadig,
     sources: results.map((r: any) => r.source),
     comparison: results,
-    bestPrice: results.length > 0 ? 
+    bestPrice: results.length > 0 ?
       Math.min(...results.map((r: any) => r.dataPerMB)) : null
   });
+});
+
+// Force reload data (useful for development)
+router.post('/reload', async (req: Request, res: Response) => {
+  try {
+    dataLoaded = false;
+    allData = await parser.loadData();
+    dataLoaded = true;
+    res.json({
+      success: true,
+      message: 'Data reloaded',
+      count: allData.length
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to reload data' });
+  }
 });
 
 export { router as dataRouter };
