@@ -48,3 +48,6 @@ Desktop.ini
 *.xlsx
 *.xls
 *.csv
+
+# Exception: allow network pricing file for production
+!network-pricing-2025-12-30.xlsx
