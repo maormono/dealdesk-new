@@ -212,7 +212,10 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
       setEnhancedAnalysis(enhancedResult);
       setComprehensiveAnalysis(comprehensiveResult);
       setShowResults(true);
-      
+
+      // Scroll to top when showing results
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
       if (onEvaluation) {
         onEvaluation(basicResult, formData);
       }
