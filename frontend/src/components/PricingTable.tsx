@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useUser } from '../contexts/UserContext';
 import { Wifi, Smartphone, Globe, DollarSign, Euro, Lock, Download, Eye, EyeOff, Search, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { DataUpload } from './DataUpload';
 import '../styles/monogoto-theme.css';
 
 interface NetworkData {
@@ -157,17 +158,6 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
   // Price threshold: $1/MB = approximately €0.90/MB at 1.1 exchange rate
   const MAX_REASONABLE_PRICE_EUR_MB = 0.90;
 
-  useEffect(() => {
-    loadNetworks();
-    fetchExchangeRate();
-  }, []);
-
-  useEffect(() => {
-    if (propCurrency && propCurrency !== currency) {
-      setCurrency(propCurrency);
-    }
-  }, [propCurrency]);
-
   const fetchExchangeRate = async () => {
     try {
       // Using a free API for exchange rates
@@ -181,6 +171,89 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
       // Keep default rate if API fails
     }
   };
+
+  const loadNetworks = useCallback(async () => {
+    try {
+      console.log('Loading networks from Supabase network_pricing_v2...');
+
+      // Primary source: Supabase network_pricing_v2 table
+      const { data: pricingData, error: pricingError } = await supabase
+        .from('network_pricing_v2')
+        .select('*')
+        .order('country', { ascending: true })
+        .order('network_name', { ascending: true });
+
+      if (pricingError) {
+        console.error('Error fetching from network_pricing_v2:', pricingError);
+        throw pricingError;
+      }
+
+      if (pricingData && pricingData.length > 0) {
+        console.log(`Loaded ${pricingData.length} records from Supabase`);
+
+        // Transform Supabase data to match our interface
+        const transformedData: NetworkData[] = pricingData.map((item: any) => {
+          // Apply role-based markup if user is sales
+          const dataPrice = parseFloat(item.data_per_mb) || 0;
+          const smsPrice = parseFloat(item.sms_cost) || 0;
+          const imsiPrice = parseFloat(item.imsi_cost) || 0;
+
+          const adjustedDataPrice = isSales ? dataPrice * 1.5 : dataPrice;
+          const adjustedSmsPrice = isSales ? smsPrice * 1.5 : smsPrice;
+          const adjustedImsiPrice = isSales ? imsiPrice * 1.5 : imsiPrice;
+
+          return {
+            network_name: item.network_name,
+            country: item.country,
+            tadig: item.tadig,
+            operator: item.identity || 'Unknown',
+            identity: item.identity || '',
+            data_cost: adjustedDataPrice,
+            sms_cost: adjustedSmsPrice,
+            imsi_cost: adjustedImsiPrice,
+            notes: item.notes || '',
+            lte_m: item.lte_m || false,
+            lte_m_double: item.lte_m_double || false,
+            nb_iot: item.nb_iot || false,
+            nb_iot_double: item.nb_iot_double || false,
+            restrictions: item.notes || '',
+            gsm: item.gsm || false,
+            gprs2G: item.gprs_2g || false,
+            umts3G: item.umts_3g || false,
+            lte4G: item.lte_4g || false,
+            lte5G: item.lte_5g || false,
+          };
+        });
+
+        setAllNetworks(transformedData);
+        setNetworks(transformedData);
+        return;
+      }
+
+      // No data in Supabase - show empty state
+      console.log('No data in network_pricing_v2 table');
+      setAllNetworks([]);
+      setNetworks([]);
+
+    } catch (error) {
+      console.error('Error loading networks:', error);
+      setAllNetworks([]);
+      setNetworks([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [isSales]);
+
+  useEffect(() => {
+    loadNetworks();
+    fetchExchangeRate();
+  }, [loadNetworks]);
+
+  useEffect(() => {
+    if (propCurrency && propCurrency !== currency) {
+      setCurrency(propCurrency);
+    }
+  }, [propCurrency]);
 
   const convertCurrency = (value: number): number => {
     return currency === 'USD' ? value * exchangeRate : value;
@@ -212,228 +285,6 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
       return `${symbol}${converted.toFixed(decimals)}`;
     }
     return `${symbol}${converted.toFixed(decimals)}`;
-  };
-
-  const loadNetworks = async () => {
-    try {
-      // In development, fetch from backend API
-      const isDevelopment = import.meta.env.DEV;
-      console.log('Development mode:', isDevelopment);
-      console.log('Environment:', import.meta.env);
-      
-      if (isDevelopment) {
-        console.log('Fetching from backend API...');
-        // Fetch from backend API  
-        const response = await fetch('http://localhost:3001/api/data/all');
-        const result = await response.json();
-        console.log('Backend API response:', result);
-        
-        if (result.success && result.data) {
-          // Transform backend data to match our interface
-          const transformedData: NetworkData[] = result.data.map((item: any) => {
-            // Extract network name from the full string (e.g., "Afghanistan - AWCC" -> "AWCC")
-            const networkName = item.network.includes(' - ') 
-              ? item.network.split(' - ')[1] 
-              : item.network;
-            
-            // Apply role-based markup if user is sales
-            const dataPrice = item.dataPerMB || 0;
-            const smsPrice = item.smsOutgoing || 0;
-            const imsiPrice = item.imsiCost || 0;
-            
-            const adjustedDataPrice = isSales ? dataPrice * 1.5 : dataPrice;
-            const adjustedSmsPrice = isSales ? smsPrice * 1.5 : smsPrice;
-            const adjustedImsiPrice = isSales ? imsiPrice * 1.5 : imsiPrice;
-            
-            return {
-              network_name: networkName,
-              country: item.country,
-              tadig: item.tadig,
-              operator: item.source || 'Unknown',
-              identity: item.identity || '',
-              data_cost: adjustedDataPrice,
-              sms_cost: adjustedSmsPrice,
-              imsi_cost: adjustedImsiPrice,
-              notes: item.restrictions || '',
-              lte_m: item.lteM || false,
-              lte_m_double: item.lteMDouble || false,
-              nb_iot: item.nbIot || false,
-              nb_iot_double: item.nbIotDouble || false,
-              restrictions: item.restrictions || '',
-              // Network generation fields
-              gsm: item.gsm || false,
-              gprs2G: item.gprs2G || false,
-              umts3G: item.umts3G || false,
-              lte4G: item.lte4G || false,
-              lte5G: item.lte5G || false,
-            };
-          });
-
-          // Store all networks - no filtering needed for new data source
-          setAllNetworks(transformedData);
-          setNetworks(transformedData);
-          return;
-        }
-      }
-      
-      // Production: Use Supabase
-      // Skip backend API in production (Netlify) since localhost won't work
-      const isProduction = window.location.hostname === 'deal-desk.netlify.app';
-      
-      if (!isProduction) {
-        // Only try backend API if not on Netlify
-        try {
-          console.log('Attempting backend API fetch as fallback...');
-          const response = await fetch('http://localhost:3001/api/data/all');
-          if (response.ok) {
-          const result = await response.json();
-          if (result.success && result.data) {
-            console.log('Using backend API data (fallback)');
-            // Transform backend data to match our interface
-            const transformedData: NetworkData[] = result.data.map((item: any) => {
-              // Extract network name from the full string (e.g., "Afghanistan - AWCC" -> "AWCC")
-              const networkName = item.network.includes(' - ') 
-                ? item.network.split(' - ')[1] 
-                : item.network;
-              
-              // Apply role-based markup if user is sales
-              const dataPrice = item.dataPerMB || 0;
-              const smsPrice = item.smsOutgoing || 0;
-              const imsiPrice = item.imsiCost || 0;
-              
-              const adjustedDataPrice = isSales ? dataPrice * 1.5 : dataPrice;
-              const adjustedSmsPrice = isSales ? smsPrice * 1.5 : smsPrice;
-              const adjustedImsiPrice = isSales ? imsiPrice * 1.5 : imsiPrice;
-              
-              return {
-                network_name: networkName,
-                country: item.country,
-                tadig: item.tadig,
-                operator: item.source || 'Unknown',
-                data_cost: adjustedDataPrice,
-                sms_cost: adjustedSmsPrice,
-                imsi_cost: adjustedImsiPrice,
-                notes: item.restrictions || '',
-                lte_m: item.lteM || false,
-                nb_iot: item.nbIot || false,
-                restrictions: item.restrictions || ''
-              };
-            });
-            
-            // Store all networks and filter hidden ones
-            setAllNetworks(transformedData);
-            const visibleNetworks = transformedData.filter(n => {
-              const price = n.data_cost;
-              return price <= MAX_REASONABLE_PRICE_EUR_MB * (isSales ? 1.5 : 1);
-            });
-            setNetworks(visibleNetworks);
-            return;
-          }
-        }
-        } catch {
-          console.log('Backend API not available, falling back to Supabase');
-        }
-      }
-      
-      // Use the role-based pricing view/function
-      const { data: pricingData, error: pricingError } = await supabase
-        .rpc('get_role_based_pricing');
-
-      if (pricingError) {
-        console.error('Error fetching role-based pricing:', pricingError);
-        // Fallback to regular pricing if role-based fails
-        const { data: networksData, error: networksError } = await supabase
-          .from('networks')
-          .select(`
-            id,
-            network_name,
-            country,
-            tadig,
-            network_pricing (
-              data_per_mb,
-              sms_mo,
-              sms_mt,
-              imsi_access_fee,
-              lte_m,
-              nb_iot,
-              notes,
-              pricing_sources (
-                source_name
-              )
-            )
-          `)
-          .order('country', { ascending: true })
-          .order('network_name', { ascending: true });
-
-        if (networksError) throw networksError;
-
-        // Transform the data to match our interface
-        const transformedData: NetworkData[] = [];
-        
-        networksData?.forEach(network => {
-          network.network_pricing?.forEach((pricing: any) => {
-            const dataPrice = pricing.data_per_mb || 0;
-            
-            // Apply role-based markup if user is sales
-            const adjustedDataPrice = isSales ? dataPrice * 1.5 : dataPrice;
-            const adjustedSmsPrice = isSales ? (pricing.sms_mo || pricing.sms_mt || 0) * 1.5 : (pricing.sms_mo || pricing.sms_mt || 0);
-            const adjustedImsiPrice = isSales ? (pricing.imsi_access_fee || 0) * 1.5 : (pricing.imsi_access_fee || 0);
-            
-            // Don't skip networks, but mark them for filtering
-            transformedData.push({
-              network_name: network.network_name,
-              country: network.country,
-              tadig: network.tadig,
-              operator: pricing.pricing_sources?.source_name || 'Unknown',
-              data_cost: adjustedDataPrice,
-              sms_cost: adjustedSmsPrice,
-              imsi_cost: adjustedImsiPrice,
-              notes: pricing.notes,
-              lte_m: pricing.lte_m || false,
-              nb_iot: pricing.nb_iot || false,
-              restrictions: pricing.notes,
-              // Network generation fields (Supabase may not have these yet)
-              gsm: pricing.gsm || false,
-              gprs2G: pricing.gprs2G || false,
-              umts3G: pricing.umts3G || false,
-              lte4G: pricing.lte4G || false,
-              lte5G: pricing.lte5G || false,
-            });
-          });
-        });
-
-        // Store all networks and filter hidden ones
-        setAllNetworks(transformedData);
-        const visibleNetworks = transformedData.filter(n => {
-          const price = n.data_cost;
-          return price <= MAX_REASONABLE_PRICE_EUR_MB * (isSales ? 1.5 : 1);
-        });
-        setNetworks(visibleNetworks);
-      } else {
-        // Use role-based pricing data
-        const transformedData: NetworkData[] = pricingData?.map((item: any) => ({
-          network_name: item.network_name,
-          country: item.country,
-          tadig: item.tadig,
-          operator: 'Monogoto',
-          data_cost: (item.data_price_cents_per_mb || 0) / 100, // Convert cents to euros
-          sms_cost: (item.sms_price_cents || 0) / 100,
-          imsi_cost: (item.imsi_price_cents || 0) / 100,
-          notes: '',
-          lte_m: false,
-          nb_iot: false,
-          restrictions: ''
-        })) || [];
-
-        // For role-based pricing, set both
-        setAllNetworks(transformedData);
-        setNetworks(transformedData);
-      }
-    } catch (error) {
-      console.error('Error loading networks:', error);
-    } finally {
-      setLoading(false);
-    }
   };
 
   const handleSort = (field: 'network' | 'country' | 'tadig' | 'source' | 'generation') => {
@@ -718,6 +569,9 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
           </span>
         </div>
       )}
+
+      {/* Data Upload Component */}
+      <DataUpload onDataLoaded={loadNetworks} />
 
       {/* Stats Cards - Apple Style */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-8">
