@@ -18,8 +18,9 @@ interface PricingOption {
   activeSimFee: number; // Monthly fee per active SIM
   dataFee: number; // Per MB/GB charge
   totalMonthlyPrice: number;
-  listPrice: number;
-  discountPercentage: number;
+  listPrice: number; // Calculated list price from costs + markup
+  yourPrice?: number; // Customer's target price (or list price if no target)
+  discountPercentage: number; // Discount needed to reach target from list
   reasoning: string[];
 }
 
@@ -166,6 +167,25 @@ export class EnhancedDealService {
       dataFeePerMB = costs.weightedDataPerMB * (1 + markupPercent / 100);
     }
 
+    // Calculate TRUE list price from costs (never from customer's target)
+    // List Price = (data cost per SIM + IMSI cost) with markup + SIM profit
+    const totalCostWithMarkup = (costs.totalCostPerSim * (1 + markupPercent / 100)) + (simProfit / 100);
+    const listPrice = totalCostWithMarkup;
+
+    // Calculate discount percentage needed to reach customer's target price
+    let discountPercentage = 0;
+    let yourPrice = listPrice; // Default to list price if no target
+
+    if (requestedPrice && requestedPrice > 0) {
+      yourPrice = requestedPrice;
+      // Discount = (List - Target) / List * 100
+      discountPercentage = ((listPrice - requestedPrice) / listPrice) * 100;
+      // If target is higher than list price, discount is negative (premium)
+      if (discountPercentage < 0) discountPercentage = 0;
+    }
+
+    const totalMonthlyPrice = yourPrice * simCount;
+
     // Log for debugging
     console.log('Pay-as-you-go pricing calculation:', {
       imsiCost: imsiCost,
@@ -174,30 +194,21 @@ export class EnhancedDealService {
       dataFeePerMB: dataFeePerMB.toFixed(4),
       markup: markupPercent,
       simProfit: simProfit,
-      rulesReceived: rules,
-      requestedPrice: requestedPrice
+      totalCostPerSim: costs.totalCostPerSim,
+      listPrice: listPrice.toFixed(4),
+      requestedPrice: requestedPrice,
+      yourPrice: yourPrice.toFixed(4),
+      discountPercentage: discountPercentage.toFixed(1)
     });
 
-    // If customer has a requested price, use that as the list price
-    // Otherwise calculate based on costs
-    let listPrice: number;
-    if (requestedPrice && requestedPrice > 0) {
-      listPrice = requestedPrice; // Use customer's target price
-    } else {
-      // Total cost per SIM with markup (standard calculation)
-      const totalCostWithMarkup = (costs.totalCostPerSim * (1 + markupPercent / 100)) + (simProfit / 100);
-      listPrice = totalCostWithMarkup;
-    }
-
-    const totalMonthlyPrice = listPrice * simCount;
-    
     return {
       model: 'payAsYouGo',
       activeSimFee: Number(activeSimFee.toFixed(2)),
       dataFee: Number(dataFeePerMB.toFixed(4)),
       totalMonthlyPrice: Number(totalMonthlyPrice.toFixed(2)),
-      listPrice: Number(listPrice.toFixed(2)),
-      discountPercentage: 0, // Will be calculated by Gemini
+      listPrice: Number(listPrice.toFixed(4)),
+      yourPrice: Number(yourPrice.toFixed(4)),
+      discountPercentage: Number(discountPercentage.toFixed(1)),
       reasoning: [
         'Pay-as-you-go model with separate active SIM and data charges',
         'Full transparency on usage-based billing',

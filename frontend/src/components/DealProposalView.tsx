@@ -14,14 +14,16 @@ export const DealProposalView: React.FC<DealProposalViewProps> = ({
   enhancedAnalysis,
   comprehensiveAnalysis
 }) => {
-  // Calculate base price before discount
-  const basePrice = enhancedAnalysis?.payAsYouGo?.listPrice && enhancedAnalysis?.payAsYouGo?.discountPercentage
-    ? enhancedAnalysis.payAsYouGo.listPrice / (1 - enhancedAnalysis.payAsYouGo.discountPercentage / 100)
-    : enhancedAnalysis?.payAsYouGo?.listPrice || 0;
+  // List price is calculated from costs + markup (the "official" price)
+  const listPrice = enhancedAnalysis?.payAsYouGo?.listPrice || 0;
 
-  const finalPrice = enhancedAnalysis?.payAsYouGo?.listPrice || 0;
+  // Your price is the customer's target price (or list price if no target)
+  const yourPrice = enhancedAnalysis?.payAsYouGo?.yourPrice || listPrice;
+
+  // Discount percentage from list price to reach your price
   const discount = enhancedAnalysis?.payAsYouGo?.discountPercentage || 0;
-  const monthlyTotal = finalPrice * formData.simQuantity;
+
+  const monthlyTotal = yourPrice * formData.simQuantity;
   const contractTotal = monthlyTotal * formData.duration;
 
   // Format currency
@@ -151,15 +153,15 @@ export const DealProposalView: React.FC<DealProposalViewProps> = ({
               <div className="flex justify-between items-center py-2 border-b border-blue-100">
                 <span className="text-sm text-gray-600">List Price per SIM</span>
                 <span className="text-sm font-medium text-gray-900">
-                  {formatCurrency(basePrice)}/month
+                  {formatCurrency(listPrice)}/month
                 </span>
               </div>
 
-              {/* Volume Discount */}
+              {/* Discount */}
               {discount > 0 && (
                 <div className="flex justify-between items-center py-2 border-b border-blue-100">
                   <span className="text-sm text-gray-600">
-                    Volume Discount ({formData.simQuantity.toLocaleString()} SIMs)
+                    Discount ({formData.simQuantity.toLocaleString()} SIMs)
                   </span>
                   <span className="text-sm font-semibold text-green-600">
                     -{discount.toFixed(1)}%
@@ -191,7 +193,7 @@ export const DealProposalView: React.FC<DealProposalViewProps> = ({
               <div className="flex justify-between items-center py-3 bg-white rounded-lg px-4">
                 <span className="font-semibold text-gray-900">Your Price per SIM</span>
                 <span className="text-xl font-bold text-blue-600">
-                  {formatCurrency(finalPrice)}/month
+                  {formatCurrency(yourPrice)}/month
                 </span>
               </div>
 
