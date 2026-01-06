@@ -489,12 +489,21 @@ export const DealRules: React.FC = () => {
                   onChange={(e) => setRules(prev => ({ ...prev, geminiModel: e.target.value }))}
                   className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#5B9BD5] focus:border-transparent"
                 >
-                  <option value="gemini-2.5-flash">Gemini 2.5 Flash (Recommended)</option>
-                  <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
-                  <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                  <optgroup label="Gemini 2.5 (Latest)">
+                    <option value="gemini-2.5-pro">Gemini 2.5 Pro (Best for complex analysis)</option>
+                    <option value="gemini-2.5-flash">Gemini 2.5 Flash (Fast & efficient)</option>
+                  </optgroup>
+                  <optgroup label="Gemini 2.0">
+                    <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+                    <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite (Cost-effective)</option>
+                  </optgroup>
+                  <optgroup label="Gemini 1.5">
+                    <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                    <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                  </optgroup>
                 </select>
                 <p className="mt-1 text-xs text-gray-500">
-                  AI model used for deal analysis and pricing recommendations
+                  AI model for deal analysis. Pro models offer deeper reasoning, Flash models are faster.
                 </p>
               </div>
             </div>
