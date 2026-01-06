@@ -686,13 +686,14 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-600 mr-1">Carriers:</span>
               <div className="flex gap-2">
-                {/* A1 -> filters by identity E, TF -> filters by identity O, T2 -> filters by identity B */}
+                {/* Identity-based filtering: B, E, O, U in alphabetical order */}
                 {[
-                  { label: 'A1', identity: 'E', configKey: 'A1' },
-                  { label: 'TF', identity: 'O', configKey: 'Telefonica' },
-                  { label: 'T2', identity: 'B', configKey: 'Tele2' }
-                ].map(({ label, identity, configKey }) => {
-                  const config = operatorConfig[configKey as keyof typeof operatorConfig];
+                  { label: 'B', identity: 'B' },
+                  { label: 'E', identity: 'E' },
+                  { label: 'O', identity: 'O' },
+                  { label: 'U', identity: 'U' }
+                ].map(({ label, identity }) => {
+                  const config = operatorConfig[identity as keyof typeof operatorConfig];
                   return (
                     <button
                       key={label}
