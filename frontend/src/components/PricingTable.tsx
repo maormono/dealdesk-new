@@ -176,11 +176,13 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
       console.log('Loading networks from Supabase network_pricing...');
 
       // Primary source: Supabase network_pricing table
+      // Fetch all records (Supabase default limit is 1000)
       const { data: pricingData, error: pricingError } = await supabase
         .from('network_pricing')
         .select('*')
         .order('country', { ascending: true })
-        .order('network_name', { ascending: true });
+        .order('network_name', { ascending: true })
+        .limit(10000);
 
       if (pricingError) {
         console.error('Error fetching from network_pricing:', pricingError);
