@@ -94,10 +94,10 @@ export const AIAdvisorAdvanced: React.FC<AIAdvisorAdvancedProps> = ({
   
   const loadCountries = async () => {
     const { data, error } = await supabase
-      .from('networks')
+      .from('network_pricing')
       .select('country')
       .order('country');
-    
+
     if (!error && data) {
       const uniqueCountries = [...new Set(data.map(d => d.country))].filter(c => c && c !== 'Unknown');
       setAvailableCountries(uniqueCountries);

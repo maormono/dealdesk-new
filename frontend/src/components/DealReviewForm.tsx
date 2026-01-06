@@ -130,22 +130,22 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
   
   const loadCountries = async () => {
     const { data, error } = await supabase
-      .from('networks')
+      .from('network_pricing')
       .select('country')
       .order('country');
-    
+
     if (!error && data) {
       const uniqueCountries = [...new Set(data.map(d => d.country))].filter(c => c && c !== 'Unknown');
       setAvailableCountries(uniqueCountries);
     }
   };
-  
+
   const loadCarriersForCountries = async (selectedCountries: string[]) => {
     const carrierMap = new Map<string, string[]>();
-    
+
     for (const country of selectedCountries) {
       const { data, error } = await supabase
-        .from('networks')
+        .from('network_pricing')
         .select('network_name')
         .eq('country', country)
         .order('network_name');
