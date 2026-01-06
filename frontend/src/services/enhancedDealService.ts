@@ -230,21 +230,8 @@ export class EnhancedDealService {
 
   private async fetchNetworkPricing(countries: string[]) {
     const { data, error } = await supabase
-      .from('networks')
-      .select(`
-        network_name,
-        country,
-        tadig,
-        network_pricing (
-          data_per_mb,
-          imsi_access_fee,
-          lte_m,
-          nb_iot,
-          pricing_sources (
-            source_name
-          )
-        )
-      `)
+      .from('network_pricing')
+      .select('*')
       .in('country', countries);
 
     if (error) throw error;
@@ -298,69 +285,41 @@ export class EnhancedDealService {
       alternativeCarriers?: Array<{carrier: string, operator: string}>
     }>();
     
-    networkData.forEach(network => {
-      const country = network.country;
-      
-      // Process ALL pricing entries for this network, not just the first one
-      if (network.network_pricing && network.network_pricing.length > 0) {
-        // Find the best pricing option for this network
-        type BestPricingType = {
-          dataCost: number;
-          imsiCost: number;
-          lte_m?: boolean;
-          nb_iot?: boolean;
-          source?: string;
-        };
-        let bestPricing: BestPricingType | null = null;
-        let bestCost = Infinity;
-        
-        network.network_pricing.forEach((pricing: any) => {
-          if (pricing?.data_per_mb) {
-            const dataCostPerMB = pricing.data_per_mb;
-            const imsiCost = pricing.imsi_access_fee || 0;
-            const totalCost = dataCostPerMB * request.dataPerSim + imsiCost;
-            
-            if (totalCost < bestCost) {
-              bestCost = totalCost;
-              bestPricing = {
-                dataCost: dataCostPerMB,
-                imsiCost: imsiCost,
-                lte_m: pricing.lte_m,
-                nb_iot: pricing.nb_iot,
-                source: pricing.pricing_sources?.source_name
-              };
-            }
-          }
-        });
-        
-        if (bestPricing) {
-          const currentBest = costPerCountry.get(country);
-          const finalPricing = bestPricing as BestPricingType;
-          
-          if (!currentBest || (currentBest.dataCost + currentBest.imsiCost) > bestCost) {
-            // Store previous best as alternative
-            const alternatives = currentBest ? [{
-              carrier: currentBest.carrier,
-              operator: currentBest.operator
-            }] : [];
-            
-            costPerCountry.set(country, {
-              dataCost: finalPricing.dataCost,
-              imsiCost: finalPricing.imsiCost,
-              carrier: network.network_name || 'Unknown Carrier',
-              operator: finalPricing.source || 'Unknown Operator',
-              lte_m: finalPricing.lte_m,
-              nb_iot: finalPricing.nb_iot,
-              alternativeCarriers: alternatives
-            });
-          } else if (currentBest && Math.abs(bestCost - (currentBest.dataCost + currentBest.imsiCost)) < 0.001) {
-            // Add as alternative if similar cost
-            currentBest.alternativeCarriers = currentBest.alternativeCarriers || [];
-            currentBest.alternativeCarriers.push({
-              carrier: network.network_name || 'Unknown Carrier',
-              operator: finalPricing.source || 'Unknown Operator'
-            });
-          }
+    // With flat structure, each record is already a pricing entry
+    networkData.forEach((pricing: any) => {
+      const country = pricing.country;
+
+      if (pricing?.data_per_mb && pricing.data_per_mb > 0) {
+        const dataCostPerMB = pricing.data_per_mb;
+        const imsiCost = pricing.imsi_cost || 0;
+        const totalCost = dataCostPerMB * request.dataPerSim + imsiCost;
+
+        const currentBest = costPerCountry.get(country);
+        const currentBestCost = currentBest ? (currentBest.dataCost * request.dataPerSim + currentBest.imsiCost) : Infinity;
+
+        if (totalCost < currentBestCost) {
+          // Store previous best as alternative
+          const alternatives = currentBest ? [{
+            carrier: currentBest.carrier,
+            operator: currentBest.operator
+          }] : [];
+
+          costPerCountry.set(country, {
+            dataCost: dataCostPerMB,
+            imsiCost: imsiCost,
+            carrier: pricing.network_name || 'Unknown Carrier',
+            operator: pricing.identity || 'Unknown Operator',
+            lte_m: pricing.lte_m,
+            nb_iot: pricing.nb_iot,
+            alternativeCarriers: alternatives
+          });
+        } else if (currentBest && Math.abs(totalCost - currentBestCost) < 0.001) {
+          // Add as alternative if similar cost
+          currentBest.alternativeCarriers = currentBest.alternativeCarriers || [];
+          currentBest.alternativeCarriers.push({
+            carrier: pricing.network_name || 'Unknown Carrier',
+            operator: pricing.identity || 'Unknown Operator'
+          });
         }
       }
     });

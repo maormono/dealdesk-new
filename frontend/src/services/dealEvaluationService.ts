@@ -95,37 +95,25 @@ export class DealEvaluationService {
       // Country is already "United States" in database, no mapping needed
       const dbCountry = country;
       
-      // Fetch networks for this country
+      // Fetch networks for this country from network_pricing table
       const { data: networks, error } = await supabase
-        .from('networks')
-        .select(`
-          id,
-          network_name,
-          country,
-          tadig,
-          network_pricing (
-            data_per_mb,
-            sms_mo,
-            sms_mt,
-            imsi_access_fee,
-            lte_m,
-            nb_iot,
-            pricing_sources (
-              source_name
-            )
-          )
-        `)
+        .from('network_pricing')
+        .select('*')
         .eq('country', dbCountry);
-      
+
       if (error) {
         console.error('Error fetching networks:', error);
         continue;
       }
-      
+
       // Process each network
-      networks?.forEach(network => {
-        network.network_pricing?.forEach((pricing: any) => {
-          const operator = pricing.pricing_sources?.source_name || 'Unknown';
+      networks?.forEach((pricing: any) => {
+        const network = {
+          network_name: pricing.network_name,
+          country: pricing.country,
+          tadig: pricing.tadig
+        };
+        const operator = pricing.identity || 'Unknown';
           
           // Check if this matches requested carriers (if any)
           let matchesRequestedCarrier = false;
@@ -172,11 +160,11 @@ export class DealEvaluationService {
             console.log(`Skipping invalid pricing: ${network.network_name} via ${operator} - data_per_mb: ${pricing.data_per_mb}`);
             return;
           }
-          
+
           // Calculate total cost for this option
           const dataRate = pricing.data_per_mb;
-          const imsiCost = pricing.imsi_access_fee || 0;
-          const smsRate = pricing.sms_mo || pricing.sms_mt || 0;
+          const imsiCost = pricing.imsi_cost || 0;
+          const smsRate = pricing.sms_cost || 0;
           
           const totalCostPerSim = (dataRate * request.monthlyDataPerSim * 1024) + imsiCost + 
                                   (smsRate * (request.monthlySmsPerSim || 0));
@@ -197,7 +185,6 @@ export class DealEvaluationService {
             },
             totalCostPerSim
           });
-        });
       });
     }
     

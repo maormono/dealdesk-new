@@ -46,48 +46,29 @@ export class AIAdvisorService {
       }
       
       // Otherwise, fall back to general network data analysis
-      // First, fetch ALL network data to give Gemini full context
+      // Fetch ALL network data from network_pricing table (flat structure)
       const { data: networksData, error } = await supabase
-        .from('networks')
-        .select(`
-          id,
-          network_name,
-          country,
-          tadig,
-          network_pricing (
-            data_per_mb,
-            sms_mo,
-            sms_mt,
-            imsi_access_fee,
-            lte_m,
-            nb_iot,
-            notes,
-            pricing_sources (
-              source_name
-            )
-          )
-        `)
+        .from('network_pricing')
+        .select('*')
         .order('country', { ascending: true });
 
       if (error) throw error;
 
       // Transform the data to a simpler format
       const networks: any[] = [];
-      networksData?.forEach(network => {
-        network.network_pricing?.forEach((pricing: any) => {
-          networks.push({
-            network_name: network.network_name,
-            country: network.country,
-            tadig: network.tadig,
-            operator: pricing.pricing_sources?.source_name || 'Unknown',
-            data_cost_per_mb: pricing.data_per_mb || 0,
-            data_cost_per_gb: (pricing.data_per_mb || 0) * 1024,
-            sms_cost: pricing.sms_mo || pricing.sms_mt || 0,
-            imsi_cost: pricing.imsi_access_fee || 0,
-            supports_cat_m: pricing.lte_m || false,
-            supports_nb_iot: pricing.nb_iot || false,
-            notes: pricing.notes
-          });
+      networksData?.forEach((pricing: any) => {
+        networks.push({
+          network_name: pricing.network_name,
+          country: pricing.country,
+          tadig: pricing.tadig,
+          operator: pricing.identity || 'Unknown',
+          data_cost_per_mb: pricing.data_per_mb || 0,
+          data_cost_per_gb: (pricing.data_per_mb || 0) * 1024,
+          sms_cost: pricing.sms_cost || 0,
+          imsi_cost: pricing.imsi_cost || 0,
+          supports_cat_m: pricing.lte_m || false,
+          supports_nb_iot: pricing.nb_iot || false,
+          notes: pricing.notes
         });
       });
 

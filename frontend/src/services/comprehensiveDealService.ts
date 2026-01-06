@@ -150,52 +150,41 @@ export class ComprehensiveDealService {
     try {
       // Map country names to database format
       const mappedCountries = this.mapCountryNames(countries);
-      
-      // Query networks table for pricing in specified countries
-      const { data: networks, error } = await supabase
-        .from('networks')
-        .select(`
-          country,
-          network_name,
-          tadig
-        `)
+
+      // Query network_pricing table directly (flat structure)
+      const { data: pricingData, error } = await supabase
+        .from('network_pricing')
+        .select('*')
         .in('country', mappedCountries)
         .order('country');
-      
+
       if (error) throw error;
-      
-      // Query pricing_records for these networks
-      const tagids = networks?.map(n => n.tadig) || [];
-      
-      const { data: pricing, error: pricingError } = await supabase
-        .from('pricing_records')
-        .select(`
-          tadig,
-          price_per_mb,
-          currency,
-          quality_score
-        `)
-        .in('tadig', tagids)
-        .order('price_per_mb');
-      
-      if (pricingError) throw pricingError;
-      
-      // Combine network and pricing data
+
+      // Transform to OperatorPricing format
       const operatorPricing: OperatorPricing[] = [];
-      
-      networks?.forEach(network => {
-        const price = pricing?.find(p => p.tadig === network.tadig);
-        if (price) {
+
+      pricingData?.forEach((pricing: any) => {
+        if (pricing.data_per_mb && pricing.data_per_mb > 0) {
+          // Build technology array
+          const technology: string[] = [];
+          if (pricing.gsm) technology.push('GSM');
+          if (pricing.gprs_2g) technology.push('2G');
+          if (pricing.umts_3g) technology.push('3G');
+          if (pricing.lte_4g) technology.push('4G');
+          if (pricing.lte_5g) technology.push('5G');
+          if (pricing.lte_m) technology.push('Cat-M');
+          if (pricing.nb_iot) technology.push('NB-IoT');
+
           operatorPricing.push({
-            country: network.country,
-            operatorName: network.network_name, // Using network_name as operator name
-            networkName: network.network_name,
-            tadig: network.tadig,
-            pricePerMB: price.price_per_mb,
-            currency: price.currency || 'EUR',
-            technology: [], // Technology info not in networks table
-            restrictions: '', // Restrictions not in networks table
-            qualityScore: price.quality_score
+            country: pricing.country,
+            operatorName: pricing.network_name,
+            networkName: pricing.network_name,
+            tadig: pricing.tadig,
+            pricePerMB: pricing.data_per_mb,
+            currency: 'USD', // Data is stored in USD
+            technology,
+            restrictions: pricing.notes || '',
+            qualityScore: 0.8 // Default quality score
           });
         }
       });
