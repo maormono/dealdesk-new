@@ -366,7 +366,7 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
                 min="1"
                 value={formData.simQuantity}
                 onChange={(e) => setFormData(prev => ({ ...prev, simQuantity: parseInt(e.target.value) || 1 }))}
-                className="w-full px-4 py-3 bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]/50 focus:bg-white transition-all placeholder-gray-400"
+                className="w-full px-4 py-3 text-sm bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]/50 focus:bg-white transition-all placeholder-gray-400"
                 required
               />
             </div>
@@ -393,7 +393,7 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
                   step={dataUnit === 'GB' ? '0.1' : '1'}
                   value={dataAmount || ''}
                   onChange={(e) => setDataAmount(parseFloat(e.target.value) || 0)}
-                  className="w-full pl-16 pr-4 py-3 bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]/50 focus:bg-white transition-all placeholder-gray-400"
+                  className="w-full pl-16 pr-4 py-3 text-sm bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]/50 focus:bg-white transition-all placeholder-gray-400"
                   placeholder="Enter amount"
                   required
                 />
@@ -413,7 +413,7 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
                 min="0"
                 value={formData.monthlySmsPerSim || 0}
                 onChange={(e) => setFormData(prev => ({ ...prev, monthlySmsPerSim: parseInt(e.target.value) || 0 }))}
-                className="w-full px-4 py-3 bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]/50 focus:bg-white transition-all placeholder-gray-400"
+                className="w-full px-4 py-3 text-sm bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]/50 focus:bg-white transition-all placeholder-gray-400"
               />
             </div>
           </div>
@@ -428,7 +428,7 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
               <select
                 value={formData.isNewCustomer ? 'new' : 'existing'}
                 onChange={(e) => setFormData(prev => ({ ...prev, isNewCustomer: e.target.value === 'new' }))}
-                className="w-full px-4 py-3 bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]/50 focus:bg-white transition-all"
+                className="w-full px-4 py-3 text-sm bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]/50 focus:bg-white transition-all"
               >
                 <option value="new">New Customer</option>
                 <option value="existing">Existing Customer</option>
@@ -440,16 +440,19 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
               <label className="block text-sm font-medium text-gray-500 mb-2">
                 Target Price per SIM (monthly)
               </label>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={priceAmount}
-                onChange={(e) => setPriceAmount(parseFloat(e.target.value) || 0)}
-                className="w-full px-4 py-3 bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]/50 focus:bg-white transition-all placeholder-gray-400"
-                placeholder="Enter price"
-                required
-              />
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-sm">$</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={priceAmount}
+                  onChange={(e) => setPriceAmount(parseFloat(e.target.value) || 0)}
+                  className="w-full pl-8 pr-4 py-3 text-sm bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]/50 focus:bg-white transition-all placeholder-gray-400"
+                  placeholder="Enter price"
+                  required
+                />
+              </div>
             </div>
             
             {/* Contract Duration */}
@@ -462,7 +465,7 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
                 min="1"
                 value={formData.duration}
                 onChange={(e) => setFormData(prev => ({ ...prev, duration: parseInt(e.target.value) || 1 }))}
-                className="w-full px-4 py-3 bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]/50 focus:bg-white transition-all placeholder-gray-400"
+                className="w-full px-4 py-3 text-sm bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]/50 focus:bg-white transition-all placeholder-gray-400"
                 required
               />
             </div>
@@ -561,7 +564,7 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
               <select
                 value={formData.expectedUsagePattern}
                 onChange={(e) => setFormData(prev => ({ ...prev, expectedUsagePattern: e.target.value as 'low' | 'medium' | 'high' }))}
-                className="w-full px-4 py-3 bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]/50 focus:bg-white transition-all"
+                className="w-full px-4 py-3 text-sm bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]/50 focus:bg-white transition-all"
               >
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
@@ -582,7 +585,7 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
                   addCountry(e.target.value);
                   e.target.value = '';
                 }}
-                className="w-full px-4 py-3 bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]/50 focus:bg-white transition-all placeholder-gray-400"
+                className="w-full px-4 py-3 text-sm bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]/50 focus:bg-white transition-all placeholder-gray-400"
               >
                 <option value="">Select countries...</option>
                 {availableCountries.map(country => (
