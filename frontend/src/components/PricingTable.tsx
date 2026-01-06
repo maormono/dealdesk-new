@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useUser } from '../contexts/UserContext';
 import { Wifi, Smartphone, Globe, DollarSign, Euro, Lock, Download, Eye, EyeOff, Search, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
-import { DataUpload } from './DataUpload';
 import '../styles/monogoto-theme.css';
 
 interface NetworkData {
@@ -569,9 +568,6 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
           </span>
         </div>
       )}
-
-      {/* Data Upload Component */}
-      <DataUpload onDataLoaded={loadNetworks} />
 
       {/* Stats Cards - Apple Style */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-8">

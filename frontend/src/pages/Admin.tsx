@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Users, DollarSign, Database, Shield, Calculator } from 'lucide-react';
+import { Users, DollarSign, Database, Shield, Calculator } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { getUserDealDeskPermissions } from '../lib/permissions';
@@ -7,8 +7,9 @@ import { AccessDenied } from './AccessDenied';
 import { DealRules } from '../components/admin/DealRules';
 import { UserManagement } from './UserManagement';
 import { TestWeightedPricing } from '../components/TestWeightedPricing';
+import { DataUpload } from '../components/DataUpload';
 
-type AdminSection = 'users' | 'rules' | 'security' | 'test' | 'system';
+type AdminSection = 'users' | 'rules' | 'security' | 'test' | 'database';
 
 export const Admin: React.FC = () => {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -75,11 +76,12 @@ export const Admin: React.FC = () => {
             <p className="text-gray-500">Security configuration coming soon...</p>
           </div>
         );
-      case 'system':
+      case 'database':
         return (
           <div className="p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">System Configuration</h3>
-            <p className="text-gray-500">System configuration coming soon...</p>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Database Management</h3>
+            <p className="text-gray-500 mb-6">Upload and manage network pricing data. The uploaded data will be available in both localhost and production.</p>
+            <DataUpload />
           </div>
         );
       default:
@@ -109,9 +111,9 @@ export const Admin: React.FC = () => {
       icon: Calculator
     },
     {
-      id: 'system' as AdminSection,
-      label: 'System',
-      icon: Settings
+      id: 'database' as AdminSection,
+      label: 'Database',
+      icon: Database
     }
   ];
 
