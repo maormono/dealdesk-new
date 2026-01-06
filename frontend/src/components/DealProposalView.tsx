@@ -116,9 +116,15 @@ export const DealProposalView: React.FC<DealProposalViewProps> = ({
                 <span className="text-xs uppercase tracking-wider">Data Plan</span>
               </div>
               <div className="text-2xl font-bold text-gray-900">
-                {formData.monthlyDataPerSim}
+                {formData.monthlyDataPerSim >= 1
+                  ? `${formData.monthlyDataPerSim.toFixed(2)} GB`
+                  : `${Math.round(formData.monthlyDataPerSim * 1024)} MB`}
               </div>
-              <div className="text-xs text-gray-600">GB/month per SIM</div>
+              <div className="text-xs text-gray-600">
+                {formData.monthlyDataPerSim >= 1
+                  ? `(${Math.round(formData.monthlyDataPerSim * 1024)} MB) per SIM/month`
+                  : `(${formData.monthlyDataPerSim.toFixed(4)} GB) per SIM/month`}
+              </div>
             </div>
 
             <div className="bg-gray-50 rounded-lg p-4">
