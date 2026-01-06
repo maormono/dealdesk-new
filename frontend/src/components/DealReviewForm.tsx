@@ -418,38 +418,6 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
             </div>
           </div>
 
-          {/* Selected Countries Tags */}
-          {formData.countries.length > 0 && (
-            <div className="mb-6">
-              <div className="flex flex-wrap gap-2">
-                {formData.countries.map((country, index) => {
-                  const colors = [
-                    'bg-[#5B9BD5]/10 text-[#5B9BD5] border-[#5B9BD5]/20',
-                    'bg-[#9B7BB6]/10 text-[#9B7BB6] border-[#9B7BB6]/20',
-                    'bg-[#EC6B9D]/10 text-[#EC6B9D] border-[#EC6B9D]/20',
-                    'bg-[#F5B342]/10 text-[#F5B342] border-[#F5B342]/20'
-                  ];
-                  const colorClass = colors[index % colors.length];
-                  return (
-                    <span
-                      key={country}
-                      className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium border ${colorClass}`}
-                    >
-                      {country}
-                      <button
-                        type="button"
-                        onClick={() => removeCountry(country)}
-                        className="ml-2 hover:text-blue-600"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </span>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
           {/* Second Row: Customer type, Target price per SIM, Contract duration */}
           <div className="grid grid-cols-3 gap-6 mb-6">
             {/* Customer Type */}
@@ -623,6 +591,35 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
                   </option>
                 ))}
               </select>
+              {/* Selected Countries - shown right below dropdown */}
+              {formData.countries.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {formData.countries.map((country, index) => {
+                    const colors = [
+                      'bg-[#5B9BD5]/10 text-[#5B9BD5] border-[#5B9BD5]/20',
+                      'bg-[#9B7BB6]/10 text-[#9B7BB6] border-[#9B7BB6]/20',
+                      'bg-[#EC6B9D]/10 text-[#EC6B9D] border-[#EC6B9D]/20',
+                      'bg-[#F5B342]/10 text-[#F5B342] border-[#F5B342]/20'
+                    ];
+                    const colorClass = colors[index % colors.length];
+                    return (
+                      <span
+                        key={country}
+                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${colorClass}`}
+                      >
+                        {country}
+                        <button
+                          type="button"
+                          onClick={() => removeCountry(country)}
+                          className="ml-1.5 hover:opacity-70"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
           
