@@ -1,7 +1,10 @@
 -- Run this in Supabase SQL Editor: https://supabase.com/dashboard/project/uddmjjgnexdazfedrytt/sql
 
+-- Drop old network_pricing table and recreate with new structure
+DROP TABLE IF EXISTS network_pricing CASCADE;
+
 -- Table to store network pricing data
-CREATE TABLE IF NOT EXISTS network_pricing_v2 (
+CREATE TABLE network_pricing (
   id SERIAL PRIMARY KEY,
   country TEXT NOT NULL,
   network_name TEXT NOT NULL,
@@ -33,18 +36,18 @@ CREATE TABLE IF NOT EXISTS data_uploads (
 );
 
 -- Enable RLS
-ALTER TABLE network_pricing_v2 ENABLE ROW LEVEL SECURITY;
+ALTER TABLE network_pricing ENABLE ROW LEVEL SECURITY;
 ALTER TABLE data_uploads ENABLE ROW LEVEL SECURITY;
 
 -- Allow read for all authenticated users
-CREATE POLICY "Allow read network_pricing_v2" ON network_pricing_v2 FOR SELECT USING (true);
-CREATE POLICY "Allow insert network_pricing_v2" ON network_pricing_v2 FOR INSERT WITH CHECK (true);
-CREATE POLICY "Allow delete network_pricing_v2" ON network_pricing_v2 FOR DELETE USING (true);
+CREATE POLICY "Allow read network_pricing" ON network_pricing FOR SELECT USING (true);
+CREATE POLICY "Allow insert network_pricing" ON network_pricing FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow delete network_pricing" ON network_pricing FOR DELETE USING (true);
 
 CREATE POLICY "Allow read data_uploads" ON data_uploads FOR SELECT USING (true);
 CREATE POLICY "Allow insert data_uploads" ON data_uploads FOR INSERT WITH CHECK (true);
 CREATE POLICY "Allow delete data_uploads" ON data_uploads FOR DELETE USING (true);
 
 -- Index for faster queries
-CREATE INDEX IF NOT EXISTS idx_network_pricing_v2_country ON network_pricing_v2(country);
-CREATE INDEX IF NOT EXISTS idx_network_pricing_v2_tadig ON network_pricing_v2(tadig);
+CREATE INDEX idx_network_pricing_country ON network_pricing(country);
+CREATE INDEX idx_network_pricing_tadig ON network_pricing(tadig);

@@ -173,17 +173,17 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
 
   const loadNetworks = useCallback(async () => {
     try {
-      console.log('Loading networks from Supabase network_pricing_v2...');
+      console.log('Loading networks from Supabase network_pricing...');
 
-      // Primary source: Supabase network_pricing_v2 table
+      // Primary source: Supabase network_pricing table
       const { data: pricingData, error: pricingError } = await supabase
-        .from('network_pricing_v2')
+        .from('network_pricing')
         .select('*')
         .order('country', { ascending: true })
         .order('network_name', { ascending: true });
 
       if (pricingError) {
-        console.error('Error fetching from network_pricing_v2:', pricingError);
+        console.error('Error fetching from network_pricing:', pricingError);
         throw pricingError;
       }
 
@@ -230,7 +230,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
       }
 
       // No data in Supabase - show empty state
-      console.log('No data in network_pricing_v2 table');
+      console.log('No data in network_pricing table');
       setAllNetworks([]);
       setNetworks([]);
 

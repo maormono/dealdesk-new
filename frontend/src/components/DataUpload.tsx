@@ -154,7 +154,7 @@ export const DataUpload: React.FC<DataUploadProps> = ({ onDataLoaded }) => {
       }
 
       // Clear existing data
-      await supabase.from('network_pricing_v2').delete().gte('id', 0);
+      await supabase.from('network_pricing').delete().gte('id', 0);
       await supabase.from('data_uploads').delete().gte('id', 0);
 
       // Insert in batches of 100
@@ -162,7 +162,7 @@ export const DataUpload: React.FC<DataUploadProps> = ({ onDataLoaded }) => {
       for (let i = 0; i < records.length; i += batchSize) {
         const batch = records.slice(i, i + batchSize);
         const { error: insertError } = await supabase
-          .from('network_pricing_v2')
+          .from('network_pricing')
           .insert(batch);
 
         if (insertError) {
