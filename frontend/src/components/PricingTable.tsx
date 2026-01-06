@@ -273,8 +273,9 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
     }
   }, [propCurrency]);
 
+  // Data is stored in USD - convert to EUR when needed
   const convertCurrency = (value: number): number => {
-    return currency === 'USD' ? value * exchangeRate : value;
+    return currency === 'EUR' ? value / exchangeRate : value;
   };
 
   const formatDataPrice = (value: number, includeSymbol: boolean = false): string => {
