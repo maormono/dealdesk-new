@@ -275,9 +275,9 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
     return `${symbol}${converted.toFixed(decimals)}${unit}`;
   };
 
-  const formatCurrency = (value: number, decimals: number = 2, includeSymbol: boolean = false): string => {
+  const formatCurrency = (value: number, decimals: number = 4, includeSymbol: boolean = false): string => {
     if (value === 0 || value === null || value === undefined) return '';
-    
+
     const converted = convertCurrency(value);
     const symbol = currency === 'EUR' ? '€' : '$';
     if (includeSymbol) {
@@ -513,8 +513,8 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
         network.tadig,
         network.identity || '',
         formatDataPrice(network.data_cost),
-        formatCurrency(network.sms_cost, 3),
-        formatCurrency(network.imsi_cost, 2),
+        formatCurrency(network.sms_cost, 4),
+        formatCurrency(network.imsi_cost, 4),
         generations.join(', ') || 'N/A',
         network.lte_m ? 'Yes' : 'No',
         network.nb_iot ? 'Yes' : 'No',
