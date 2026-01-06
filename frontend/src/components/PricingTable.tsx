@@ -176,18 +176,35 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
       console.log('Loading networks from Supabase network_pricing...');
 
       // Primary source: Supabase network_pricing table
-      // Fetch all records (Supabase default limit is 1000)
-      const { data: pricingData, error: pricingError } = await supabase
-        .from('network_pricing')
-        .select('*')
-        .order('country', { ascending: true })
-        .order('network_name', { ascending: true })
-        .limit(10000);
+      // Fetch all records in batches (Supabase has 1000 row limit per request)
+      const allData: any[] = [];
+      const batchSize = 1000;
+      let offset = 0;
+      let hasMore = true;
 
-      if (pricingError) {
-        console.error('Error fetching from network_pricing:', pricingError);
-        throw pricingError;
+      while (hasMore) {
+        const { data: batch, error: batchError } = await supabase
+          .from('network_pricing')
+          .select('*')
+          .order('country', { ascending: true })
+          .order('network_name', { ascending: true })
+          .range(offset, offset + batchSize - 1);
+
+        if (batchError) {
+          console.error('Error fetching from network_pricing:', batchError);
+          throw batchError;
+        }
+
+        if (batch && batch.length > 0) {
+          allData.push(...batch);
+          offset += batchSize;
+          hasMore = batch.length === batchSize;
+        } else {
+          hasMore = false;
+        }
       }
+
+      const pricingData = allData;
 
       if (pricingData && pricingData.length > 0) {
         console.log(`Loaded ${pricingData.length} records from Supabase`);
