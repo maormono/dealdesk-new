@@ -135,6 +135,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
   const [currency, setCurrency] = useState<'EUR' | 'USD'>(propCurrency || 'USD');
   const [dataUnit, setDataUnit] = useState<'MB' | 'GB'>('MB');
   const [exchangeRate, setExchangeRate] = useState(1.1); // Default EUR to USD rate
+  const [exchangeRateStatus, setExchangeRateStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [selectedIdentities, setSelectedIdentities] = useState<Set<string>>(new Set());
   const [showHiddenNetworks, setShowHiddenNetworks] = useState(false);
   
@@ -159,14 +160,19 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
 
   const fetchExchangeRate = async () => {
     try {
+      setExchangeRateStatus('loading');
       // Using a free API for exchange rates
       const response = await fetch('https://api.exchangerate-api.com/v4/latest/EUR');
       const data = await response.json();
       if (data.rates && data.rates.USD) {
         setExchangeRate(data.rates.USD);
+        setExchangeRateStatus('success');
+      } else {
+        setExchangeRateStatus('error');
       }
     } catch (error) {
       console.error('Error fetching exchange rate:', error);
+      setExchangeRateStatus('error');
       // Keep default rate if API fails
     }
   };
@@ -756,33 +762,55 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
             </div>
             
             {/* Currency Toggle - Right Side */}
-            <div className="flex items-center bg-gray-50 rounded-xl p-1">
-              <button
-                onClick={() => {
-                  setCurrency('USD');
-                  onCurrencyChange?.('USD');
-                }}
-                className={`px-3 py-0.5.5 rounded-lg text-sm transition-all ${
-                  currency === 'USD' 
-                    ? 'bg-white text-[#5B9BD5] shadow-sm' 
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
+            <div className="flex items-center gap-2">
+              <div className="flex items-center bg-gray-50 rounded-xl p-1">
+                <button
+                  onClick={() => {
+                    setCurrency('USD');
+                    onCurrencyChange?.('USD');
+                  }}
+                  className={`px-3 py-0.5.5 rounded-lg text-sm transition-all ${
+                    currency === 'USD'
+                      ? 'bg-white text-[#5B9BD5] shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  USD $
+                </button>
+                <button
+                  onClick={() => {
+                    setCurrency('EUR');
+                    onCurrencyChange?.('EUR');
+                  }}
+                  className={`px-3 py-0.5.5 rounded-lg text-sm transition-all ${
+                    currency === 'EUR'
+                      ? 'bg-white text-[#5B9BD5] shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  EUR €
+                </button>
+              </div>
+              {/* Exchange Rate Status Indicator */}
+              <div
+                className="flex items-center gap-1"
+                title={exchangeRateStatus === 'success'
+                  ? `Live rate: 1 EUR = ${exchangeRate.toFixed(4)} USD`
+                  : exchangeRateStatus === 'error'
+                    ? `Using fallback rate: 1 EUR = ${exchangeRate} USD`
+                    : 'Loading exchange rate...'}
               >
-                USD $
-              </button>
-              <button
-                onClick={() => {
-                  setCurrency('EUR');
-                  onCurrencyChange?.('EUR');
-                }}
-                className={`px-3 py-0.5.5 rounded-lg text-sm transition-all ${
-                  currency === 'EUR' 
-                    ? 'bg-white text-[#5B9BD5] shadow-sm' 
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                EUR €
-              </button>
+                <div className={`w-2 h-2 rounded-full ${
+                  exchangeRateStatus === 'success'
+                    ? 'bg-green-500'
+                    : exchangeRateStatus === 'error'
+                      ? 'bg-yellow-500'
+                      : 'bg-gray-300 animate-pulse'
+                }`} />
+                <span className="text-xs text-gray-400">
+                  {exchangeRateStatus === 'success' ? exchangeRate.toFixed(2) : '...'}
+                </span>
+              </div>
             </div>
             
             {/* Export Button - Far Right */}
