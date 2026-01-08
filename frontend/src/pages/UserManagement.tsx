@@ -518,22 +518,28 @@ export function UserManagement() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex space-x-2">
-                        {userProfile.can_see_costs && (
-                          <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded">
-                            Costs
-                          </span>
+                        {/* Admin: Costs, Hidden Network, Export */}
+                        {/* Sales: Export only */}
+                        {/* Viewer: None */}
+                        {userProfile.role === 'admin' && (
+                          <>
+                            <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded">
+                              Costs
+                            </span>
+                            <span className="px-2 py-1 text-xs bg-orange-100 text-orange-700 rounded">
+                              Hidden Network
+                            </span>
+                            <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded">
+                              Export
+                            </span>
+                          </>
                         )}
-                        {userProfile.can_see_hidden_networks && (
-                          <span className="px-2 py-1 text-xs bg-orange-100 text-orange-700 rounded">
-                            Hidden Network
-                          </span>
-                        )}
-                        {userProfile.can_export_data && (
+                        {userProfile.role === 'sales' && (
                           <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded">
                             Export
                           </span>
                         )}
-                        {!userProfile.can_see_costs && !userProfile.can_see_hidden_networks && !userProfile.can_export_data && (
+                        {userProfile.role === 'viewer' && (
                           <span className="px-2 py-1 text-xs bg-gray-100 text-gray-500 rounded">
                             None
                           </span>
