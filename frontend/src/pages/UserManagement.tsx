@@ -323,17 +323,6 @@ export function UserManagement() {
     });
   };
 
-  const getRoleBadgeColor = (role: string) => {
-    switch (role) {
-      case 'admin':
-        return 'bg-purple-100 text-purple-700 border-purple-200';
-      case 'sales':
-        return 'bg-blue-100 text-blue-700 border-blue-200';
-      default:
-        return 'bg-gray-100 text-gray-700 border-gray-200';
-    }
-  };
-
   if (loading) {
     return (
       <div className="bg-gray-50 pt-20 flex-1 flex items-center justify-center">
@@ -510,8 +499,7 @@ export function UserManagement() {
                           <option value="viewer">Viewer</option>
                         </select>
                       ) : (
-                        <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border ${getRoleBadgeColor(userProfile.role)}`}>
-                          {userProfile.role === 'admin' && <Shield className="w-3 h-3 mr-1" />}
+                        <span className="text-sm text-gray-900">
                           {userProfile.role.charAt(0).toUpperCase() + userProfile.role.slice(1)}
                         </span>
                       )}
