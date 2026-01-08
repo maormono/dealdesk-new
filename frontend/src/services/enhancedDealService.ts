@@ -1,6 +1,10 @@
 import { supabase } from '../lib/supabase';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
+// Threshold for expensive networks - networks with data cost > $1/MB are excluded from pricing
+// These networks are blocked in roaming policy and customers won't use them
+const EXPENSIVE_NETWORK_THRESHOLD = 1.0; // $1.00 per MB
+
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || '');
 
 interface DealAnalysisRequest {
@@ -17,10 +21,14 @@ interface PricingOption {
   model: 'payAsYouGo' | 'package';
   activeSimFee: number; // Monthly fee per active SIM
   dataFee: number; // Per MB/GB charge
+  dataCostPerSim: number; // Total data cost per SIM (dataFee × data amount)
   totalMonthlyPrice: number;
   listPrice: number; // Calculated list price from costs + markup
   yourPrice?: number; // Customer's target price (or list price if no target)
-  discountPercentage: number; // Discount needed to reach target from list
+  discountPercentage: number; // Monogoto-approved discount based on volume/contract
+  requestedDiscountPercentage: number; // Actual discount customer is requesting (listPrice -> yourPrice)
+  maxAllowedDiscount: number; // Maximum discount allowed for this deal
+  isProfitable: boolean; // Whether the deal meets minimum profitability requirements
   reasoning: string[];
 }
 
@@ -72,7 +80,8 @@ export class EnhancedDealService {
       payAsYouGoCosts,
       rules,
       request.simCount,
-      request.requestedPrice
+      request.requestedPrice,
+      request.contractLength
     );
     
     // Package calculation (for comparison, deprecated)
@@ -141,7 +150,7 @@ export class EnhancedDealService {
     return result;
   }
   
-  private calculatePayAsYouGoPricing(costs: any, rules: any, simCount: number, requestedPrice?: number): PricingOption {
+  private calculatePayAsYouGoPricing(costs: any, rules: any, simCount: number, requestedPrice?: number, contractLength?: number): PricingOption {
     // Validate rules exist
     if (!rules || typeof rules.officialMarkup !== 'number' || typeof rules.officialSimProfit !== 'number') {
       console.error('Invalid rules object:', rules);
@@ -158,31 +167,50 @@ export class EnhancedDealService {
     const imsiCost = costs.imsiCost || 0;
     const markupPercent = rules.officialMarkup || 50;
     const simProfit = rules.officialSimProfit || 35;
-    const activeSimFee = (imsiCost * (1 + markupPercent / 100)) + (simProfit / 100);
+    const activeSimFeeRaw = (imsiCost * (1 + markupPercent / 100)) + (simProfit / 100);
+    const activeSimFee = Number(activeSimFeeRaw.toFixed(4)); // Round to 4 decimals
 
     // Data fee per MB: Calculate the average weighted cost per MB
     let dataFeePerMB = 0;
     if (costs.totalDataMB > 0 && costs.weightedDataPerMB > 0) {
       // Use the weighted average cost per MB from the detailed breakdown
-      dataFeePerMB = costs.weightedDataPerMB * (1 + markupPercent / 100);
+      dataFeePerMB = Number((costs.weightedDataPerMB * (1 + markupPercent / 100)).toFixed(6)); // Round to 6 decimals for precision
     }
 
-    // Calculate TRUE list price from costs (never from customer's target)
-    // List Price = (data cost per SIM + IMSI cost) with markup + SIM profit
-    const totalCostWithMarkup = (costs.totalCostPerSim * (1 + markupPercent / 100)) + (simProfit / 100);
-    const listPrice = totalCostWithMarkup;
+    // Calculate data cost for this SIM's data allocation
+    const dataCostPerSim = Number((dataFeePerMB * costs.totalDataMB).toFixed(4)); // Round to 4 decimals
 
-    // Calculate discount percentage needed to reach customer's target price
-    let discountPercentage = 0;
+    // Calculate TRUE list price as sum of components (ensures display matches)
+    // List Price = Active SIM Fee + Data Cost per SIM
+    const listPrice = Number((activeSimFee + dataCostPerSim).toFixed(4));
+
+    // Calculate maximum allowed discount based on volume and contract length
+    // Volume-based discount tiers
+    let maxAllowedDiscount = 0;
+    if (simCount <= 100) maxAllowedDiscount = 5;
+    else if (simCount <= 500) maxAllowedDiscount = 10;
+    else if (simCount <= 1000) maxAllowedDiscount = 15;
+    else if (simCount <= 5000) maxAllowedDiscount = 20;
+    else maxAllowedDiscount = 25;
+
+    // Add 5% for long-term contracts (24+ months)
+    if (contractLength && contractLength >= 24) {
+      maxAllowedDiscount += 5;
+    }
+
+    // Calculate requested discount percentage (what customer actually wants)
+    let requestedDiscountPercentage = 0;
     let yourPrice = listPrice; // Default to list price if no target
 
     if (requestedPrice && requestedPrice > 0) {
       yourPrice = requestedPrice;
-      // Discount = (List - Target) / List * 100
-      discountPercentage = ((listPrice - requestedPrice) / listPrice) * 100;
-      // If target is higher than list price, discount is negative (premium)
-      if (discountPercentage < 0) discountPercentage = 0;
+      // Requested Discount = (List - Target) / List * 100
+      requestedDiscountPercentage = ((listPrice - requestedPrice) / listPrice) * 100;
     }
+
+    // Check if deal is profitable (requested discount within allowed range)
+    // If customer wants to pay MORE than list price, that's always profitable
+    const isProfitable = requestedDiscountPercentage <= maxAllowedDiscount;
 
     const totalMonthlyPrice = yourPrice * simCount;
 
@@ -198,17 +226,23 @@ export class EnhancedDealService {
       listPrice: listPrice.toFixed(4),
       requestedPrice: requestedPrice,
       yourPrice: yourPrice.toFixed(4),
-      discountPercentage: discountPercentage.toFixed(1)
+      maxAllowedDiscount: maxAllowedDiscount,
+      requestedDiscountPercentage: requestedDiscountPercentage.toFixed(1),
+      isProfitable: isProfitable
     });
 
     return {
       model: 'payAsYouGo',
-      activeSimFee: Number(activeSimFee.toFixed(2)),
-      dataFee: Number(dataFeePerMB.toFixed(4)),
+      activeSimFee: Number(activeSimFee.toFixed(4)),
+      dataFee: Number(dataFeePerMB.toFixed(6)),
+      dataCostPerSim: dataCostPerSim,
       totalMonthlyPrice: Number(totalMonthlyPrice.toFixed(2)),
-      listPrice: Number(listPrice.toFixed(4)),
+      listPrice: listPrice,
       yourPrice: Number(yourPrice.toFixed(4)),
-      discountPercentage: Number(discountPercentage.toFixed(1)),
+      discountPercentage: Math.min(maxAllowedDiscount, Math.max(0, requestedDiscountPercentage)), // Monogoto-approved discount
+      requestedDiscountPercentage: Number(requestedDiscountPercentage.toFixed(1)),
+      maxAllowedDiscount: maxAllowedDiscount,
+      isProfitable: isProfitable,
       reasoning: [
         'Pay-as-you-go model with separate active SIM and data charges',
         'Full transparency on usage-based billing',
@@ -219,18 +253,27 @@ export class EnhancedDealService {
   
   private calculatePackagePricing(costs: any, rules: any, simCount: number, requestedPrice?: number): PricingOption {
     // Use requested price if provided, otherwise calculate from costs
-    const packagePrice = requestedPrice && requestedPrice > 0
-      ? requestedPrice
-      : (costs.totalCostPerSim * (1 + rules.officialMarkup / 100)) + (rules.officialSimProfit / 100);
+    const listPrice = (costs.totalCostPerSim * (1 + rules.officialMarkup / 100)) + (rules.officialSimProfit / 100);
+    const packagePrice = requestedPrice && requestedPrice > 0 ? requestedPrice : listPrice;
     const totalMonthlyPrice = packagePrice * simCount;
-    
+
+    // Calculate requested discount
+    const requestedDiscountPercentage = requestedPrice && requestedPrice > 0
+      ? ((listPrice - requestedPrice) / listPrice) * 100
+      : 0;
+
     return {
       model: 'package',
       activeSimFee: 0, // Bundle price includes everything
       dataFee: 0,
+      dataCostPerSim: 0, // Package includes data
       totalMonthlyPrice,
-      listPrice: packagePrice,
+      listPrice: listPrice,
+      yourPrice: packagePrice,
       discountPercentage: 0,
+      requestedDiscountPercentage: Number(requestedDiscountPercentage.toFixed(1)),
+      maxAllowedDiscount: 0,
+      isProfitable: requestedDiscountPercentage <= 0,
       reasoning: [
         'Bundled package with data included',
         '30% buffer for unused data built into pricing',
@@ -246,7 +289,21 @@ export class EnhancedDealService {
       .in('country', countries);
 
     if (error) throw error;
-    return data || [];
+
+    // Filter out expensive networks (>$1/MB) - these are blocked in roaming policy
+    const filteredData = (data || []).filter((network: any) => {
+      if (!network.data_per_mb || network.data_per_mb <= 0) {
+        return false; // Skip invalid pricing
+      }
+      if (network.data_per_mb > EXPENSIVE_NETWORK_THRESHOLD) {
+        console.log(`[EnhancedDealService] Excluding expensive network: ${network.network_name} in ${network.country} - $${network.data_per_mb}/MB exceeds threshold`);
+        return false;
+      }
+      return true;
+    });
+
+    console.log(`[EnhancedDealService] Fetched ${data?.length || 0} networks, ${filteredData.length} after filtering expensive networks`);
+    return filteredData;
   }
 
   private async fetchDealRules() {
@@ -585,12 +642,32 @@ IMPORTANT: Focus on value, not cost. Never mention actual costs or margins.
     usageDistribution: Record<string, number>,
     rules: any
   ): DealAnalysisResponse {
+    // Determine approval based on profitability check (not just AI recommendation)
+    // Deal is approved only if customer's requested price is within allowed discount range
+    const isApproved = payAsYouGoOption.isProfitable;
+
+    // Build warnings array
+    const warnings: string[] = geminiAnalysis?.warnings || [];
+
+    // Add warning if deal is not profitable
+    if (!isApproved) {
+      const requestedDiscount = payAsYouGoOption.requestedDiscountPercentage;
+      const maxDiscount = payAsYouGoOption.maxAllowedDiscount;
+      warnings.push(
+        `Requested discount (${requestedDiscount.toFixed(1)}%) exceeds maximum allowed (${maxDiscount}%). Deal requires management approval.`
+      );
+    }
+
     // Ensure we have the required structure
     const response: DealAnalysisResponse = {
-      approved: geminiAnalysis?.approved ?? true,
+      approved: isApproved,
       payAsYouGo: {
         ...payAsYouGoOption,
-        discountPercentage: geminiAnalysis?.discountPercentage ?? 0,
+        // Keep the calculated discounts (Monogoto-approved vs requested)
+        discountPercentage: payAsYouGoOption.discountPercentage,
+        requestedDiscountPercentage: payAsYouGoOption.requestedDiscountPercentage,
+        maxAllowedDiscount: payAsYouGoOption.maxAllowedDiscount,
+        isProfitable: payAsYouGoOption.isProfitable,
         reasoning: geminiAnalysis?.payAsYouGoReasons ?? payAsYouGoOption.reasoning
       },
       package: packageOption ? {
@@ -610,10 +687,10 @@ IMPORTANT: Focus on value, not cost. Never mention actual costs or margins.
         'Active SIM fees apply to all deployed SIMs',
         'Data charges based on actual consumption'
       ],
-      warnings: geminiAnalysis?.warnings,
+      warnings: warnings.length > 0 ? warnings : undefined,
       aiConfidence: geminiAnalysis?.confidence ?? 0.85
     };
-    
+
     return response;
   }
 

@@ -555,7 +555,7 @@ export const AIAdvisorAdvanced: React.FC<AIAdvisorAdvancedProps> = ({
                       onChange={(e) => setFormData(prev => ({ ...prev, iotType: e.target.value as 'CAT-M' | 'NB-IoT' | 'both' }))}
                       className="mt-2 w-full px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                     >
-                      <option value="CAT-M">CAT-M/LTE-M</option>
+                      <option value="CAT-M">Cat-M/LTE-M</option>
                       <option value="NB-IoT">NB-IoT</option>
                       <option value="both">Both</option>
                     </select>

@@ -255,7 +255,7 @@ export const AIAdvisor: React.FC<AIAdvisorProps> = ({ currency = 'USD', expandSt
       const catMNetworks = filteredData.filter(n => n.lte_m);
       const nbIotNetworks = filteredData.filter(n => n.nb_iot);
       answer = `IoT Network Coverage:\n\n`;
-      answer += `**CAT-M/LTE-M**: ${catMNetworks.length} networks across ${[...new Set(catMNetworks.map(n => n.country))].length} countries\n`;
+      answer += `**Cat-M/LTE-M**: ${catMNetworks.length} networks across ${[...new Set(catMNetworks.map(n => n.country))].length} countries\n`;
       answer += `**NB-IoT**: ${nbIotNetworks.length} networks across ${[...new Set(nbIotNetworks.map(n => n.country))].length} countries\n\n`;
       
       if (detectedCountry) {

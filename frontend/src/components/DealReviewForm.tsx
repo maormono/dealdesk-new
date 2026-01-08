@@ -304,40 +304,37 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
 
   const isFormValid = () => {
     // Check all required fields
-    return (
+    const basicFieldsValid = (
       formData.simQuantity > 0 &&
       dataAmount > 0 &&
       priceAmount > 0 &&
       formData.duration > 0 &&
       formData.countries.length > 0
     );
+
+    // If multiple countries, check that usage distribution equals 100%
+    if (formData.countries.length > 1) {
+      const total = formData.countries.reduce((sum, country) =>
+        sum + (formData.usagePercentages?.[country] || Math.round(100 / formData.countries.length)), 0
+      );
+      return basicFieldsValid && total === 100;
+    }
+
+    return basicFieldsValid;
   };
   
   // Show results screen if evaluation is complete and showResults is true
   if (showResults && evaluation) {
     return (
-      <div className="max-w-5xl mx-auto p-6">
-        <div className="flex justify-end mb-4 gap-2">
+      <div className="max-w-5xl mx-auto px-6 pt-2 pb-6">
+        <div className="flex justify-end gap-2 mb-4">
           <button
             onClick={handleEditDeal}
-            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors flex items-center space-x-2"
+            className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm rounded-lg transition-colors flex items-center space-x-2 border border-gray-200"
           >
             <Edit className="w-4 h-4" />
             <span>Edit Deal</span>
           </button>
-          {onExpandToggle && (
-            <button
-              onClick={() => {setIsResultsExpanded(!isResultsExpanded); onExpandToggle();}}
-              className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-              title={isResultsExpanded ? "Collapse to sidebar" : "Expand to 50% width"}
-            >
-              {isResultsExpanded ? (
-                <Minimize2 className="w-5 h-5 text-gray-600" />
-              ) : (
-                <Maximize2 className="w-5 h-5 text-gray-600" />
-              )}
-            </button>
-          )}
         </div>
 
         {/* New Professional Deal Proposal View */}
@@ -541,7 +538,7 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
                 <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-xl shadow-lg z-20">
                   <div className="p-2">
                     {[
-                      { value: 'LTE-M', label: 'LTE-M (CAT-M/LTE-M, Higher bandwidth)' },
+                      { value: 'LTE-M', label: 'LTE-M (Cat-M/LTE-M, Higher bandwidth)' },
                       { value: 'NB-IoT', label: 'NB-IoT (Lower power)' }
                     ].map((tech) => (
                       <label key={tech.value} className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer">
@@ -682,13 +679,13 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
                 
                 {/* Total validation */}
                 {(() => {
-                  const total = formData.countries.reduce((sum, country) => 
+                  const total = formData.countries.reduce((sum, country) =>
                     sum + (formData.usagePercentages?.[country] || Math.round(100 / formData.countries.length)), 0
                   );
                   return total !== 100 && (
-                    <div className="flex items-center gap-2 mt-2 text-xs text-amber-600">
+                    <div className="flex items-center gap-2 mt-2 text-xs text-red-600">
                       <AlertCircle className="w-3 h-3" />
-                      <span>Total: {total}% (should equal 100% - will auto-adjust)</span>
+                      <span>Total: {total}% - must equal 100% to proceed</span>
                     </div>
                   );
                 })()}

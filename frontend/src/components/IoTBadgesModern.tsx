@@ -24,7 +24,7 @@ export const IoTBadgesModern: React.FC<IoTBadgesProps> = ({ lteMOperators, nbIot
       {lteMOperators.length > 0 && (
         <div className="flex items-center gap-1.5 bg-gray-50 px-2 py-1 rounded-lg">
           <Wifi className="w-3 h-3 text-gray-500" />
-          <span className="text-xs font-medium text-gray-600">CAT-M</span>
+          <span className="text-xs font-medium text-gray-600">Cat-M</span>
           <div className="flex gap-1">
             {lteMOperators.map((op, i) => (
               <div

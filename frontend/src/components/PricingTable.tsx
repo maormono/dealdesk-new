@@ -25,6 +25,8 @@ interface NetworkData {
   umts3G?: boolean;
   lte4G?: boolean;
   lte5G?: boolean;
+  // Raw data price for expensive network filtering (before markup)
+  _rawDataPrice?: number;
 }
 
 interface GroupedNetwork {
@@ -126,8 +128,11 @@ interface PricingTableProps {
   onCurrencyChange?: (currency: 'EUR' | 'USD') => void;
 }
 
+// Threshold for expensive networks (data cost > $1/MB is considered expensive)
+const EXPENSIVE_NETWORK_THRESHOLD = 1.0; // $1.00 per MB
+
 export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurrency, onCurrencyChange }) => {
-  const { isSales } = useUser();
+  const { isSales, isAdmin } = useUser();
   const [networks, setNetworks] = useState<NetworkData[]>([]);
   const [allNetworks, setAllNetworks] = useState<NetworkData[]>([]); // Store all networks including hidden ones
   const [loading, setLoading] = useState(true);
@@ -143,17 +148,20 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
   const [networkSearch, setNetworkSearch] = useState('');
   const [countrySearch, setCountrySearch] = useState('');
   const [tadigSearch, setTagidSearch] = useState('');
-  const [sourceSearch, setSourceSearch] = useState('');
-  const [generationSearch, setGenerationSearch] = useState('');
-  const [sortField, setSortField] = useState<'network' | 'country' | 'tadig' | 'source' | 'generation' | null>(null);
+  // Multi-select filters for Identity, Network Tech, and LP-WAN
+  const [selectedIdentityFilters, setSelectedIdentityFilters] = useState<Set<string>>(new Set());
+  const [selectedGenFilters, setSelectedGenFilters] = useState<Set<string>>(new Set());
+  const [selectedLpwanFilters, setSelectedLpwanFilters] = useState<Set<string>>(new Set());
+  const [sortField, setSortField] = useState<'network' | 'country' | 'tadig' | 'source' | 'generation' | 'data' | 'sms' | 'imsi' | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-  
-  // Search box visibility state
+
+  // Search box / dropdown visibility state
   const [showNetworkSearch, setShowNetworkSearch] = useState(false);
   const [showCountrySearch, setShowCountrySearch] = useState(false);
   const [showTagidSearch, setShowTagidSearch] = useState(false);
-  const [showSourceSearch, setShowSourceSearch] = useState(false);
-  const [showGenerationSearch, setShowGenerationSearch] = useState(false);
+  const [showIdentityDropdown, setShowIdentityDropdown] = useState(false);
+  const [showGenDropdown, setShowGenDropdown] = useState(false);
+  const [showLpwanDropdown, setShowLpwanDropdown] = useState(false);
   
   // Price threshold: $1/MB = approximately €0.90/MB at 1.1 exchange rate
   const MAX_REASONABLE_PRICE_EUR_MB = 0.90;
@@ -217,12 +225,18 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
 
         // Transform Supabase data to match our interface
         const transformedData: NetworkData[] = pricingData.map((item: any) => {
-          // Apply role-based markup if user is sales
-          const dataPrice = parseFloat(item.data_per_mb) || 0;
+          // Get raw data price for expensive network check (before markup)
+          // Handle both numeric and string values from database
+          const rawDataPriceValue = item.data_per_mb;
+          const rawDataPrice = typeof rawDataPriceValue === 'number'
+            ? rawDataPriceValue
+            : parseFloat(String(rawDataPriceValue)) || 0;
+
           const smsPrice = parseFloat(item.sms_cost) || 0;
           const imsiPrice = parseFloat(item.imsi_cost) || 0;
 
-          const adjustedDataPrice = isSales ? dataPrice * 1.5 : dataPrice;
+          // Apply role-based markup if user is sales
+          const adjustedDataPrice = isSales ? rawDataPrice * 1.5 : rawDataPrice;
           const adjustedSmsPrice = isSales ? smsPrice * 1.5 : smsPrice;
           const adjustedImsiPrice = isSales ? imsiPrice * 1.5 : imsiPrice;
 
@@ -246,11 +260,34 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
             umts3G: item.umts_3g || false,
             lte4G: item.lte_4g || false,
             lte5G: item.lte_5g || false,
+            // Store raw price for expensive network filtering
+            _rawDataPrice: rawDataPrice,
           };
         });
 
-        setAllNetworks(transformedData);
-        setNetworks(transformedData);
+        // Filter out expensive networks (data cost > $1/MB before markup)
+        // These are blocked in roaming policy and customers won't use them
+        const regularNetworks = transformedData.filter((n: NetworkData) => {
+          const price = n._rawDataPrice;
+          // Include if price is missing, zero, or below threshold
+          if (price === undefined || price === null || isNaN(price)) return true;
+          return price <= EXPENSIVE_NETWORK_THRESHOLD;
+        });
+        const expensiveNetworks = transformedData.filter((n: NetworkData) => {
+          const price = n._rawDataPrice;
+          // Only include if price is a valid number above threshold
+          if (price === undefined || price === null || isNaN(price)) return false;
+          return price > EXPENSIVE_NETWORK_THRESHOLD;
+        });
+
+        console.log(`[PricingTable] Network filtering: Total=${transformedData.length}, Regular=${regularNetworks.length}, Expensive=${expensiveNetworks.length}`);
+
+        // allNetworks contains everything (for admins to see when toggling)
+        // Create new array references to ensure React detects changes
+        setAllNetworks([...transformedData]);
+        // networks contains only non-expensive networks (default view for everyone)
+        // Admin and sales both see regular networks by default
+        setNetworks([...regularNetworks]);
         return;
       }
 
@@ -312,7 +349,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
     return `${symbol}${converted.toFixed(decimals)}`;
   };
 
-  const handleSort = (field: 'network' | 'country' | 'tadig' | 'source' | 'generation') => {
+  const handleSort = (field: 'network' | 'country' | 'tadig' | 'source' | 'generation' | 'data' | 'sms' | 'imsi') => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
@@ -321,49 +358,67 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
     }
   };
 
-  const toggleSearchBox = (field: 'network' | 'country' | 'tadig' | 'source' | 'generation') => {
+  // Close all dropdowns/search boxes
+  const closeAllDropdowns = () => {
+    setShowNetworkSearch(false);
+    setShowCountrySearch(false);
+    setShowTagidSearch(false);
+    setShowIdentityDropdown(false);
+    setShowGenDropdown(false);
+    setShowLpwanDropdown(false);
+  };
+
+  const toggleSearchBox = (field: 'network' | 'country' | 'tadig') => {
+    closeAllDropdowns();
     if (field === 'network') {
       setShowNetworkSearch(!showNetworkSearch);
-      if (!showNetworkSearch) {
-        // Hide other search boxes when opening one
-        setShowCountrySearch(false);
-        setShowTagidSearch(false);
-        setShowSourceSearch(false);
-        setShowGenerationSearch(false);
-      }
     } else if (field === 'country') {
       setShowCountrySearch(!showCountrySearch);
-      if (!showCountrySearch) {
-        setShowNetworkSearch(false);
-        setShowTagidSearch(false);
-        setShowSourceSearch(false);
-        setShowGenerationSearch(false);
-      }
     } else if (field === 'tadig') {
       setShowTagidSearch(!showTagidSearch);
-      if (!showTagidSearch) {
-        setShowNetworkSearch(false);
-        setShowCountrySearch(false);
-        setShowSourceSearch(false);
-        setShowGenerationSearch(false);
-      }
-    } else if (field === 'source') {
-      setShowSourceSearch(!showSourceSearch);
-      if (!showSourceSearch) {
-        setShowNetworkSearch(false);
-        setShowCountrySearch(false);
-        setShowTagidSearch(false);
-        setShowGenerationSearch(false);
-      }
-    } else if (field === 'generation') {
-      setShowGenerationSearch(!showGenerationSearch);
-      if (!showGenerationSearch) {
-        setShowNetworkSearch(false);
-        setShowCountrySearch(false);
-        setShowTagidSearch(false);
-        setShowSourceSearch(false);
-      }
     }
+  };
+
+  const toggleDropdown = (field: 'identity' | 'generation' | 'lpwan') => {
+    closeAllDropdowns();
+    if (field === 'identity') {
+      setShowIdentityDropdown(!showIdentityDropdown);
+    } else if (field === 'generation') {
+      setShowGenDropdown(!showGenDropdown);
+    } else if (field === 'lpwan') {
+      setShowLpwanDropdown(!showLpwanDropdown);
+    }
+  };
+
+  // Toggle filter selection for multi-select dropdowns
+  const toggleIdentityFilter = (value: string) => {
+    const newSet = new Set(selectedIdentityFilters);
+    if (newSet.has(value)) {
+      newSet.delete(value);
+    } else {
+      newSet.add(value);
+    }
+    setSelectedIdentityFilters(newSet);
+  };
+
+  const toggleGenFilter = (value: string) => {
+    const newSet = new Set(selectedGenFilters);
+    if (newSet.has(value)) {
+      newSet.delete(value);
+    } else {
+      newSet.add(value);
+    }
+    setSelectedGenFilters(newSet);
+  };
+
+  const toggleLpwanFilter = (value: string) => {
+    const newSet = new Set(selectedLpwanFilters);
+    if (newSet.has(value)) {
+      newSet.delete(value);
+    } else {
+      newSet.add(value);
+    }
+    setSelectedLpwanFilters(newSet);
   };
 
   const groupNetworks = (networks: NetworkData[]): GroupedNetwork[] => {
@@ -408,9 +463,9 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
     return Object.values(grouped);
   };
 
-  // Apply show/hide toggle
+  // Apply show/hide toggle - admin can reveal expensive networks
   const visibleNetworks = showHiddenNetworks ? allNetworks : networks;
-  
+
   const filteredNetworks = visibleNetworks.filter(network => {
     // Apply identity filter (A1->E, TF->O, T2->B)
     if (selectedIdentities.size > 0) {
@@ -436,20 +491,38 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
       return false;
     }
     
-    if (sourceSearch && !(network.identity || '').toLowerCase().includes(sourceSearch.toLowerCase().trim())) {
-      return false;
+    // Apply Identity multi-select filter
+    if (selectedIdentityFilters.size > 0) {
+      const identityLetter = network.identity?.includes('-')
+        ? network.identity.split('-').pop()
+        : network.identity;
+      if (!identityLetter || !selectedIdentityFilters.has(identityLetter)) {
+        return false;
+      }
     }
-    
-    if (generationSearch) {
-      // Build generation string for this network
-      const generations = [];
-      if (network.gsm) generations.push('2G');
-      if (network.gprs2G) generations.push('2G');
-      if (network.umts3G) generations.push('3G');
-      if (network.lte4G) generations.push('4G');
-      if (network.lte5G) generations.push('5G');
-      const generationString = generations.join(', ');
-      if (!generationString.toLowerCase().includes(generationSearch.toLowerCase().trim())) {
+
+    // Apply Network Tech multi-select filter
+    if (selectedGenFilters.size > 0) {
+      const networkGens: string[] = [];
+      if (network.gsm || network.gprs2G) networkGens.push('2G');
+      if (network.umts3G) networkGens.push('3G');
+      if (network.lte4G) networkGens.push('4G');
+      if (network.lte5G) networkGens.push('5G');
+      // Check if any of the network's generations match the selected filters
+      const hasMatchingGen = networkGens.some(gen => selectedGenFilters.has(gen));
+      if (!hasMatchingGen) {
+        return false;
+      }
+    }
+
+    // Apply LP-WAN Tech multi-select filter
+    if (selectedLpwanFilters.size > 0) {
+      const networkLpwan: string[] = [];
+      if (network.lte_m) networkLpwan.push('Cat-M');
+      if (network.nb_iot) networkLpwan.push('NB-IoT');
+      // Check if any of the network's LP-WAN tech matches the selected filters
+      const hasMatchingLpwan = networkLpwan.some(lpwan => selectedLpwanFilters.has(lpwan));
+      if (!hasMatchingLpwan) {
         return false;
       }
     }
@@ -517,13 +590,31 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
       const bGeneration = getMaxGeneration(b.sources);
       const comparison = aGeneration - bGeneration;
       return sortDirection === 'asc' ? comparison : -comparison;
+    } else if (sortField === 'data') {
+      // Sort by lowest data cost from sources
+      const aDataCost = Math.min(...a.sources.map(s => s.data_cost || Infinity));
+      const bDataCost = Math.min(...b.sources.map(s => s.data_cost || Infinity));
+      const comparison = aDataCost - bDataCost;
+      return sortDirection === 'asc' ? comparison : -comparison;
+    } else if (sortField === 'sms') {
+      // Sort by lowest SMS cost from sources
+      const aSmsCost = Math.min(...a.sources.map(s => s.sms_cost || Infinity));
+      const bSmsCost = Math.min(...b.sources.map(s => s.sms_cost || Infinity));
+      const comparison = aSmsCost - bSmsCost;
+      return sortDirection === 'asc' ? comparison : -comparison;
+    } else if (sortField === 'imsi') {
+      // Sort by lowest IMSI cost from sources
+      const aImsiCost = Math.min(...a.sources.map(s => s.imsi_cost || Infinity));
+      const bImsiCost = Math.min(...b.sources.map(s => s.imsi_cost || Infinity));
+      const comparison = aImsiCost - bImsiCost;
+      return sortDirection === 'asc' ? comparison : -comparison;
     }
     return 0;
   });
   
   // Export functionality
   const exportToCSV = () => {
-    const headers = ['Country', 'Network', 'TADIG', 'Identity', `Data (${currency}/${dataUnit})`, `SMS (${currency})`, `IMSI (${currency})`, 'NETWORK TECH.', 'CAT-M', 'NB-IoT', 'Notes'];
+    const headers = ['Country', 'Network', 'TADIG', 'Identity', `Data (${currency}/${dataUnit})`, `SMS (${currency})`, `IMSI (${currency})`, 'NETWORK TECH.', 'Cat-M', 'NB-IoT', 'Notes'];
     const rows = filteredNetworks.map(network => {
       // Build generation string for CSV
       const generations = [];
@@ -682,51 +773,106 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
       <div className="mb-6">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
           <div className="flex gap-3 items-center">
-            {/* Carrier Filter - Left Side */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600 mr-1">Carriers:</span>
-              <div className="flex gap-2">
-                {/* Identity-based filtering: B, E, O, U in alphabetical order */}
-                {[
-                  { label: 'B', identity: 'B' },
-                  { label: 'E', identity: 'E' },
-                  { label: 'O', identity: 'O' },
-                  { label: 'U', identity: 'U' }
-                ].map(({ label, identity }) => {
-                  const config = operatorConfig[identity as keyof typeof operatorConfig];
-                  return (
-                    <button
-                      key={label}
-                      onClick={() => toggleIdentity(identity)}
-                      className={`px-3 py-0.5.5 rounded-lg text-sm font-medium transition-all border ${
-                        selectedIdentities.has(identity)
-                          ? `${config.bgColor} ${config.color} ${config.borderColor} border-2`
-                          : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  );
-                })}
-                
-                {/* Hidden Networks Button - Next to T2 */}
+            {/* Filter Buttons Row: B,E,O,U | 2G,3G,4G,5G | NB-IoT,Cat-M | Hidden (admin) */}
+            <div className="flex items-center gap-1">
+              {/* Identity Filters: B, E, O, U */}
+              {['B', 'E', 'O', 'U'].map((identity) => {
+                const config = operatorConfig[identity as keyof typeof operatorConfig];
+                return (
+                  <button
+                    key={identity}
+                    onClick={() => toggleIdentity(identity)}
+                    className={`px-2 py-0.5 rounded-lg text-xs font-medium transition-all border ${
+                      selectedIdentities.has(identity)
+                        ? `${config.bgColor} ${config.color} ${config.borderColor} border-2`
+                        : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
+                    }`}
+                  >
+                    {identity}
+                  </button>
+                );
+              })}
+
+              {/* Vertical Separator */}
+              <div className="h-5 w-px bg-gray-300 mx-2" />
+
+              {/* Technology Filters: 2G, 3G, 4G, 5G */}
+              {['2G', '3G', '4G', '5G'].map((tech) => (
                 <button
-                  onClick={() => setShowHiddenNetworks(!showHiddenNetworks)}
-                  className={`flex items-center gap-1 px-2 py-0.5.5 rounded-lg text-sm font-medium transition-all border ${
-                    showHiddenNetworks
-                      ? 'bg-orange-50 text-orange-600 border-orange-200'
+                  key={tech}
+                  onClick={() => {
+                    const newSet = new Set(selectedGenFilters);
+                    if (newSet.has(tech)) {
+                      newSet.delete(tech);
+                    } else {
+                      newSet.add(tech);
+                    }
+                    setSelectedGenFilters(newSet);
+                  }}
+                  className={`px-2 py-0.5 rounded-lg text-xs font-medium transition-all border ${
+                    selectedGenFilters.has(tech)
+                      ? 'bg-blue-50 text-blue-600 border-blue-200 border-2'
                       : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
                   }`}
-                  title="Hidden Networks"
                 >
-                  {showHiddenNetworks ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                  <span className="px-1.5 py-0.5 bg-white rounded text-xs">
-                    {allNetworks.length - networks.length}
-                  </span>
+                  {tech}
                 </button>
-              </div>
+              ))}
+
+              {/* Vertical Separator */}
+              <div className="h-5 w-px bg-gray-300 mx-2" />
+
+              {/* LP-WAN Filters: NB-IoT, Cat-M */}
+              {[
+                { label: 'NB-IoT', value: 'NB-IoT' },
+                { label: 'Cat-M', value: 'Cat-M' }
+              ].map(({ label, value }) => (
+                <button
+                  key={value}
+                  onClick={() => {
+                    const newSet = new Set(selectedLpwanFilters);
+                    if (newSet.has(value)) {
+                      newSet.delete(value);
+                    } else {
+                      newSet.add(value);
+                    }
+                    setSelectedLpwanFilters(newSet);
+                  }}
+                  className={`px-2 py-0.5 rounded-lg text-xs font-medium transition-all border ${
+                    selectedLpwanFilters.has(value)
+                      ? 'bg-purple-50 text-purple-600 border-purple-200 border-2'
+                      : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+
+              {/* Vertical Separator + Hidden Networks Button (Admin only) */}
+              {isAdmin && (
+                <>
+                  <div className="h-5 w-px bg-gray-300 mx-2" />
+                  <button
+                    onClick={() => setShowHiddenNetworks(!showHiddenNetworks)}
+                    className={`flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-medium transition-all border ${
+                      showHiddenNetworks
+                        ? 'bg-orange-50 text-orange-600 border-orange-200 border-2'
+                        : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
+                    }`}
+                    title={showHiddenNetworks
+                      ? 'Currently showing all networks including expensive ones. Click to hide expensive networks.'
+                      : `${allNetworks.length - networks.length} expensive networks (>$${EXPENSIVE_NETWORK_THRESHOLD}/MB) are hidden. Click to show them.`
+                    }
+                  >
+                    {showHiddenNetworks ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                    <span className="px-1 py-0.5 bg-white rounded text-xs">
+                      {showHiddenNetworks ? 0 : allNetworks.length - networks.length}
+                    </span>
+                  </button>
+                </>
+              )}
             </div>
-            
+
             {/* Search Bar - Center */}
             <div className="flex-1 relative mx-4">
               <input
@@ -825,16 +971,17 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
           </div>
       
           {/* Active filter indicator */}
-          {(searchTerm || networkSearch || countrySearch || tadigSearch || sourceSearch || generationSearch || selectedIdentities.size > 0) && (
+          {(searchTerm || networkSearch || countrySearch || tadigSearch || selectedIdentities.size > 0 || selectedIdentityFilters.size > 0 || selectedGenFilters.size > 0 || selectedLpwanFilters.size > 0) && (
             <div className="mt-3 flex items-center gap-2 text-sm text-gray-500">
               <span>Active filters:
                 {searchTerm && <strong className="text-gray-700 ml-1">General: "{searchTerm}"</strong>}
                 {networkSearch && <strong className="text-gray-700 ml-1">Network: "{networkSearch}"</strong>}
                 {countrySearch && <strong className="text-gray-700 ml-1">Country: "{countrySearch}"</strong>}
                 {tadigSearch && <strong className="text-gray-700 ml-1">TADIG: "{tadigSearch}"</strong>}
-                {sourceSearch && <strong className="text-gray-700 ml-1">Source: "{sourceSearch}"</strong>}
-                {generationSearch && <strong className="text-gray-700 ml-1">Generation: "{generationSearch}"</strong>}
                 {selectedIdentities.size > 0 && <strong className="text-gray-700 ml-1">Carriers: {Array.from(selectedIdentities).join(', ')}</strong>}
+                {selectedIdentityFilters.size > 0 && <strong className="text-gray-700 ml-1">Identity: {Array.from(selectedIdentityFilters).join(', ')}</strong>}
+                {selectedGenFilters.size > 0 && <strong className="text-gray-700 ml-1">Network Tech: {Array.from(selectedGenFilters).join(', ')}</strong>}
+                {selectedLpwanFilters.size > 0 && <strong className="text-gray-700 ml-1">LP-WAN: {Array.from(selectedLpwanFilters).join(', ')}</strong>}
               </span>
               <button
                 onClick={() => {
@@ -842,15 +989,12 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
                   setNetworkSearch('');
                   setCountrySearch('');
                   setTagidSearch('');
-                  setSourceSearch('');
-                  setGenerationSearch('');
                   setSelectedIdentities(new Set());
-                  // Hide all search boxes
-                  setShowNetworkSearch(false);
-                  setShowCountrySearch(false);
-                  setShowTagidSearch(false);
-                  setShowSourceSearch(false);
-                  setShowGenerationSearch(false);
+                  setSelectedIdentityFilters(new Set());
+                  setSelectedGenFilters(new Set());
+                  setSelectedLpwanFilters(new Set());
+                  // Hide all search boxes/dropdowns
+                  closeAllDropdowns();
                 }}
                 className="text-[#5B9BD5] hover:text-[#5B9BD5]/80 font-medium"
               >
@@ -984,7 +1128,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
                   />
                 )}
               </th>
-                <th className="px-2 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-200">
+                <th className="px-2 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-200 relative">
                 <div className="flex items-center gap-1 group">
                   <span>Identity</span>
                   <button
@@ -1001,79 +1145,152 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
                     )}
                   </button>
                   <button
-                    onClick={() => toggleSearchBox('source')}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 rounded"
-                    title="Search identity"
+                    onClick={() => toggleDropdown('identity')}
+                    className={`transition-opacity p-1 hover:bg-gray-200 rounded ${showIdentityDropdown || selectedIdentityFilters.size > 0 ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                    title="Filter by identity"
                   >
-                    <Search className="w-3 h-3 text-gray-400" />
+                    <Search className={`w-3 h-3 ${selectedIdentityFilters.size > 0 ? 'text-blue-500' : 'text-gray-400'}`} />
                   </button>
                 </div>
-                {showSourceSearch && (
-                  <input
-                    type="text"
-                    placeholder="Search identity..."
-                    value={sourceSearch}
-                    onChange={(e) => setSourceSearch(e.target.value)}
-                    className="mt-1 w-full px-2 py-0.5 text-xs bg-gray-50 border-0 rounded focus:outline-none focus:ring-1 focus:ring-blue-300 focus:bg-white placeholder-gray-400"
-                    autoFocus
-                  />
+                {showIdentityDropdown && (
+                  <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[120px]">
+                    {['B', 'E', 'O', 'U'].map(identity => (
+                      <label key={identity} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selectedIdentityFilters.has(identity)}
+                          onChange={() => toggleIdentityFilter(identity)}
+                          className="w-4 h-4 text-blue-500 rounded border-gray-300 focus:ring-blue-500"
+                        />
+                        <span className="text-sm text-gray-700">{identity}</span>
+                      </label>
+                    ))}
+                  </div>
                 )}
               </th>
-                <th className="px-2 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-200">
-                <div className="flex items-center gap-1">
+                <th className="px-2 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-200">
+                <div className="flex items-center gap-1 group">
                   <span>Data</span>
                   {isSales && <Lock className="w-3 h-3 text-blue-500" />}
-                </div>
-              </th>
-                <th className="px-2 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-200">
-                <div className="flex items-center gap-1">
-                  <span>SMS</span>
-                  {isSales && <Lock className="w-3 h-3 text-blue-500" />}
-                </div>
-              </th>
-                <th className="px-2 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-200">
-                <div className="flex items-center gap-1">
-                  <span>IMSI</span>
-                  {isSales && <Lock className="w-3 h-3 text-blue-500" />}
+                  <button
+                    onClick={() => handleSort('data')}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 rounded"
+                    title="Sort by data cost"
+                  >
+                    {sortField === 'data' ? (
+                      sortDirection === 'asc' ?
+                      <ArrowUp className="w-3 h-3 text-gray-500" /> :
+                      <ArrowDown className="w-3 h-3 text-gray-500" />
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 text-gray-400" />
+                    )}
+                  </button>
                 </div>
               </th>
                 <th className="px-2 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-200">
+                <div className="flex items-center gap-1 group">
+                  <span>SMS</span>
+                  {isSales && <Lock className="w-3 h-3 text-blue-500" />}
+                  <button
+                    onClick={() => handleSort('sms')}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 rounded"
+                    title="Sort by SMS cost"
+                  >
+                    {sortField === 'sms' ? (
+                      sortDirection === 'asc' ?
+                      <ArrowUp className="w-3 h-3 text-gray-500" /> :
+                      <ArrowDown className="w-3 h-3 text-gray-500" />
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 text-gray-400" />
+                    )}
+                  </button>
+                </div>
+              </th>
+                <th className="px-2 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-200">
+                <div className="flex items-center gap-1 group">
+                  <span>IMSI</span>
+                  {isSales && <Lock className="w-3 h-3 text-blue-500" />}
+                  <button
+                    onClick={() => handleSort('imsi')}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 rounded"
+                    title="Sort by IMSI cost"
+                  >
+                    {sortField === 'imsi' ? (
+                      sortDirection === 'asc' ?
+                      <ArrowUp className="w-3 h-3 text-gray-500" /> :
+                      <ArrowDown className="w-3 h-3 text-gray-500" />
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 text-gray-400" />
+                    )}
+                  </button>
+                </div>
+              </th>
+                <th className="px-2 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-200 relative">
                 <div className="flex items-center gap-1 group whitespace-nowrap">
                   <span>NETWORK TECH.</span>
-                  <button 
+                  <button
                     onClick={() => handleSort('generation')}
                     className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 rounded"
                     title="Sort network generations"
                   >
                     {sortField === 'generation' ? (
-                      sortDirection === 'asc' ? 
-                      <ArrowUp className="w-3 h-3 text-gray-500" /> : 
+                      sortDirection === 'asc' ?
+                      <ArrowUp className="w-3 h-3 text-gray-500" /> :
                       <ArrowDown className="w-3 h-3 text-gray-500" />
                     ) : (
                       <ArrowUpDown className="w-3 h-3 text-gray-400" />
                     )}
                   </button>
                   <button
-                    onClick={() => toggleSearchBox('generation')}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 rounded"
-                    title="Search network generations"
+                    onClick={() => toggleDropdown('generation')}
+                    className={`transition-opacity p-1 hover:bg-gray-200 rounded ${showGenDropdown || selectedGenFilters.size > 0 ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                    title="Filter by network technology"
                   >
-                    <Search className="w-3 h-3 text-gray-400" />
+                    <Search className={`w-3 h-3 ${selectedGenFilters.size > 0 ? 'text-blue-500' : 'text-gray-400'}`} />
                   </button>
                 </div>
-                {showGenerationSearch && (
-                  <input
-                    type="text"
-                    placeholder="Search generations..."
-                    value={generationSearch}
-                    onChange={(e) => setGenerationSearch(e.target.value)}
-                    className="mt-1 w-full px-2 py-0.5 text-xs bg-gray-50 border-0 rounded focus:outline-none focus:ring-1 focus:ring-blue-300 focus:bg-white placeholder-gray-400"
-                    autoFocus
-                  />
+                {showGenDropdown && (
+                  <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[120px]">
+                    {['2G', '3G', '4G', '5G'].map(gen => (
+                      <label key={gen} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selectedGenFilters.has(gen)}
+                          onChange={() => toggleGenFilter(gen)}
+                          className="w-4 h-4 text-blue-500 rounded border-gray-300 focus:ring-blue-500"
+                        />
+                        <span className="text-sm text-gray-700">{gen}</span>
+                      </label>
+                    ))}
+                  </div>
                 )}
               </th>
-                <th className="px-2 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-200 whitespace-nowrap">
-                LP-WAN Tech.
+                <th className="px-2 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-200 whitespace-nowrap relative">
+                <div className="flex items-center gap-1 group">
+                  <span>LP-WAN Tech.</span>
+                  <button
+                    onClick={() => toggleDropdown('lpwan')}
+                    className={`transition-opacity p-1 hover:bg-gray-200 rounded ${showLpwanDropdown || selectedLpwanFilters.size > 0 ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                    title="Filter by LP-WAN technology"
+                  >
+                    <Search className={`w-3 h-3 ${selectedLpwanFilters.size > 0 ? 'text-blue-500' : 'text-gray-400'}`} />
+                  </button>
+                </div>
+                {showLpwanDropdown && (
+                  <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[120px]">
+                    {['Cat-M', 'NB-IoT'].map(lpwan => (
+                      <label key={lpwan} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selectedLpwanFilters.has(lpwan)}
+                          onChange={() => toggleLpwanFilter(lpwan)}
+                          className="w-4 h-4 text-blue-500 rounded border-gray-300 focus:ring-blue-500"
+                        />
+                        <span className="text-sm text-gray-700">{lpwan}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
               </th>
                 <th className="px-2 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-200">
                 Notes
@@ -1101,7 +1318,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
 
                     // Build LP-WAN technologies
                     const technologies: string[] = [];
-                    if (source.lte_m) technologies.push('CAT-M');
+                    if (source.lte_m) technologies.push('Cat-M');
                     if (source.nb_iot) technologies.push('NB-IoT');
 
                     // Display identity value (e.g., "Monogoto-B") or fall back to operator
@@ -1179,7 +1396,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
                             {technologies.length > 0 ? (
                               <span className="flex items-center gap-1">
                                 {technologies.map((tech, techIndex) => {
-                                  const isDouble = (tech === 'CAT-M' && source.lte_m_double) || (tech === 'NB-IoT' && source.nb_iot_double);
+                                  const isDouble = (tech === 'Cat-M' && source.lte_m_double) || (tech === 'NB-IoT' && source.nb_iot_double);
                                   return (
                                     <span key={techIndex} className="flex items-center gap-0.5">
                                       {tech}

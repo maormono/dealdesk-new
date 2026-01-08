@@ -32,7 +32,7 @@ export const IoTBadges: React.FC<IoTBadgesProps> = ({ lteMOperators, nbIotOperat
         key="cat-m"
         className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded"
       >
-        CAT-M
+        Cat-M
         <span className="inline-flex gap-0.5 ml-1">
           {operatorDots}
         </span>

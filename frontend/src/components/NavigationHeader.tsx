@@ -41,7 +41,7 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = () => {
               <div className="h-6 w-px bg-gray-200" />
               <div>
                 <h1 className="text-xl font-semibold text-gray-900 tracking-tight">DealDesk</h1>
-                <p className="text-sm text-gray-500">Operator Pricing Analysis Platform</p>
+                <p className="text-sm text-gray-500">Pricing Analysis Platform</p>
               </div>
             </div>
             <div className="flex items-center space-x-4">

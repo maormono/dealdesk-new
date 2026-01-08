@@ -112,7 +112,7 @@ function ProtectedLayout({ children }: { children: React.ReactNode }) {
       <footer className="mt-auto py-3 px-4 border-t border-gray-200 bg-white">
         <div className="max-w-7xl mx-auto text-center text-xs text-gray-500">
           <div className="flex items-center justify-center space-x-4">
-            <p>© 2025 Monogoto - DealDesk Platform</p>
+            <p>© 2026 Monogoto - DealDesk Platform</p>
             <div className="flex items-center space-x-2">
               <FileSpreadsheet className="w-4 h-4" />
               <span>MVP v1.0</span>

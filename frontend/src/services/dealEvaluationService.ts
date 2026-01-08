@@ -2,6 +2,10 @@ import { supabase } from '../lib/supabase';
 import { dealConfig } from '../config/dealConfig';
 import type { DealRequest, DealEvaluation, CarrierOption } from '../config/dealConfig';
 
+// Threshold for expensive networks - networks with data cost > $1/MB are excluded from pricing
+// These networks are blocked in roaming policy and customers won't use them
+const EXPENSIVE_NETWORK_THRESHOLD = 1.0; // $1.00 per MB
+
 export class DealEvaluationService {
   async evaluateDeal(request: DealRequest): Promise<DealEvaluation> {
     console.log('Evaluating deal:', request);
@@ -20,26 +24,62 @@ export class DealEvaluationService {
     
     // Total connectivity cost (before markup)
     const connectivityCost = carrierDataCost + carrierImsiCost + carrierSmsCost;
-    
+
     // Apply markup to connectivity costs (50% markup = 1.5x)
     const markedUpConnectivityCost = connectivityCost * (1 + dealConfig.connectivityMarkup);
-    
+
     // Add platform cost (fixed cost per active SIM)
     const platformFees = this.calculatePlatformFees(request);
-    
-    // Total costs (marked up connectivity + platform cost)
+
+    // Total costs (marked up connectivity + platform cost) - for internal pricing reference
     const totalCostPerSim = markedUpConnectivityCost + platformFees;
     const totalMonthlyCost = totalCostPerSim * request.simQuantity;
-    
+
+    // Raw costs (what Monogoto actually pays) - for true profitability calculation
+    const rawCostPerSim = connectivityCost + platformFees;
+    const rawMonthlyCost = rawCostPerSim * request.simQuantity;
+
     // Revenue calculation (apply volume discounts)
     const discount = this.getVolumeDiscount(request.simQuantity);
     const revenuePerSim = request.proposedPricePerSim * (1 - discount);
     const totalMonthlyRevenue = revenuePerSim * request.simQuantity;
-    
-    // Profitability
-    const grossProfitPerSim = revenuePerSim - totalCostPerSim;
-    const totalMonthlyProfit = totalMonthlyRevenue - totalMonthlyCost;
+
+    // Profitability - based on RAW costs (what we actually pay carriers)
+    const grossProfitPerSim = revenuePerSim - rawCostPerSim;
+    const totalMonthlyProfit = totalMonthlyRevenue - rawMonthlyCost;
     const profitMargin = totalMonthlyRevenue > 0 ? totalMonthlyProfit / totalMonthlyRevenue : 0;
+
+    // DEBUG: Log profitability calculation details
+    console.log('========== PROFITABILITY CALCULATION DEBUG ==========');
+    console.log('Carrier Costs (raw):');
+    console.log(`  - Data cost: $${carrierDataCost.toFixed(6)}`);
+    console.log(`  - IMSI cost: $${carrierImsiCost.toFixed(6)}`);
+    console.log(`  - SMS cost: $${carrierSmsCost.toFixed(6)}`);
+    console.log(`  - Total connectivity (raw): $${connectivityCost.toFixed(6)}`);
+    console.log(`  - Connectivity with 50% markup: $${markedUpConnectivityCost.toFixed(6)}`);
+    console.log('');
+    console.log('Platform Fees:');
+    console.log(`  - Platform fee per SIM: $${platformFees.toFixed(6)}`);
+    console.log('');
+    console.log('Cost per SIM:');
+    console.log(`  - Raw cost per SIM (connectivity + platform): $${rawCostPerSim.toFixed(6)}`);
+    console.log(`  - Marked up cost per SIM: $${totalCostPerSim.toFixed(6)}`);
+    console.log('');
+    console.log('Revenue:');
+    console.log(`  - Proposed price per SIM: $${request.proposedPricePerSim.toFixed(6)}`);
+    console.log(`  - Volume discount: ${(discount * 100).toFixed(1)}%`);
+    console.log(`  - Revenue per SIM (after discount): $${revenuePerSim.toFixed(6)}`);
+    console.log(`  - Total monthly revenue (${request.simQuantity} SIMs): $${totalMonthlyRevenue.toFixed(2)}`);
+    console.log('');
+    console.log('Profitability:');
+    console.log(`  - Gross profit per SIM: $${grossProfitPerSim.toFixed(6)}`);
+    console.log(`  - Total monthly profit: $${totalMonthlyProfit.toFixed(2)}`);
+    console.log(`  - Raw monthly cost: $${rawMonthlyCost.toFixed(2)}`);
+    console.log(`  - Profit margin: ${(profitMargin * 100).toFixed(2)}%`);
+    console.log('');
+    console.log('Formula: profitMargin = totalMonthlyProfit / totalMonthlyRevenue');
+    console.log(`         = ${totalMonthlyProfit.toFixed(2)} / ${totalMonthlyRevenue.toFixed(2)} = ${(profitMargin * 100).toFixed(2)}%`);
+    console.log('======================================================');
     
     // Risk assessment
     const riskScore = this.calculateRiskScore(request, profitMargin);
@@ -161,6 +201,12 @@ export class DealEvaluationService {
             return;
           }
 
+          // Skip expensive networks (>$1/MB) - these are blocked in roaming policy
+          if (pricing.data_per_mb > EXPENSIVE_NETWORK_THRESHOLD) {
+            console.log(`Skipping expensive network: ${network.network_name} via ${operator} - $${pricing.data_per_mb}/MB exceeds threshold of $${EXPENSIVE_NETWORK_THRESHOLD}/MB`);
+            return;
+          }
+
           // Calculate total cost for this option
           const dataRate = pricing.data_per_mb;
           const imsiCost = pricing.imsi_cost || 0;
@@ -254,49 +300,63 @@ export class DealEvaluationService {
   
   private calculateDataCost(carriers: CarrierOption[], dataGB: number, request?: DealRequest): number {
     if (carriers.length === 0) return 0;
-    
+
+    const dataMB = dataGB * 1024; // Convert GB to MB
+
     // If usage percentages are specified, calculate weighted average
     if (request?.usagePercentages && Object.keys(request.usagePercentages).length > 0) {
       let weightedCost = 0;
       let totalPercentage = 0;
-      
+
+      console.log('DEBUG Data Cost - Using weighted percentages:', request.usagePercentages);
+
       Object.entries(request.usagePercentages).forEach(([country, percentage]) => {
         const countryCarriers = carriers.filter(c => c.country === country);
         if (countryCarriers.length > 0) {
           // Use the cheapest carrier rate in that country
           const minRate = Math.min(...countryCarriers.map(c => c.dataRate));
-          weightedCost += minRate * dataGB * 1024 * (percentage / 100);
+          const countryCost = minRate * dataMB * (percentage / 100);
+          weightedCost += countryCost;
           totalPercentage += percentage;
+          console.log(`  ${country}: ${percentage}% @ $${minRate.toFixed(6)}/MB = $${countryCost.toFixed(6)}`);
         }
       });
-      
+
       // If percentages don't add up to 100%, use average for remaining
       if (totalPercentage < 100) {
         const remainingPercentage = (100 - totalPercentage) / 100;
         const avgRate = carriers.reduce((sum, c) => sum + c.dataRate, 0) / carriers.length;
-        weightedCost += avgRate * dataGB * 1024 * remainingPercentage;
+        weightedCost += avgRate * dataMB * remainingPercentage;
+        console.log(`  Remaining ${100 - totalPercentage}%: avg rate $${avgRate.toFixed(6)}/MB`);
       }
-      
+
+      console.log(`  Total weighted data cost: $${weightedCost.toFixed(6)}`);
       return weightedCost;
     }
-    
+
     // Default: average data cost across selected carriers
     const totalDataCost = carriers.reduce((sum, carrier) => {
-      return sum + (carrier.dataRate * dataGB * 1024); // Convert GB to MB
+      return sum + (carrier.dataRate * dataMB);
     }, 0);
-    
-    return totalDataCost / carriers.length;
+
+    const avgCost = totalDataCost / carriers.length;
+    console.log(`DEBUG Data Cost - Average across ${carriers.length} carriers: $${avgCost.toFixed(6)}`);
+
+    return avgCost;
   }
   
   private calculateImsiCost(carriers: CarrierOption[]): number {
     if (carriers.length === 0) return 0;
-    
+
     // Average IMSI cost across selected carriers
     const totalImsiCost = carriers.reduce((sum, carrier) => {
       return sum + carrier.imsiCost;
     }, 0);
-    
-    return totalImsiCost / carriers.length;
+
+    const avgImsiCost = totalImsiCost / carriers.length;
+    console.log(`DEBUG IMSI Cost - Carriers: ${carriers.map(c => `${c.carrier}=$${c.imsiCost}`).join(', ')} → avg: $${avgImsiCost.toFixed(6)}`);
+
+    return avgImsiCost;
   }
   
   private calculateSmsCost(carriers: CarrierOption[], smsCount: number): number {
@@ -311,25 +371,13 @@ export class DealEvaluationService {
   }
   
   private calculatePlatformFees(request: DealRequest): number {
-    // Platform cost is a fixed cost per active SIM, not a profit center
+    // Platform cost is a fixed cost per active SIM - keep it simple
+    // Risk factors should affect risk score, not actual cost calculation
     const { activeSIMCost } = dealConfig.platformCosts;
-    
-    let totalFees = activeSIMCost;
-    
-    // Apply risk factors if needed (though typically platform cost is fixed)
-    if (request.isNewCustomer) {
-      totalFees *= dealConfig.riskFactors.newCustomer;
-    }
-    
-    if (request.expectedUsagePattern === 'high') {
-      totalFees *= dealConfig.riskFactors.highDataUsage;
-    }
-    
-    if (request.countries.length > 1) {
-      totalFees *= dealConfig.riskFactors.multiCountry;
-    }
-    
-    return totalFees;
+
+    // Return the base platform cost without adjustments
+    // This gives accurate profitability calculations
+    return activeSIMCost;
   }
   
   private getVolumeDiscount(quantity: number): number {
