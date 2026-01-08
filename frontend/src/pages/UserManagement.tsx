@@ -456,7 +456,7 @@ export function UserManagement() {
                     Permissions
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Markup %
+                    Markup
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Created
@@ -515,7 +515,7 @@ export function UserManagement() {
                               Costs
                             </span>
                             <span className="px-2 py-1 text-xs bg-orange-100 text-orange-700 rounded">
-                              Hidden Network
+                              Hidden Networks
                             </span>
                             <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded">
                               Export
