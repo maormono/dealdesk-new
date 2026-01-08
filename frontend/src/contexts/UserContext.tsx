@@ -6,6 +6,7 @@ import { getUserDealDeskPermissions, type DealDeskPermissions } from '../lib/per
 export interface UserRole {
   role: 'admin' | 'sales' | 'viewer'
   canSeeCosts: boolean
+  canSeeHiddenNetworks: boolean
   canEditPricing: boolean
   canExportData: boolean
   markupPercentage: number
@@ -23,6 +24,7 @@ interface UserContextType {
 const defaultUserRole: UserRole = {
   role: 'viewer',
   canSeeCosts: false,
+  canSeeHiddenNetworks: false,
   canEditPricing: false,
   canExportData: false,
   markupPercentage: 50.0
@@ -66,6 +68,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         setUserRole({
           role: 'admin',
           canSeeCosts: true,
+          canSeeHiddenNetworks: true,
           canEditPricing: true,
           canExportData: true,
           markupPercentage: 0
@@ -91,9 +94,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         }
         
         // Map DealDesk permissions to UserRole
+        // Admin: costs=true, hidden_networks=true, export=true, markup=0
+        // Sales: costs=false, hidden_networks=false, export=true, markup=50
+        // Viewer: costs=false, hidden_networks=false, export=false, markup=50
         const mappedRole: UserRole = {
           role: permissions.role === 'admin' ? 'admin' : 'sales',
           canSeeCosts: permissions.canSeeCosts,
+          canSeeHiddenNetworks: permissions.role === 'admin',
           canEditPricing: permissions.canEditPricing,
           canExportData: permissions.canExportData,
           markupPercentage: permissions.canSeeCosts ? 0 : 50.0

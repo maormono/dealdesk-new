@@ -24,6 +24,7 @@ interface UserProfile {
   last_sign_in: string;
   role: 'admin' | 'sales' | 'viewer';
   can_see_costs: boolean;
+  can_see_hidden_networks: boolean;
   can_edit_pricing: boolean;
   can_export_data: boolean;
   markup_percentage: number;
@@ -95,9 +96,10 @@ export function UserManagement() {
           last_sign_in: new Date().toISOString(),
           role: 'admin',
           can_see_costs: true,
+          can_see_hidden_networks: true,
           can_edit_pricing: true,
           can_export_data: true,
-          markup_percentage: 50
+          markup_percentage: 0
         };
         setUsers([currentUserProfile]);
       } else {
@@ -109,9 +111,10 @@ export function UserManagement() {
           last_sign_in: profile.updated_at || profile.created_at,
           role: profile.role || 'viewer',
           can_see_costs: profile.can_see_costs ?? false,
+          can_see_hidden_networks: profile.can_see_hidden_networks ?? false,
           can_edit_pricing: profile.can_edit_pricing ?? false,
           can_export_data: profile.can_export_data ?? false,
-          markup_percentage: profile.markup_percentage || 50
+          markup_percentage: profile.markup_percentage ?? 50
         }));
         
         console.log('Users data received:', formattedUsers);
@@ -128,9 +131,10 @@ export function UserManagement() {
         last_sign_in: new Date().toISOString(),
         role: 'admin',
         can_see_costs: true,
+        can_see_hidden_networks: true,
         can_edit_pricing: true,
         can_export_data: true,
-        markup_percentage: 50
+        markup_percentage: 0
       };
       setUsers([fallbackUser]);
       setMessage({ 
@@ -516,17 +520,22 @@ export function UserManagement() {
                       <div className="flex space-x-2">
                         {userProfile.can_see_costs && (
                           <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded">
-                            See Costs
+                            Costs
                           </span>
                         )}
-                        {userProfile.can_edit_pricing && (
-                          <span className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded">
-                            Edit Pricing
+                        {userProfile.can_see_hidden_networks && (
+                          <span className="px-2 py-1 text-xs bg-orange-100 text-orange-700 rounded">
+                            Hidden Network
                           </span>
                         )}
                         {userProfile.can_export_data && (
                           <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded">
                             Export
+                          </span>
+                        )}
+                        {!userProfile.can_see_costs && !userProfile.can_see_hidden_networks && !userProfile.can_export_data && (
+                          <span className="px-2 py-1 text-xs bg-gray-100 text-gray-500 rounded">
+                            None
                           </span>
                         )}
                       </div>
@@ -543,8 +552,12 @@ export function UserManagement() {
                           step="0.1"
                         />
                       ) : (
-                        <span className="text-sm text-gray-900">
-                          {userProfile.role === 'sales' ? `${userProfile.markup_percentage}%` : '—'}
+                        <span className={`text-sm ${userProfile.role === 'admin' ? 'text-green-600 font-medium' : 'text-gray-900'}`}>
+                          {userProfile.role === 'admin'
+                            ? '0%'
+                            : userProfile.role === 'sales'
+                              ? `${userProfile.markup_percentage}%`
+                              : '50%'}
                         </span>
                       )}
                     </td>
