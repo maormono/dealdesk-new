@@ -49,6 +49,9 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
   const [dataAmount, setDataAmount] = useState<number>(1024);
   const [dataUnit, setDataUnit] = useState<'KB' | 'MB' | 'GB'>('MB');
   const [priceAmount, setPriceAmount] = useState<string>('2');
+  const [simQuantityStr, setSimQuantityStr] = useState<string>(String(initialDeal?.simQuantity || 1000));
+  const [monthlySmsStr, setMonthlySmsStr] = useState<string>(String(initialDeal?.monthlySmsPerSim || 0));
+  const [durationStr, setDurationStr] = useState<string>(String(initialDeal?.duration || 12));
   const [cellularTechnologies, setCellularTechnologies] = useState<string[]>(['2G', '3G', '4G', '5G']);
   const [lpwanTechnologies, setLpwanTechnologies] = useState<string[]>([]);
   const [showCellularDropdown, setShowCellularDropdown] = useState(false);
@@ -133,6 +136,24 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
     const numericPrice = parseFloat(priceAmount) || 0;
     setFormData(prev => ({ ...prev, proposedPricePerSim: numericPrice }));
   }, [priceAmount]);
+
+  useEffect(() => {
+    // Sync simQuantity string with formData
+    const numeric = parseInt(simQuantityStr) || 1;
+    setFormData(prev => ({ ...prev, simQuantity: numeric }));
+  }, [simQuantityStr]);
+
+  useEffect(() => {
+    // Sync monthlySms string with formData
+    const numeric = parseInt(monthlySmsStr) || 0;
+    setFormData(prev => ({ ...prev, monthlySmsPerSim: numeric }));
+  }, [monthlySmsStr]);
+
+  useEffect(() => {
+    // Sync duration string with formData
+    const numeric = parseInt(durationStr) || 1;
+    setFormData(prev => ({ ...prev, duration: numeric }));
+  }, [durationStr]);
 
   useEffect(() => {
     // Close dropdowns when clicking outside
@@ -412,8 +433,8 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
               <input
                 type="number"
                 min="1"
-                value={formData.simQuantity}
-                onChange={(e) => setFormData(prev => ({ ...prev, simQuantity: parseInt(e.target.value) || 1 }))}
+                value={simQuantityStr}
+                onChange={(e) => setSimQuantityStr(e.target.value)}
                 className="w-full px-4 py-3 text-sm bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]/50 focus:bg-white transition-all placeholder-gray-400"
                 required
               />
@@ -459,8 +480,8 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
               <input
                 type="number"
                 min="0"
-                value={formData.monthlySmsPerSim || 0}
-                onChange={(e) => setFormData(prev => ({ ...prev, monthlySmsPerSim: parseInt(e.target.value) || 0 }))}
+                value={monthlySmsStr}
+                onChange={(e) => setMonthlySmsStr(e.target.value)}
                 className="w-full px-4 py-3 text-sm bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]/50 focus:bg-white transition-all placeholder-gray-400"
               />
             </div>
@@ -511,8 +532,8 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
               <input
                 type="number"
                 min="1"
-                value={formData.duration}
-                onChange={(e) => setFormData(prev => ({ ...prev, duration: parseInt(e.target.value) || 1 }))}
+                value={durationStr}
+                onChange={(e) => setDurationStr(e.target.value)}
                 className="w-full px-4 py-3 text-sm bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]/50 focus:bg-white transition-all placeholder-gray-400"
                 required
               />
