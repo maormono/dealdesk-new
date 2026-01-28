@@ -9,9 +9,9 @@ interface ProtectedRouteProps {
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { user, loading: authLoading, isAuthorized } = useAuth()
-  const { userRole, loading: userLoading } = useUser()
+  const { userRole, loading: userLoading, permissionsFetched } = useUser()
 
-  if (authLoading || userLoading) {
+  if (authLoading || userLoading || (user && !permissionsFetched)) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">

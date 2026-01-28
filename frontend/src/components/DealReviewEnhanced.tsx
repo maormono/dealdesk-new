@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  Calculator, 
-  Send, 
+import {
+  Calculator,
+  Send,
   Loader2,
   Maximize2,
   Minimize2,
@@ -9,6 +9,10 @@ import {
 } from 'lucide-react';
 import { ComprehensiveDealService } from '../services/comprehensiveDealService';
 import type { DealRequestMandatory } from '../services/comprehensiveDealService';
+import { DealEvaluationService } from '../services/dealEvaluationService';
+import { EnhancedDealService } from '../services/enhancedDealService';
+import type { DealRequest } from '../config/dealConfig';
+import type { DealEvaluation } from '../config/dealConfig';
 
 interface Message {
   id: string;
@@ -48,7 +52,9 @@ export const DealReviewEnhanced: React.FC<DealReviewEnhancedProps> = ({ onExpand
   const [loading, setLoading] = useState(false);
   const [currentDeal, setCurrentDeal] = useState<Partial<DealRequestMandatory>>({});
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
-  const dealService = useRef(new ComprehensiveDealService());
+  const dealService = new ComprehensiveDealService();
+  const evaluationService = new DealEvaluationService();
+  const enhancedService = new EnhancedDealService();
   const [shouldAutoScroll, setShouldAutoScroll] = useState(false);
   
   useEffect(() => {
@@ -81,14 +87,14 @@ export const DealReviewEnhanced: React.FC<DealReviewEnhancedProps> = ({ onExpand
     
     try {
       // Parse user input
-      const parsedDeal = dealService.current.parseUserInput(input);
-      
+      const parsedDeal = dealService.parseUserInput(input);
+
       // Merge with existing deal data
       const updatedDeal = { ...currentDeal, ...parsedDeal };
       setCurrentDeal(updatedDeal);
-      
+
       // Validate mandatory fields
-      const validation = dealService.current.validateMandatoryFields(updatedDeal);
+      const validation = dealService.validateMandatoryFields(updatedDeal);
       
       if (!validation.isValid) {
         // Show what's missing
@@ -101,33 +107,79 @@ export const DealReviewEnhanced: React.FC<DealReviewEnhancedProps> = ({ onExpand
         setShouldAutoScroll(true);
         setMessages(prev => [...prev, missingFieldsMessage]);
       } else {
-        // All fields present - proceed with analysis
+        // All fields present - proceed with analysis using all 3 services (same as form)
         const statusMessage: Message = {
           id: Date.now().toString() + '_status',
           role: 'system',
-          content: '🔍 Querying operator database for pricing...',
+          content: '🔍 Analyzing deal with all pricing services...',
           timestamp: new Date()
         };
         setMessages(prev => [...prev, statusMessage]);
-        
-        // Evaluate the deal
-        const result = await dealService.current.evaluateDeal(updatedDeal);
-        
-        if (result.isValid && result.recommendation) {
+
+        // Convert to DealRequest format for basic and enhanced services
+        const dealRequest: DealRequest = {
+          simQuantity: updatedDeal.simCount || 0,
+          countries: updatedDeal.countries || [],
+          carriers: [],
+          monthlyDataPerSim: (updatedDeal.dataPerMonth || 0) / 1024, // Convert MB to GB
+          monthlySmsPerSim: 0,
+          duration: updatedDeal.commitmentMonths || 12,
+          proposedPricePerSim: 2, // Default price, will be calculated
+          currency: 'USD',
+          isNewCustomer: true,
+          expectedUsagePattern: 'medium',
+          requiresIoT: false,
+          usagePercentages: {}
+        };
+
+        // Prepare comprehensive deal request
+        const comprehensiveDeal: DealRequestMandatory = {
+          simCount: updatedDeal.simCount || 0,
+          dataPerMonth: updatedDeal.dataPerMonth || 0,
+          countries: updatedDeal.countries || [],
+          networksPerCountry: updatedDeal.networksPerCountry ||
+            (updatedDeal.countries || []).reduce((acc: Record<string, number>, country: string) => {
+              acc[country] = 2; // Default to 2 networks per country for redundancy
+              return acc;
+            }, {} as Record<string, number>),
+          commitmentMonths: updatedDeal.commitmentMonths || 12,
+          technology: ['3G', '4G', '5G']
+        };
+
+        try {
+          // Use all three services in parallel (same as DealReviewForm)
+          const [basicResult, enhancedResult, comprehensiveResult] = await Promise.all([
+            evaluationService.evaluateDeal(dealRequest),
+            enhancedService.analyzeDeal({
+              simCount: dealRequest.simQuantity,
+              countries: dealRequest.countries,
+              dataPerSim: dealRequest.monthlyDataPerSim * 1024, // Convert GB to MB
+              pricingModel: 'payAsYouGo',
+              usagePercentages: {},
+              contractLength: dealRequest.duration,
+              requestedPrice: dealRequest.proposedPricePerSim
+            }),
+            dealService.evaluateDeal(comprehensiveDeal)
+          ]);
+
+          // Format the combined analysis response
+          const analysisContent = formatCombinedAnalysis(basicResult, enhancedResult, comprehensiveResult, dealRequest);
+
           const analysisMessage: Message = {
             id: Date.now().toString() + '_analysis',
             role: 'assistant',
-            content: result.recommendation,
+            content: analysisContent,
             timestamp: new Date(),
             dealData: updatedDeal
           };
           setShouldAutoScroll(true);
           setMessages(prev => prev.filter(m => m.id !== statusMessage.id).concat(analysisMessage));
-        } else {
+        } catch (error) {
+          console.error('Error in combined analysis:', error);
           const errorMessage: Message = {
             id: Date.now().toString() + '_error',
             role: 'assistant',
-            content: result.warnings?.join('\n') || 'Unable to analyze deal. Please try again.',
+            content: 'Unable to complete full analysis. Please try again.',
             timestamp: new Date()
           };
           setShouldAutoScroll(true);
@@ -315,6 +367,103 @@ export const DealReviewEnhanced: React.FC<DealReviewEnhancedProps> = ({ onExpand
     </div>
   );
 };
+
+// Helper function to format combined analysis from all 3 services
+function formatCombinedAnalysis(
+  basicResult: DealEvaluation,
+  enhancedResult: any,
+  comprehensiveResult: any,
+  dealRequest: DealRequest
+): string {
+  const currencySymbol = dealRequest.currency === 'USD' ? '$' : '€';
+  const verdict = basicResult.verdict.toUpperCase();
+  const verdictEmoji = verdict === 'APPROVED' ? '✅' : verdict === 'NEGOTIABLE' ? '⚠️' : '❌';
+
+  let content = `## ${verdictEmoji} Deal Analysis: ${verdict}\n\n`;
+
+  // Deal Overview
+  content += `**Deal Overview:** ${dealRequest.simQuantity} SIMs × ${dealRequest.monthlyDataPerSim < 1 ? (dealRequest.monthlyDataPerSim * 1024).toFixed(0) + ' MB' : dealRequest.monthlyDataPerSim.toFixed(2) + ' GB'}/month across ${dealRequest.countries.join(', ')}\n\n`;
+
+  // Pricing Structure from Enhanced Service
+  if (enhancedResult?.payAsYouGo) {
+    const payg = enhancedResult.payAsYouGo;
+    content += `### 💰 Pricing Structure\n`;
+    content += `• **Active SIM Fee:** ${currencySymbol}${payg.activeSimFee?.toFixed(2) || '0.35'}/month\n`;
+    content += `• **Data Rate:** ${currencySymbol}${(payg.dataFee * 1000)?.toFixed(4) || '0.00'}/GB\n`;
+    content += `• **List Price per SIM:** ${currencySymbol}${payg.listPrice?.toFixed(4) || '0.00'}/month\n`;
+    if (payg.maxAllowedDiscount > 0) {
+      content += `• **Max Allowed Discount:** ${payg.maxAllowedDiscount}%\n`;
+    }
+    content += `\n`;
+  }
+
+  // Profitability from Basic Service
+  content += `### 📊 Profitability Analysis\n`;
+  content += `• **Profit Margin:** ${(basicResult.profitMargin * 100).toFixed(1)}%\n`;
+  content += `• **Gross Profit per SIM:** ${currencySymbol}${basicResult.grossProfitPerSim.toFixed(4)}\n`;
+  content += `• **Total Monthly Profit:** ${currencySymbol}${basicResult.totalMonthlyProfit.toFixed(2)}\n`;
+  content += `• **Risk Score:** ${basicResult.riskScore}/100\n\n`;
+
+  // Cost Breakdown
+  content += `### 💵 Cost Breakdown per SIM\n`;
+  content += `• **Carrier Data Cost:** ${currencySymbol}${basicResult.carrierDataCost.toFixed(4)}\n`;
+  content += `• **IMSI Cost:** ${currencySymbol}${basicResult.carrierImsiCost.toFixed(4)}\n`;
+  content += `• **Platform Fees:** ${currencySymbol}${basicResult.platformFees.toFixed(4)}\n`;
+  content += `• **Total Cost per SIM:** ${currencySymbol}${basicResult.totalCostPerSim.toFixed(4)}\n\n`;
+
+  // Network Selection
+  if (basicResult.carrierOptions && basicResult.carrierOptions.length > 0) {
+    content += `### 🌐 Selected Networks\n`;
+    basicResult.carrierOptions.forEach(carrier => {
+      content += `• **${carrier.country}:** ${carrier.carrier} (${currencySymbol}${(carrier.dataRate * 1024).toFixed(2)}/GB)\n`;
+    });
+    content += `\n`;
+  }
+
+  // Recommended Price if not approved
+  if (basicResult.recommendedPrice && basicResult.verdict !== 'approved') {
+    content += `### 💡 Recommendation\n`;
+    content += `• **Recommended Price:** ${currencySymbol}${basicResult.recommendedPrice.toFixed(2)}/SIM/month\n`;
+    content += `• This price ensures minimum profitability requirements are met.\n\n`;
+  }
+
+  // Reasoning from Enhanced Service
+  if (enhancedResult?.reasoning && enhancedResult.reasoning.length > 0) {
+    content += `### 📝 Business Justification\n`;
+    enhancedResult.reasoning.forEach((reason: string) => {
+      content += `✓ ${reason}\n`;
+    });
+    content += `\n`;
+  }
+
+  // AI Suggested Pricing from Comprehensive Service
+  if (comprehensiveResult?.suggestedPricing) {
+    content += `### 🤖 AI Suggested Pricing\n`;
+    content += `• **Range:** ${currencySymbol}${comprehensiveResult.suggestedPricing.min?.toFixed(2) || '0.00'} - ${currencySymbol}${comprehensiveResult.suggestedPricing.max?.toFixed(2) || '0.00'}/SIM/month\n\n`;
+  }
+
+  // Warnings
+  const allWarnings = [
+    ...(enhancedResult?.warnings || []),
+    ...(comprehensiveResult?.warnings || [])
+  ];
+  if (allWarnings.length > 0) {
+    content += `### ⚠️ Warnings\n`;
+    allWarnings.forEach((warning: string) => {
+      content += `• ${warning}\n`;
+    });
+    content += `\n`;
+  }
+
+  // Contract Summary
+  const totalMonthly = dealRequest.simQuantity * (enhancedResult?.payAsYouGo?.listPrice || basicResult.totalCostPerSim * 1.5);
+  const contractValue = totalMonthly * dealRequest.duration;
+  content += `### 📋 Contract Summary\n`;
+  content += `• **Monthly Revenue:** ${currencySymbol}${totalMonthly.toFixed(2)}\n`;
+  content += `• **Contract Value (${dealRequest.duration} months):** ${currencySymbol}${contractValue.toFixed(2)}\n`;
+
+  return content;
+}
 
 // Helper function to format message content with Markdown-like styling
 function formatMessageContent(content: string): string {

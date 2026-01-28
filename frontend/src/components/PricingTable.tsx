@@ -139,6 +139,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
   const [searchTerm, setSearchTerm] = useState('');
   const [currency, setCurrency] = useState<'EUR' | 'USD'>(propCurrency || 'USD');
   const [dataUnit, setDataUnit] = useState<'MB' | 'GB'>('MB');
+  const [markupMultiplier, setMarkupMultiplier] = useState<1.0 | 1.1 | 1.5>(1.0);
   const [exchangeRate, setExchangeRate] = useState(1.1); // Default EUR to USD rate
   const [exchangeRateStatus, setExchangeRateStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [selectedIdentities, setSelectedIdentities] = useState<Set<string>>(new Set());
@@ -323,15 +324,18 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
 
   const formatDataPrice = (value: number, includeSymbol: boolean = false): string => {
     if (value === 0 || value === null || value === undefined) return '';
-    
+
+    // Apply markup multiplier first
+    const markedUpValue = value * markupMultiplier;
+
     // Convert MB to GB if needed (1 GB = 1024 MB)
-    const adjustedValue = dataUnit === 'GB' ? value * 1024 : value;
+    const adjustedValue = dataUnit === 'GB' ? markedUpValue * 1024 : markedUpValue;
     const converted = convertCurrency(adjustedValue);
-    
+
     const decimals = dataUnit === 'GB' ? 2 : 4;
     const symbol = currency === 'EUR' ? '€' : '$';
     const unit = `/${dataUnit}`;
-    
+
     if (includeSymbol) {
       return `${symbol}${converted.toFixed(decimals)}${unit}`;
     }
@@ -341,7 +345,9 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
   const formatCurrency = (value: number, decimals: number = 4, includeSymbol: boolean = false): string => {
     if (value === 0 || value === null || value === undefined) return '';
 
-    const converted = convertCurrency(value);
+    // Apply markup multiplier first
+    const markedUpValue = value * markupMultiplier;
+    const converted = convertCurrency(markedUpValue);
     const symbol = currency === 'EUR' ? '€' : '$';
     if (includeSymbol) {
       return `${symbol}${converted.toFixed(decimals)}`;
@@ -736,7 +742,8 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
             <div className="text-xl font-semibold text-gray-900 tracking-tight">
               {(() => {
                 const avgPrice = filteredNetworks.reduce((sum, n) => sum + n.data_cost, 0) / Math.max(filteredNetworks.length, 1);
-                const adjustedValue = dataUnit === 'GB' ? avgPrice * 1024 : avgPrice;
+                const markedUpPrice = avgPrice * markupMultiplier;
+                const adjustedValue = dataUnit === 'GB' ? markedUpPrice * 1024 : markedUpPrice;
                 const converted = convertCurrency(adjustedValue);
                 const decimals = dataUnit === 'GB' ? 2 : 4;
                 const symbol = currency === 'EUR' ? '€' : '$';
@@ -889,8 +896,8 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
               <button
                 onClick={() => setDataUnit('MB')}
                 className={`px-3 py-0.5.5 rounded-lg text-sm transition-all ${
-                  dataUnit === 'MB' 
-                    ? 'bg-white text-[#5B9BD5] shadow-sm' 
+                  dataUnit === 'MB'
+                    ? 'bg-white text-[#5B9BD5] shadow-sm'
                     : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
@@ -899,15 +906,54 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
               <button
                 onClick={() => setDataUnit('GB')}
                 className={`px-3 py-0.5.5 rounded-lg text-sm transition-all ${
-                  dataUnit === 'GB' 
-                    ? 'bg-white text-[#5B9BD5] shadow-sm' 
+                  dataUnit === 'GB'
+                    ? 'bg-white text-[#5B9BD5] shadow-sm'
                     : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
                 GB
               </button>
             </div>
-            
+
+            {/* Markup Multiplier Toggle - Admin Only */}
+            {isAdmin && (
+              <div className="flex items-center bg-gray-50 rounded-xl p-1">
+                <button
+                  onClick={() => setMarkupMultiplier(1.0)}
+                  className={`px-3 py-0.5.5 rounded-lg text-sm transition-all ${
+                    markupMultiplier === 1.0
+                      ? 'bg-white text-[#5B9BD5] shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                  title="No markup (1.0x)"
+                >
+                  1.0
+                </button>
+                <button
+                  onClick={() => setMarkupMultiplier(1.1)}
+                  className={`px-3 py-0.5.5 rounded-lg text-sm transition-all ${
+                    markupMultiplier === 1.1
+                      ? 'bg-white text-[#5B9BD5] shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                  title="10% markup (1.1x)"
+                >
+                  1.1
+                </button>
+                <button
+                  onClick={() => setMarkupMultiplier(1.5)}
+                  className={`px-3 py-0.5.5 rounded-lg text-sm transition-all ${
+                    markupMultiplier === 1.5
+                      ? 'bg-white text-[#5B9BD5] shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                  title="50% markup (1.5x)"
+                >
+                  1.5
+                </button>
+              </div>
+            )}
+
             {/* Currency Toggle - Right Side */}
             <div className="flex items-center gap-2">
               <div className="flex items-center bg-gray-50 rounded-xl p-1">

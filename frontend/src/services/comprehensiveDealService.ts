@@ -791,53 +791,116 @@ If unclear, use reasonable defaults. Return only JSON.`;
   parseUserInput(input: string): Partial<DealRequestMandatory> {
     const request: Partial<DealRequestMandatory> = {};
     const lower = input.toLowerCase();
-    
+
     // Parse SIM count
     const simMatch = lower.match(/(\d+)\s*(?:sim|sims)/);
     if (simMatch) {
       request.simCount = parseInt(simMatch[1]);
     }
-    
-    // Parse data requirement
+
+    // Parse data requirement - handle both GB and MB formats
     const gbMatch = lower.match(/(\d+(?:\.\d+)?)\s*gb(?:\/mo|\/month|per month)?/i);
     const mbMatch = lower.match(/(\d+)\s*mb(?:\/mo|\/month|per month)?/i);
-    
+
     if (gbMatch) {
       request.dataPerMonth = parseFloat(gbMatch[1]) * 1000; // Convert GB to MB
     } else if (mbMatch) {
       request.dataPerMonth = parseInt(mbMatch[1]);
     }
-    
-    // Parse countries
+
+    // Extended country map with more variations
     const countryMap: Record<string, string> = {
-      'uk': 'UK',
-      'united kingdom': 'UK',
-      'england': 'UK',
+      'uk': 'United Kingdom',
+      'united kingdom': 'United Kingdom',
+      'england': 'United Kingdom',
+      'britain': 'United Kingdom',
       'belgium': 'Belgium',
       'france': 'France',
       'germany': 'Germany',
+      'austria': 'Austria',
       'spain': 'Spain',
       'italy': 'Italy',
       'netherlands': 'Netherlands',
+      'holland': 'Netherlands',
       'poland': 'Poland',
       'israel': 'Israel',
       'usa': 'United States',
       'us': 'United States',
-      'united states': 'United States'
+      'united states': 'United States',
+      'america': 'United States',
+      'switzerland': 'Switzerland',
+      'sweden': 'Sweden',
+      'norway': 'Norway',
+      'denmark': 'Denmark',
+      'finland': 'Finland',
+      'portugal': 'Portugal',
+      'ireland': 'Ireland',
+      'greece': 'Greece',
+      'czech': 'Czech Republic',
+      'czechia': 'Czech Republic',
+      'hungary': 'Hungary',
+      'romania': 'Romania',
+      'bulgaria': 'Bulgaria',
+      'croatia': 'Croatia',
+      'slovenia': 'Slovenia',
+      'slovakia': 'Slovakia',
+      'luxembourg': 'Luxembourg',
+      'malta': 'Malta',
+      'cyprus': 'Cyprus',
+      'estonia': 'Estonia',
+      'latvia': 'Latvia',
+      'lithuania': 'Lithuania',
+      'canada': 'Canada',
+      'mexico': 'Mexico',
+      'brazil': 'Brazil',
+      'argentina': 'Argentina',
+      'chile': 'Chile',
+      'australia': 'Australia',
+      'new zealand': 'New Zealand',
+      'japan': 'Japan',
+      'south korea': 'South Korea',
+      'korea': 'South Korea',
+      'china': 'China',
+      'india': 'India',
+      'singapore': 'Singapore',
+      'hong kong': 'Hong Kong',
+      'taiwan': 'Taiwan',
+      'thailand': 'Thailand',
+      'malaysia': 'Malaysia',
+      'indonesia': 'Indonesia',
+      'philippines': 'Philippines',
+      'vietnam': 'Vietnam',
+      'uae': 'United Arab Emirates',
+      'dubai': 'United Arab Emirates',
+      'saudi': 'Saudi Arabia',
+      'saudi arabia': 'Saudi Arabia',
+      'south africa': 'South Africa',
+      'egypt': 'Egypt',
+      'turkey': 'Turkey',
+      'russia': 'Russia'
     };
-    
+
     const countries: string[] = [];
     const networksPerCountry: Record<string, number> = {};
-    
-    Object.entries(countryMap).forEach(([key, value]) => {
-      if (lower.includes(key)) {
+
+    // Sort keys by length (longest first) to match multi-word countries first
+    const sortedKeys = Object.keys(countryMap).sort((a, b) => b.length - a.length);
+
+    sortedKeys.forEach(key => {
+      const value = countryMap[key];
+      // Use word boundary matching for short keys to avoid false positives
+      const pattern = key.length <= 3
+        ? new RegExp(`\\b${key}\\b`, 'i')
+        : new RegExp(key, 'i');
+
+      if (pattern.test(lower)) {
         if (!countries.includes(value)) {
           countries.push(value);
-          
+
           // Try to parse network count for this country
           const networkPattern = new RegExp(`(\\d+|two|three|all)\\s*networks?.*${key}|${key}.*?(\\d+|two|three|all)\\s*networks?`, 'i');
           const match = input.match(networkPattern);
-          
+
           if (match) {
             const numberWord = match[1] || match[2];
             if (numberWord === 'all') {
@@ -847,33 +910,40 @@ If unclear, use reasonable defaults. Return only JSON.`;
               networksPerCountry[value] = count;
             }
           } else {
-            // Default to 1 network if not specified
-            networksPerCountry[value] = 1;
+            // Default to 2 networks for redundancy (matching form behavior)
+            networksPerCountry[value] = 2;
           }
         }
       }
     });
-    
+
     request.countries = countries;
     request.networksPerCountry = networksPerCountry;
-    
-    // Parse commitment
-    const commitMatch = lower.match(/(\d+)\s*(?:mo\.?|months?)/);
+
+    // Parse commitment - handle various formats
+    const commitMatch = lower.match(/(\d+)\s*(?:mo\.?|months?|month)\s*(?:commitment)?/);
     if (commitMatch) {
       request.commitmentMonths = parseInt(commitMatch[1]);
+    } else {
+      // Default to 12 months if not specified
+      request.commitmentMonths = 12;
     }
-    
+
     // Parse technology requirements
     const technologies: string[] = [];
     if (lower.includes('5g')) technologies.push('5G');
     if (lower.includes('4g')) technologies.push('4G');
-    if (lower.includes('cat-m')) technologies.push('Cat-M');
-    if (lower.includes('nb-iot')) technologies.push('NB-IoT');
-    
+    if (lower.includes('3g')) technologies.push('3G');
+    if (lower.includes('cat-m') || lower.includes('lte-m')) technologies.push('Cat-M');
+    if (lower.includes('nb-iot') || lower.includes('nbiot')) technologies.push('NB-IoT');
+
     if (technologies.length > 0) {
       request.technology = technologies;
+    } else {
+      // Default technologies
+      request.technology = ['3G', '4G', '5G'];
     }
-    
+
     return request;
   }
 }

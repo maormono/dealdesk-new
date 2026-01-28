@@ -62,7 +62,9 @@ export const DealProposalView: React.FC<DealProposalViewProps> = ({
   const extractNetworkDetails = () => {
     const networks: any[] = [];
     if (evaluation?.carrierOptions) {
+      console.log('🎯 DealProposalView - Received carrier options:', evaluation.carrierOptions);
       evaluation.carrierOptions.forEach((carrier: any) => {
+        console.log(`  📊 ${carrier.carrier} (${carrier.operator}): dataRate=$${carrier.dataRate}/MB`);
         networks.push({
           country: carrier.country,
           carrier: carrier.carrier,
@@ -72,6 +74,7 @@ export const DealProposalView: React.FC<DealProposalViewProps> = ({
         });
       });
     }
+    console.log('🎯 DealProposalView - Extracted networks:', networks);
     return networks;
   };
 

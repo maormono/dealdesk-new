@@ -54,6 +54,128 @@ Implemented pure DOM-based filtering that eliminates React re-renders during sea
 
 ---
 
+## 2026-01-28 - Additional Updates & Fixes
+
+### Markup Multiplier Feature (PricingTable)
+**Purpose:** Allow admin users to apply markup multipliers to pricing display for customer-facing quotes
+
+**Changes:**
+- Added markup multiplier state (1.0, 1.1, 1.5) in `PricingTable.tsx`
+- Applied markup to `formatDataPrice()` and `formatCurrency()` functions
+- Displays 3 toggle buttons for markup selection (admin only)
+- Markup affects all displayed prices and average calculations
+
+**Files Modified:**
+- `frontend/src/components/PricingTable.tsx`
+  - Line 142: Added `markupMultiplier` state
+  - Lines 326-332: Applied markup in `formatDataPrice()`
+  - Lines 347-349: Applied markup in `formatCurrency()`
+  - Lines 909-956: Added markup toggle UI (admin only)
+
+**Testing:**
+- Verified buttons only visible to admin users
+- Confirmed prices update correctly with each multiplier
+- Tested that non-admin users don't see the buttons
+
+---
+
+### Deal Evaluation Debug Logging
+**Purpose:** Add detailed console logging to trace carrier selection and pricing calculations
+
+**Changes:**
+- Added comprehensive logging throughout deal evaluation flow
+- Logs all pricing entries fetched from database
+- Shows all carrier options sorted by total cost
+- Displays selected carriers with full details
+- Helps debug discrepancies between internal costs and displayed rates
+
+**Files Modified:**
+- `frontend/src/services/dealEvaluationService.ts`
+  - Lines 149-167: Log all networks found per country
+  - Lines 267-276: Log all options sorted by cost
+  - Lines 301-320: Log selected carriers with details
+
+- `frontend/src/components/DealProposalView.tsx`
+  - Lines 64-76: Log carrier options received and extracted
+
+**Purpose:** Debug tool for understanding pricing decisions - can be removed in production if not needed
+
+---
+
+### Enhanced Country Parsing
+**Purpose:** Improve natural language parsing of country names in conversational deal input
+
+**Changes:**
+- Expanded country map with 50+ additional country variations
+- Added common aliases (e.g., "UK" → "United Kingdom", "Holland" → "Netherlands")
+- Better support for Asian, South American, and Middle Eastern countries
+- More forgiving input parsing for international users
+
+**Files Modified:**
+- `frontend/src/services/comprehensiveDealService.ts`
+  - Lines 812-884: Expanded country mapping dictionary
+
+**Benefits:**
+- Users can type country names more naturally
+- Handles common abbreviations and alternate names
+- Reduces parsing errors in conversational interface
+
+---
+
+### Deal Review Enhanced - Multi-Service Integration
+**Purpose:** Use all 3 pricing services (basic, enhanced, comprehensive) in conversational interface
+
+**Changes:**
+- Integrated all 3 deal evaluation services in parallel
+- Combines results from basic, enhanced, and comprehensive analyses
+- Provides more complete deal analysis in chat interface
+- Matches functionality of Deal Review Form
+
+**Files Modified:**
+- `frontend/src/components/DealReviewEnhanced.tsx`
+  - Lines 55-56: Added evaluationService and enhancedService
+  - Lines 110-175: Call all 3 services in parallel
+  - Lines 371-475: Added `formatCombinedAnalysis()` helper function
+
+**Analysis Output Includes:**
+- Deal verdict and overview
+- Pricing structure (active SIM fee, data rate, list price)
+- Profitability analysis (margin, profit per SIM, risk score)
+- Cost breakdown (carrier costs, IMSI, platform fees)
+- Network selection details
+- Business justification
+- AI suggested pricing range
+- Warnings and recommendations
+- Contract summary with total value
+
+---
+
+### User Permissions Loading Fix
+**Purpose:** Fix race condition where UI would show before permissions were fully loaded
+
+**Changes:**
+- Added `permissionsFetched` flag to UserContext
+- ProtectedRoute now waits for permissions before rendering
+- Prevents flash of incorrect UI state during auth
+
+**Files Modified:**
+- `frontend/src/contexts/UserContext.tsx`
+  - Line 18: Added `permissionsFetched` to context type
+  - Line 59: Added `permissionsFetched` state
+  - Lines 69-70: Reset flags when user changes
+  - Line 122: Set `permissionsFetched` to true when done
+
+- `frontend/src/components/ProtectedRoute.tsx`
+  - Line 12: Import `permissionsFetched` from useUser
+  - Line 14: Wait for `permissionsFetched` before rendering
+
+**Testing:**
+- Verified no flash of incorrect UI on login
+- Confirmed permissions load before page renders
+- Tested with admin and sales users
+
+---
+
 ## Previous Changes
 
 ### 2025-08-XX - Markup Multiplier Access Control

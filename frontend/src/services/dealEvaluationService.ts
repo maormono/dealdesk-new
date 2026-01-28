@@ -146,6 +146,9 @@ export class DealEvaluationService {
         continue;
       }
 
+      // Log all networks found for debugging
+      console.log(`\n🔍 Found ${networks?.length || 0} pricing entries for ${country}`);
+
       // Process each network
       networks?.forEach((pricing: any) => {
         const network = {
@@ -154,6 +157,14 @@ export class DealEvaluationService {
           tadig: pricing.tadig
         };
         const operator = pricing.identity || 'Unknown';
+
+        // Log each pricing entry
+        console.log(`  📊 ${network.network_name} (${operator}):`, {
+          data_per_mb: pricing.data_per_mb,
+          imsi_cost: pricing.imsi_cost,
+          sms_cost: pricing.sms_cost,
+          totalForThis10MB: (pricing.data_per_mb * 10) + (pricing.imsi_cost || 0)
+        });
           
           // Check if this matches requested carriers (if any)
           let matchesRequestedCarrier = false;
@@ -255,6 +266,12 @@ export class DealEvaluationService {
     
     // For each country, select the best carriers
     byCountry.forEach((countryOptions, country) => {
+      console.log(`\n📍 Selecting carrier for ${country} from ${countryOptions.length} options`);
+      console.log('All options sorted by total cost:');
+      countryOptions.sort((a, b) => a.totalCostPerSim - b.totalCostPerSim).forEach((opt, idx) => {
+        console.log(`  ${idx + 1}. ${opt.carrier} (${opt.operator}): $${opt.totalCostPerSim.toFixed(6)} = (data: $${opt.dataRate}/MB × ${request.monthlyDataPerSim * 1024} MB = $${(opt.dataRate * request.monthlyDataPerSim * 1024).toFixed(6)}) + (IMSI: $${opt.imsiCost.toFixed(6)})`);
+      });
+
       // If specific carriers are requested, try to find them
       if (request.carriers.length > 0) {
         const requestedFound: CarrierOption[] = [];
@@ -284,16 +301,23 @@ export class DealEvaluationService {
       } else {
         // No specific carriers requested, just get the cheapest
         const cheapest = countryOptions.sort((a, b) => a.totalCostPerSim - b.totalCostPerSim)[0];
-        if (cheapest) selected.push(cheapest);
+        if (cheapest) {
+          console.log(`✅ SELECTED: ${cheapest.carrier} (${cheapest.operator}) - Total: $${cheapest.totalCostPerSim.toFixed(6)}`);
+          selected.push(cheapest);
+        }
       }
     });
     
     console.log('Selected carriers:', selected.map(c => ({
       carrier: c.carrier,
       operator: c.operator,
+      dataRate: c.dataRate,
+      imsiCost: c.imsiCost,
       cost: c.totalCostPerSim,
       requested: c.hasRequestedCarrier
     })));
+
+    console.log('📋 Full carrier objects being returned:', selected);
     
     return selected;
   }

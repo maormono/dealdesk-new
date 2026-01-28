@@ -15,6 +15,7 @@ export interface UserRole {
 interface UserContextType {
   userRole: UserRole | null
   loading: boolean
+  permissionsFetched: boolean
   isAdmin: boolean
   isSales: boolean
   getPriceLabel: () => string
@@ -33,6 +34,7 @@ const defaultUserRole: UserRole = {
 const UserContext = createContext<UserContextType>({
   userRole: null,
   loading: true,
+  permissionsFetched: false,
   isAdmin: false,
   isSales: false,
   getPriceLabel: () => 'Price',
@@ -54,6 +56,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth()
   const [userRole, setUserRole] = useState<UserRole | null>(null)
   const [loading, setLoading] = useState(true)
+  const [permissionsFetched, setPermissionsFetched] = useState(false)
 
   useEffect(() => {
     async function fetchUserRole() {
@@ -62,6 +65,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         setLoading(false)
         return
       }
+
+      // Reset loading when user changes so ProtectedRoute waits for permissions
+      setLoading(true)
+      setPermissionsFetched(false)
 
       // In dev mode, default to admin
       if (isDevMode) {
@@ -112,6 +119,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         setUserRole(null)
       } finally {
         setLoading(false)
+        setPermissionsFetched(true)
       }
     }
 
@@ -139,6 +147,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const value = {
     userRole,
     loading,
+    permissionsFetched,
     isAdmin,
     isSales,
     getPriceLabel,
