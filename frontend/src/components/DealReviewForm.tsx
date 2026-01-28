@@ -48,13 +48,35 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
   const [isResultsExpanded, setIsResultsExpanded] = useState(false);
   const [dataAmount, setDataAmount] = useState<number>(1024);
   const [dataUnit, setDataUnit] = useState<'KB' | 'MB' | 'GB'>('MB');
-  const [priceAmount, setPriceAmount] = useState<number>(2);
+  const [priceAmount, setPriceAmount] = useState<string>('2');
   const [cellularTechnologies, setCellularTechnologies] = useState<string[]>(['2G', '3G', '4G', '5G']);
   const [lpwanTechnologies, setLpwanTechnologies] = useState<string[]>([]);
   const [showCellularDropdown, setShowCellularDropdown] = useState(false);
   const [showLpwanDropdown, setShowLpwanDropdown] = useState(false);
+  const [showCountryDropdown, setShowCountryDropdown] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const countryListRef = useRef<HTMLDivElement>(null);
   const cellularDropdownRef = useRef<HTMLDivElement>(null);
   const lpwanDropdownRef = useRef<HTMLDivElement>(null);
+  const countryDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Pure DOM-based filtering - no React re-renders
+  const handleCountrySearch = (searchTerm: string) => {
+    if (!countryListRef.current) return;
+
+    const searchLower = searchTerm.toLowerCase();
+    const labels = countryListRef.current.querySelectorAll('label[data-country]');
+
+    labels.forEach((label) => {
+      const country = label.getAttribute('data-country') || '';
+      if (!searchTerm || country.toLowerCase().includes(searchLower)) {
+        (label as HTMLElement).style.display = 'flex';
+      } else {
+        (label as HTMLElement).style.display = 'none';
+      }
+    });
+  };
+
   const evaluationService = new DealEvaluationService();
   const enhancedService = new EnhancedDealService();
   const comprehensiveService = new ComprehensiveDealService();
@@ -77,7 +99,7 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
     loadCountries();
     // Initialize data amount from existing monthlyDataPerSim (convert GB to MB)
     setDataAmount(formData.monthlyDataPerSim * 1024);
-    setPriceAmount(formData.proposedPricePerSim);
+    setPriceAmount(String(formData.proposedPricePerSim));
   }, []);
   
   useEffect(() => {
@@ -108,7 +130,8 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
 
   useEffect(() => {
     // Sync price amount with formData
-    setFormData(prev => ({ ...prev, proposedPricePerSim: priceAmount }));
+    const numericPrice = parseFloat(priceAmount) || 0;
+    setFormData(prev => ({ ...prev, proposedPricePerSim: numericPrice }));
   }, [priceAmount]);
 
   useEffect(() => {
@@ -120,6 +143,12 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
       if (lpwanDropdownRef.current && !lpwanDropdownRef.current.contains(event.target as Node)) {
         setShowLpwanDropdown(false);
       }
+      if (countryDropdownRef.current && !countryDropdownRef.current.contains(event.target as Node)) {
+        setShowCountryDropdown(false);
+        if (searchInputRef.current) {
+          searchInputRef.current.value = '';
+        }
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
@@ -129,15 +158,34 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
   }, []);
   
   const loadCountries = async () => {
-    const { data, error } = await supabase
-      .from('network_pricing')
-      .select('country')
-      .order('country');
+    // Fetch all rows in batches to avoid Supabase 1000-row default limit
+    // Exclude expensive networks (data cost > $1/MB) to match PricingTable filtering
+    const EXPENSIVE_THRESHOLD = 1.0;
+    const allCountries: string[] = [];
+    const batchSize = 1000;
+    let offset = 0;
+    let hasMore = true;
 
-    if (!error && data) {
-      const uniqueCountries = [...new Set(data.map(d => d.country))].filter(c => c && c !== 'Unknown');
-      setAvailableCountries(uniqueCountries);
+    while (hasMore) {
+      const { data, error } = await supabase
+        .from('network_pricing')
+        .select('country, data_per_mb')
+        .lte('data_per_mb', EXPENSIVE_THRESHOLD)
+        .order('country')
+        .range(offset, offset + batchSize - 1);
+
+      if (error || !data || data.length === 0) {
+        hasMore = false;
+        break;
+      }
+
+      allCountries.push(...data.map(d => d.country));
+      offset += batchSize;
+      if (data.length < batchSize) hasMore = false;
     }
+
+    const uniqueCountries = [...new Set(allCountries)].filter(c => c && c !== 'Unknown').sort();
+    setAvailableCountries(uniqueCountries);
   };
 
   const loadCarriersForCountries = async (selectedCountries: string[]) => {
@@ -307,7 +355,7 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
     const basicFieldsValid = (
       formData.simQuantity > 0 &&
       dataAmount > 0 &&
-      priceAmount > 0 &&
+      (parseFloat(priceAmount) || 0) > 0 &&
       formData.duration > 0 &&
       formData.countries.length > 0
     );
@@ -447,7 +495,7 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
                   min="0"
                   step="0.01"
                   value={priceAmount}
-                  onChange={(e) => setPriceAmount(parseFloat(e.target.value) || 0)}
+                  onChange={(e) => setPriceAmount(e.target.value)}
                   className="w-full pl-8 pr-4 py-3 text-sm bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]/50 focus:bg-white transition-all placeholder-gray-400"
                   placeholder="Enter price"
                   required
@@ -575,25 +623,66 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
 
           {/* Fourth Row: Countries */}
           <div className="grid grid-cols-3 gap-6 mb-6">
-            {/* Countries */}
-            <div>
+            {/* Countries - Searchable Dropdown */}
+            <div className="relative" ref={countryDropdownRef}>
               <label className="block text-sm font-medium text-gray-500 mb-2">
                 Countries
               </label>
-              <select
-                onChange={(e) => {
-                  addCountry(e.target.value);
-                  e.target.value = '';
-                }}
-                className="w-full px-4 py-3 text-sm bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]/50 focus:bg-white transition-all placeholder-gray-400"
+              <button
+                type="button"
+                onClick={() => setShowCountryDropdown(!showCountryDropdown)}
+                className="w-full px-4 py-3 bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]/50 focus:bg-white transition-all text-sm flex items-center justify-between text-left"
               >
-                <option value="">Select countries...</option>
-                {availableCountries.map(country => (
-                  <option key={country} value={country} disabled={formData.countries.includes(country)}>
-                    {country}
-                  </option>
-                ))}
-              </select>
+                <span className="text-gray-500">
+                  {formData.countries.length === 0
+                    ? `Select countries (${availableCountries.length})...`
+                    : `${formData.countries.length} selected`}
+                </span>
+                <ChevronDown className={`w-4 h-4 transition-transform ${showCountryDropdown ? 'rotate-180' : ''}`} />
+              </button>
+
+              {showCountryDropdown && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-20 max-h-96 overflow-hidden flex flex-col">
+                  {/* Search Input */}
+                  <div className="p-2 border-b border-gray-200">
+                    <input
+                      ref={searchInputRef}
+                      type="text"
+                      defaultValue=""
+                      onInput={(e) => handleCountrySearch((e.target as HTMLInputElement).value)}
+                      placeholder="Search or type first letter..."
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]/50"
+                      autoFocus
+                    />
+                  </div>
+                  {/* Country List */}
+                  <div ref={countryListRef} className="overflow-y-auto max-h-80">
+                    {availableCountries.map((country: string) => (
+                        <label
+                          key={country}
+                          data-country={country}
+                          className={`flex items-center space-x-3 p-2 hover:bg-gray-50 cursor-pointer ${
+                            formData.countries.includes(country) ? 'bg-blue-50' : ''
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={formData.countries.includes(country)}
+                            onChange={() => {
+                              if (formData.countries.includes(country)) {
+                                removeCountry(country);
+                              } else {
+                                addCountry(country);
+                              }
+                            }}
+                            className="w-4 h-4 rounded border-gray-300 text-[#5B9BD5] focus:ring-[#5B9BD5]/50"
+                          />
+                          <span className="text-sm font-medium text-gray-700">{country}</span>
+                        </label>
+                      ))}
+                  </div>
+                </div>
+              )}
               {/* Selected Countries - shown right below dropdown */}
               {formData.countries.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-2">
