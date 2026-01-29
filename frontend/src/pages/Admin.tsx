@@ -108,12 +108,6 @@ export const Admin: React.FC = () => {
       icon: ClipboardList
     },
     {
-      id: 'features' as AdminSection,
-      label: 'Roadmap',
-      icon: Sparkles,
-      restricted: true
-    },
-    {
       id: 'security' as AdminSection,
       label: 'Security',
       icon: Shield
@@ -127,6 +121,12 @@ export const Admin: React.FC = () => {
       id: 'database' as AdminSection,
       label: 'Database',
       icon: Database
+    },
+    {
+      id: 'features' as AdminSection,
+      label: 'Roadmap',
+      icon: Sparkles,
+      restricted: true
     }
   ];
 

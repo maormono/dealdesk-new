@@ -100,8 +100,10 @@ GRANT ALL ON upcoming_features TO service_role;
 
 -- Add some initial features as examples (optional - remove if not needed)
 INSERT INTO upcoming_features (title, description, priority, status, created_by) VALUES
-  ('Real-time Collaboration', 'Allow multiple users to work on the same deal simultaneously', 1, 'planned', 'system'),
-  ('Advanced Analytics Dashboard', 'Comprehensive analytics with charts and trends', 2, 'planned', 'system'),
-  ('Bulk Deal Import', 'Import multiple deals from Excel/CSV files', 3, 'planned', 'system'),
-  ('Email Notifications', 'Automated email alerts for deal status changes', 4, 'planned', 'system'),
-  ('Custom Deal Templates', 'Save and reuse deal configurations as templates', 5, 'planned', 'system');
+  ('Contract Generation', 'Create a complete contract to the customer out of an approved deal', 1, 'planned', 'system'),
+  ('HubSpot Integration', 'Create HubSpot deal automatically from an approved deal', 2, 'planned', 'system'),
+  ('Real-time Collaboration', 'Allow multiple users to work on the same deal simultaneously', 3, 'planned', 'system'),
+  ('Advanced Analytics Dashboard', 'Comprehensive analytics with charts and trends', 4, 'planned', 'system'),
+  ('Bulk Deal Import', 'Import multiple deals from Excel/CSV files', 5, 'planned', 'system'),
+  ('Email Notifications', 'Automated email alerts for deal status changes', 6, 'planned', 'system'),
+  ('Custom Deal Templates', 'Save and reuse deal configurations as templates', 7, 'planned', 'system');
