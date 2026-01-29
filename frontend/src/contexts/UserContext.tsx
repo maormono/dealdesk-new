@@ -57,18 +57,27 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const [userRole, setUserRole] = useState<UserRole | null>(null)
   const [loading, setLoading] = useState(true)
   const [permissionsFetched, setPermissionsFetched] = useState(false)
+  const [lastUserId, setLastUserId] = useState<string | null>(null)
 
   useEffect(() => {
     async function fetchUserRole() {
       if (!user) {
         setUserRole(null)
         setLoading(false)
+        setLastUserId(null)
         return
       }
 
-      // Reset loading when user changes so ProtectedRoute waits for permissions
-      setLoading(true)
-      setPermissionsFetched(false)
+      // Only refetch if user actually changed (not just auth token refresh)
+      if (user.id === lastUserId && permissionsFetched) {
+        return
+      }
+
+      // Only show loading if this is a new user (not a token refresh)
+      if (user.id !== lastUserId) {
+        setLoading(true)
+        setPermissionsFetched(false)
+      }
 
       // In dev mode, default to admin
       if (isDevMode) {
@@ -81,6 +90,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
           markupPercentage: 0
         })
         setLoading(false)
+        setLastUserId(user.id)
         return
       }
 
@@ -120,11 +130,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       } finally {
         setLoading(false)
         setPermissionsFetched(true)
+        setLastUserId(user.id)
       }
     }
 
     fetchUserRole()
-  }, [user])
+  }, [user, lastUserId, permissionsFetched])
 
   const isAdmin = userRole?.role === 'admin'
   const isSales = userRole?.role === 'sales'
