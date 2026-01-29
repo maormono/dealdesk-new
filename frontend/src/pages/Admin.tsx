@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
-import { Users, DollarSign, Database, Shield, Calculator, ClipboardList } from 'lucide-react';
+import { Users, DollarSign, Database, Shield, Calculator, ClipboardList, Sparkles } from 'lucide-react';
 import { DealRules } from '../components/admin/DealRules';
 import { DealAudit } from '../components/admin/DealAudit';
+import { UpcomingFeatures } from '../components/admin/UpcomingFeatures';
 import { UserManagement } from './UserManagement';
 import { TestWeightedPricing } from '../components/TestWeightedPricing';
 import { DataUpload } from '../components/DataUpload';
 import { useUser } from '../contexts/UserContext';
 import { AccessDenied } from './AccessDenied';
 
-type AdminSection = 'users' | 'rules' | 'audit' | 'security' | 'test' | 'database';
+type AdminSection = 'users' | 'rules' | 'audit' | 'features' | 'security' | 'test' | 'database';
 
 // localStorage key for persisting admin state
 const ADMIN_STORAGE_KEY = 'dealdesk_admin_state';
@@ -58,6 +59,8 @@ export const Admin: React.FC = () => {
             <DealAudit />
           </div>
         );
+      case 'features':
+        return <UpcomingFeatures />;
       case 'test':
         return <TestWeightedPricing />;
       case 'security':
@@ -95,6 +98,11 @@ export const Admin: React.FC = () => {
       id: 'audit' as AdminSection,
       label: 'Deal Audit',
       icon: ClipboardList
+    },
+    {
+      id: 'features' as AdminSection,
+      label: 'Upcoming Features',
+      icon: Sparkles
     },
     {
       id: 'security' as AdminSection,
