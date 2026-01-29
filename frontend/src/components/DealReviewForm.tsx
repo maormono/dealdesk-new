@@ -137,11 +137,30 @@ const REGION_ORDER = [
   'Central America', 'Caribbean', 'South America', 'Oceania', 'Other'
 ];
 
-// Currency conversion rates to USD (approximate rates - should be updated periodically)
-const CURRENCY_TO_USD: Record<string, number> = {
+// Default fallback rates (used if API fails)
+const DEFAULT_CURRENCY_TO_USD: Record<string, number> = {
   'USD': 1.0,
-  'EUR': 1.08,  // 1 EUR = ~1.08 USD
-  'GBP': 1.27,  // 1 GBP = ~1.27 USD
+  'EUR': 1.04,
+  'GBP': 1.38,
+};
+
+// Fetch live exchange rates from API
+const fetchExchangeRates = async (): Promise<Record<string, number>> => {
+  try {
+    // Using frankfurter.app - free, no API key required
+    const response = await fetch('https://api.frankfurter.app/latest?from=USD&to=EUR,GBP');
+    if (!response.ok) throw new Error('Failed to fetch rates');
+    const data = await response.json();
+    // API returns USD to other currencies, we need to invert for "currency to USD"
+    return {
+      'USD': 1.0,
+      'EUR': 1 / data.rates.EUR,  // Invert: if 1 USD = 0.96 EUR, then 1 EUR = 1/0.96 USD
+      'GBP': 1 / data.rates.GBP,
+    };
+  } catch (error) {
+    console.warn('Failed to fetch exchange rates, using defaults:', error);
+    return DEFAULT_CURRENCY_TO_USD;
+  }
 };
 
 // localStorage key for persisting form state
@@ -212,6 +231,7 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
   const [comprehensiveAnalysis, setComprehensiveAnalysis] = useState<any>(null);
   const [showResults, setShowResults] = useState(false);
   const [isResultsExpanded, setIsResultsExpanded] = useState(false);
+  const [currencyRates, setCurrencyRates] = useState<Record<string, number>>(DEFAULT_CURRENCY_TO_USD);
   const [dataAmount, setDataAmount] = useState<number>(() => savedState?.dataAmount || 1024);
   const [dataUnit, setDataUnit] = useState<'KB' | 'MB' | 'GB'>(() => savedState?.dataUnit || 'MB');
   const [priceAmount, setPriceAmount] = useState<string>(() => savedState?.priceAmount || '2');
@@ -356,7 +376,14 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
     setDataAmount(formData.monthlyDataPerSim * 1024);
     setPriceAmount(String(formData.proposedPricePerSim));
   }, []);
-  
+
+  // Fetch live exchange rates on mount
+  useEffect(() => {
+    fetchExchangeRates().then(rates => {
+      setCurrencyRates(rates);
+    });
+  }, []);
+
   useEffect(() => {
     // Load carriers when countries change
     if (formData.countries.length > 0) {
@@ -396,7 +423,7 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
   useEffect(() => {
     // Sync price amount with formData, converting to USD for calculations
     const numericPrice = parseFloat(priceAmount) || 0;
-    const conversionRate = CURRENCY_TO_USD[formData.currency] || 1.0;
+    const conversionRate = currencyRates[formData.currency] || 1.0;
     const priceInUSD = numericPrice * conversionRate;
     setFormData(prev => ({ ...prev, proposedPricePerSim: priceInUSD }));
   }, [priceAmount, formData.currency]);
@@ -676,6 +703,7 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
           evaluation={evaluation}
           enhancedAnalysis={enhancedAnalysis}
           comprehensiveAnalysis={comprehensiveAnalysis}
+          currencyRates={currencyRates}
         />
       </div>
     );
@@ -686,7 +714,13 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Reorganized Deal Form */}
         <div className="bg-gradient-to-br from-white via-[#5B9BD5]/[0.02] to-[#5B9BD5]/[0.05] rounded-2xl shadow-sm border border-[#5B9BD5]/10 p-6">
-          
+
+          {/* Form Header */}
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold text-gray-900">Recurring Deal Charges</h3>
+            <p className="text-sm text-gray-500 mt-1">Enter your deal parameters to analyze pricing and profitability</p>
+          </div>
+
           {/* First Row: Number of SIM, Monthly data usage, Monthly SMS */}
           <div className="grid grid-cols-3 gap-6 mb-6">
             {/* Number of SIMs */}
@@ -803,7 +837,7 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
               <p className="text-xs text-gray-500 mt-1">
                 {formData.currency !== 'USD' && parseFloat(priceAmount) > 0 ? (
                   <>
-                    = ${((parseFloat(priceAmount) || 0) * CURRENCY_TO_USD[formData.currency]).toFixed(2)} USD
+                    = ${((parseFloat(priceAmount) || 0) * currencyRates[formData.currency]).toFixed(2)} USD
                     <span className="mx-1">•</span>
                   </>
                 ) : null}
@@ -1062,37 +1096,50 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
                 </div>
               )}
               </div>
-              {/* Selected Countries - shown below the button wrapper */}
-              {formData.countries.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {formData.countries.map((country, index) => {
-                    const colors = [
-                      'bg-[#5B9BD5]/10 text-[#5B9BD5] border-[#5B9BD5]/20',
-                      'bg-[#9B7BB6]/10 text-[#9B7BB6] border-[#9B7BB6]/20',
-                      'bg-[#EC6B9D]/10 text-[#EC6B9D] border-[#EC6B9D]/20',
-                      'bg-[#F5B342]/10 text-[#F5B342] border-[#F5B342]/20'
-                    ];
-                    const colorClass = colors[index % colors.length];
-                    return (
-                      <span
-                        key={country}
-                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${colorClass}`}
-                      >
-                        {country}
-                        <button
-                          type="button"
-                          onClick={() => removeCountry(country)}
-                          className="ml-1.5 hover:opacity-70"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </span>
-                    );
-                  })}
-                </div>
-              )}
             </div>
           </div>
+
+          {/* Selected Countries - grouped by region (full width) */}
+          {formData.countries.length > 0 && (
+            <div className="mb-6 space-y-3">
+              {REGION_ORDER.filter(region =>
+                formData.countries.some(country => getRegion(country) === region)
+              ).map((region, regionIdx) => {
+                const countriesInRegion = formData.countries
+                  .filter(country => getRegion(country) === region)
+                  .sort();
+                const colors = [
+                  'bg-[#5B9BD5]/10 text-[#5B9BD5] border-[#5B9BD5]/20',
+                  'bg-[#9B7BB6]/10 text-[#9B7BB6] border-[#9B7BB6]/20',
+                  'bg-[#EC6B9D]/10 text-[#EC6B9D] border-[#EC6B9D]/20',
+                  'bg-[#F5B342]/10 text-[#F5B342] border-[#F5B342]/20'
+                ];
+                const colorClass = colors[regionIdx % colors.length];
+                return (
+                  <div key={region} className="flex items-start gap-3">
+                    <div className="text-xs font-semibold text-gray-500 w-24 pt-1 shrink-0">{region}</div>
+                    <div className="flex flex-wrap gap-2 flex-1">
+                      {countriesInRegion.map((country) => (
+                        <span
+                          key={country}
+                          className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${colorClass}`}
+                        >
+                          {country}
+                          <button
+                            type="button"
+                            onClick={() => removeCountry(country)}
+                            className="ml-1.5 hover:opacity-70"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
           
           {/* Usage Distribution for Multiple Countries */}
           {formData.countries.length > 1 && (

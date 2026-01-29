@@ -1,21 +1,95 @@
-import React from 'react';
-import { AlertCircle, CheckCircle, TrendingUp, DollarSign, Globe, Activity, Info, FileText } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { AlertCircle, CheckCircle, TrendingUp, DollarSign, Globe, Activity, Info, FileText, ChevronDown, ChevronRight } from 'lucide-react';
 import { useUser } from '../contexts/UserContext';
+
+// Country to Region mapping (simplified version for display)
+const countryToRegion: Record<string, string> = {
+  // Africa
+  'Algeria': 'Africa', 'Angola': 'Africa', 'Botswana': 'Africa', 'Cameroon': 'Africa',
+  'Egypt': 'Africa', 'Ethiopia': 'Africa', 'Ghana': 'Africa', 'Kenya': 'Africa',
+  'Morocco': 'Africa', 'Nigeria': 'Africa', 'South Africa': 'Africa', 'Tanzania': 'Africa',
+  'Tunisia': 'Africa', 'Uganda': 'Africa', 'Zambia': 'Africa', 'Zimbabwe': 'Africa',
+  // Asia
+  'Bangladesh': 'Asia', 'China': 'Asia', 'Hong Kong': 'Asia', 'India': 'Asia',
+  'Indonesia': 'Asia', 'Japan': 'Asia', 'Kazakhstan': 'Asia', 'Malaysia': 'Asia',
+  'Pakistan': 'Asia', 'Philippines': 'Asia', 'Singapore': 'Asia', 'South Korea': 'Asia',
+  'Taiwan': 'Asia', 'Thailand': 'Asia', 'Vietnam': 'Asia',
+  // Europe
+  'Albania': 'Europe', 'Andorra': 'Europe', 'Austria': 'Europe', 'Belarus': 'Europe',
+  'Belgium': 'Europe', 'Bosnia and Herzegovina': 'Europe', 'Bulgaria': 'Europe', 'Croatia': 'Europe',
+  'Cyprus': 'Europe', 'Czech Republic': 'Europe', 'Denmark': 'Europe', 'Estonia': 'Europe',
+  'Faroe Islands': 'Europe', 'Finland': 'Europe', 'France': 'Europe', 'Germany': 'Europe',
+  'Gibraltar': 'Europe', 'Greece': 'Europe', 'Greenland': 'Europe', 'Guernsey': 'Europe',
+  'Hungary': 'Europe', 'Iceland': 'Europe', 'Ireland': 'Europe', 'Isle of Man': 'Europe',
+  'Italy': 'Europe', 'Jersey': 'Europe', 'Kosovo': 'Europe', 'Latvia': 'Europe',
+  'Liechtenstein': 'Europe', 'Lithuania': 'Europe', 'Luxembourg': 'Europe', 'Malta': 'Europe',
+  'Moldova': 'Europe', 'Moldova Republic of': 'Europe', 'Monaco': 'Europe', 'Montenegro': 'Europe',
+  'Montenegro, Republic of': 'Europe', 'Netherlands': 'Europe', 'North Macedonia': 'Europe',
+  'Macedonia Republic of': 'Europe', 'Norway': 'Europe', 'Poland': 'Europe', 'Portugal': 'Europe',
+  'Romania': 'Europe', 'Russia': 'Europe', 'San Marino': 'Europe', 'Serbia': 'Europe',
+  'Serbia Republic of': 'Europe', 'Slovakia': 'Europe', 'Slovenia': 'Europe', 'Spain': 'Europe',
+  'Sweden': 'Europe', 'Switzerland': 'Europe', 'Turkey': 'Europe', 'Ukraine': 'Europe',
+  'United Kingdom': 'Europe',
+  // Middle East
+  'Bahrain': 'Middle East', 'Iran': 'Middle East', 'Iraq': 'Middle East', 'Israel': 'Middle East',
+  'Jordan': 'Middle East', 'Kuwait': 'Middle East', 'Lebanon': 'Middle East', 'Oman': 'Middle East',
+  'Palestine': 'Middle East', 'Qatar': 'Middle East', 'Saudi Arabia': 'Middle East',
+  'United Arab Emirates': 'Middle East', 'Yemen': 'Middle East',
+  // North America
+  'Canada': 'North America', 'Mexico': 'North America', 'United States': 'North America',
+  // Central America & Caribbean
+  'Costa Rica': 'Central America', 'El Salvador': 'Central America', 'Guatemala': 'Central America',
+  'Honduras': 'Central America', 'Nicaragua': 'Central America', 'Panama': 'Central America',
+  'Bahamas': 'Caribbean', 'Barbados': 'Caribbean', 'Cuba': 'Caribbean', 'Dominican Republic': 'Caribbean',
+  'Haiti': 'Caribbean', 'Jamaica': 'Caribbean', 'Puerto Rico': 'Caribbean', 'Trinidad and Tobago': 'Caribbean',
+  // South America
+  'Argentina': 'South America', 'Bolivia': 'South America', 'Brazil': 'South America',
+  'Chile': 'South America', 'Colombia': 'South America', 'Ecuador': 'South America',
+  'Paraguay': 'South America', 'Peru': 'South America', 'Uruguay': 'South America', 'Venezuela': 'South America',
+  // Oceania
+  'Australia': 'Oceania', 'Fiji': 'Oceania', 'New Zealand': 'Oceania', 'Papua New Guinea': 'Oceania',
+};
+
+const getRegion = (country: string): string => {
+  return countryToRegion[country] || 'Other';
+};
+
+const REGION_ORDER = ['Europe', 'Asia', 'Middle East', 'Africa', 'North America', 'Central America', 'Caribbean', 'South America', 'Oceania', 'Other'];
 
 interface DealProposalViewProps {
   formData: any;
   evaluation: any;
   enhancedAnalysis: any;
   comprehensiveAnalysis?: any;
+  currencyRates?: Record<string, number>;
 }
 
 export const DealProposalView: React.FC<DealProposalViewProps> = ({
   formData,
   evaluation,
   enhancedAnalysis,
-  comprehensiveAnalysis
+  comprehensiveAnalysis,
+  currencyRates = { USD: 1.0, EUR: 1.04, GBP: 1.38 }
 }) => {
   const { isAdmin } = useUser();
+  const [isNetworkExpanded, setIsNetworkExpanded] = useState(false);
+  const [expandedRegions, setExpandedRegions] = useState<Set<string>>(new Set());
+
+  const toggleRegion = (region: string) => {
+    setExpandedRegions(prev => {
+      const next = new Set(prev);
+      if (next.has(region)) {
+        next.delete(region);
+      } else {
+        next.add(region);
+      }
+      return next;
+    });
+  };
+
+  // User's original currency (what they entered the price in)
+  const originalCurrency = formData.currency || 'USD';
+  const isOriginalUSD = originalCurrency === 'USD';
 
   // List price is calculated from costs + markup (the "official" price)
   const listPrice = enhancedAnalysis?.payAsYouGo?.listPrice || 0;
@@ -38,24 +112,52 @@ export const DealProposalView: React.FC<DealProposalViewProps> = ({
   const monthlyTotal = yourPrice * formData.simQuantity;
   const contractTotal = monthlyTotal * formData.duration;
 
-  // Format currency
-  const formatCurrency = (value: number) => {
+  // Convert USD to original currency
+  const usdToOriginal = (usdValue: number): number => {
+    const rate = currencyRates[originalCurrency] || 1.0;
+    return usdValue / rate;
+  };
+
+  // Format currency in USD (primary display)
+  const formatUSD = (value: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: formData.currency || 'USD',
+      currency: 'USD',
       minimumFractionDigits: value < 1 ? 3 : 2,
       maximumFractionDigits: value < 1 ? 4 : 2,
     }).format(value);
   };
 
-  // Format data costs - always 4 decimal places
-  const formatDataCost = (value: number) => {
+  // Format currency in original currency (for secondary display)
+  const formatOriginal = (usdValue: number) => {
+    const convertedValue = usdToOriginal(usdValue);
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: formData.currency || 'USD',
+      currency: originalCurrency,
+      minimumFractionDigits: convertedValue < 1 ? 3 : 2,
+      maximumFractionDigits: convertedValue < 1 ? 4 : 2,
+    }).format(convertedValue);
+  };
+
+  // Format data costs in USD - always 4 decimal places
+  const formatDataCostUSD = (value: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
       minimumFractionDigits: 4,
       maximumFractionDigits: 4,
     }).format(value);
+  };
+
+  // Format data costs in original currency
+  const formatDataCostOriginal = (usdValue: number) => {
+    const convertedValue = usdToOriginal(usdValue);
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: originalCurrency,
+      minimumFractionDigits: 4,
+      maximumFractionDigits: 4,
+    }).format(convertedValue);
   };
 
   // Extract network details from evaluation notes
@@ -80,6 +182,54 @@ export const DealProposalView: React.FC<DealProposalViewProps> = ({
 
   const networks = extractNetworkDetails();
   const hasMultipleNetworks = networks.length > 1;
+
+  // Calculate identity distribution per region
+  const getRegionIdentities = useMemo(() => {
+    const regionIdentities: Record<string, Record<string, number>> = {};
+
+    networks.forEach(network => {
+      const region = getRegion(network.country);
+      if (!regionIdentities[region]) {
+        regionIdentities[region] = {};
+      }
+      const operator = network.operator || 'Unknown';
+      regionIdentities[region][operator] = (regionIdentities[region][operator] || 0) + 1;
+    });
+
+    // Convert to percentages
+    const regionIdentityPercentages: Record<string, { operator: string; percentage: number }[]> = {};
+    Object.entries(regionIdentities).forEach(([region, operators]) => {
+      const total = Object.values(operators).reduce((sum, count) => sum + count, 0);
+      regionIdentityPercentages[region] = Object.entries(operators)
+        .map(([operator, count]) => ({
+          operator,
+          percentage: Math.round((count / total) * 100)
+        }))
+        .sort((a, b) => b.percentage - a.percentage);
+    });
+
+    return regionIdentityPercentages;
+  }, [networks]);
+
+  // Color palette for identity tags - based on identity letter
+  const identityColors: Record<string, string> = {
+    'E': 'bg-blue-100 text-blue-700 border-blue-200',
+    'O': 'bg-purple-100 text-purple-700 border-purple-200',
+    'B': 'bg-green-100 text-green-700 border-green-200',
+    'A': 'bg-orange-100 text-orange-700 border-orange-200',
+    'T': 'bg-pink-100 text-pink-700 border-pink-200',
+    'M': 'bg-teal-100 text-teal-700 border-teal-200',
+    'Unknown': 'bg-gray-100 text-gray-600 border-gray-200',
+  };
+
+  const getIdentityColor = (operator: string): string => {
+    // Use the first character of the operator as the identity key
+    const identityKey = operator.charAt(0).toUpperCase();
+    if (identityColors[identityKey]) return identityColors[identityKey];
+    if (identityColors[operator]) return identityColors[operator];
+    // Fallback to gray for unknown identities
+    return 'bg-gray-100 text-gray-600 border-gray-200';
+  };
 
   return (
     <div className="space-y-6">
@@ -206,9 +356,12 @@ export const DealProposalView: React.FC<DealProposalViewProps> = ({
               {/* List Price Header */}
               <div className="flex justify-between items-center py-2 border-b border-gray-200">
                 <span className="text-sm text-gray-900">List Price per SIM</span>
-                <span className="text-sm text-gray-900">
-                  {formatCurrency(listPrice)}/month
-                </span>
+                <div className="text-right">
+                  <span className="text-sm text-gray-900">{formatUSD(listPrice)}/month</span>
+                  {!isOriginalUSD && (
+                    <div className="text-xs text-gray-500">{formatOriginal(listPrice)}/month</div>
+                  )}
+                </div>
               </div>
 
               {/* List Price Breakdown - indented sub-items */}
@@ -217,9 +370,12 @@ export const DealProposalView: React.FC<DealProposalViewProps> = ({
                 {enhancedAnalysis?.payAsYouGo?.activeSimFee !== undefined && (
                   <div className="flex justify-between items-center">
                     <span className="text-xs text-gray-500">Active SIM Fee</span>
-                    <span className="text-xs font-medium text-gray-600">
-                      {formatCurrency(enhancedAnalysis.payAsYouGo.activeSimFee)}/month
-                    </span>
+                    <div className="text-right">
+                      <span className="text-xs font-medium text-gray-600">{formatUSD(enhancedAnalysis.payAsYouGo.activeSimFee)}/month</span>
+                      {!isOriginalUSD && (
+                        <div className="text-xs text-gray-400">{formatOriginal(enhancedAnalysis.payAsYouGo.activeSimFee)}/month</div>
+                      )}
+                    </div>
                   </div>
                 )}
 
@@ -228,12 +384,15 @@ export const DealProposalView: React.FC<DealProposalViewProps> = ({
                   <div className="flex justify-between items-center">
                     <span className="text-xs text-gray-500">
                       Data Cost ({formData.monthlyDataPerSim >= 1
-                        ? `${formData.monthlyDataPerSim} GB × ${formatDataCost(enhancedAnalysis.payAsYouGo.dataFee * 1024)}/GB`
-                        : `${formData.monthlyDataPerSim * 1024} MB × ${formatDataCost(enhancedAnalysis.payAsYouGo.dataFee)}/MB`})
+                        ? `${formData.monthlyDataPerSim} GB × ${formatDataCostUSD(enhancedAnalysis.payAsYouGo.dataFee * 1024)}/GB`
+                        : `${formData.monthlyDataPerSim * 1024} MB × ${formatDataCostUSD(enhancedAnalysis.payAsYouGo.dataFee)}/MB`})
                     </span>
-                    <span className="text-xs font-medium text-gray-600">
-                      {formatDataCost(enhancedAnalysis.payAsYouGo.dataCostPerSim)}/month
-                    </span>
+                    <div className="text-right">
+                      <span className="text-xs font-medium text-gray-600">{formatDataCostUSD(enhancedAnalysis.payAsYouGo.dataCostPerSim)}/month</span>
+                      {!isOriginalUSD && (
+                        <div className="text-xs text-gray-400">{formatDataCostOriginal(enhancedAnalysis.payAsYouGo.dataCostPerSim)}/month</div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -253,9 +412,12 @@ export const DealProposalView: React.FC<DealProposalViewProps> = ({
                 <span className="text-sm font-semibold text-gray-900">
                   List Price per SIM after Discount
                 </span>
-                <span className="text-sm font-bold text-gray-900">
-                  {formatCurrency(listPrice * (1 - approvedDiscount / 100))}/month
-                </span>
+                <div className="text-right">
+                  <span className="text-sm font-bold text-gray-900">{formatUSD(listPrice * (1 - approvedDiscount / 100))}/month</span>
+                  {!isOriginalUSD && (
+                    <div className="text-xs text-gray-500">{formatOriginal(listPrice * (1 - approvedDiscount / 100))}/month</div>
+                  )}
+                </div>
               </div>
 
               {/* Requested Price per SIM */}
@@ -263,26 +425,35 @@ export const DealProposalView: React.FC<DealProposalViewProps> = ({
                 <span className="text-sm text-gray-600">
                   Requested Price per SIM
                 </span>
-                <span className="text-sm font-semibold text-blue-600">
-                  {formatCurrency(yourPrice)}/month
-                </span>
+                <div className="text-right">
+                  <span className="text-sm font-semibold text-blue-600">{formatUSD(yourPrice)}/month</span>
+                  {!isOriginalUSD && (
+                    <div className="text-xs text-blue-400">{formatOriginal(yourPrice)}/month</div>
+                  )}
+                </div>
               </div>
 
 
               {/* Monthly Total */}
               <div className="flex justify-between items-center py-2">
                 <span className="text-sm font-medium text-gray-700">Total Monthly Recurring</span>
-                <span className="text-lg font-semibold text-gray-900">
-                  {formatCurrency(monthlyTotal)}/month
-                </span>
+                <div className="text-right">
+                  <span className="text-lg font-semibold text-gray-900">{formatUSD(monthlyTotal)}/month</span>
+                  {!isOriginalUSD && (
+                    <div className="text-xs text-gray-500">{formatOriginal(monthlyTotal)}/month</div>
+                  )}
+                </div>
               </div>
 
               {/* Contract Total */}
               <div className="flex justify-between items-center py-2 pt-3 border-t border-gray-200">
                 <span className="font-semibold text-gray-900">Total Contract Value</span>
-                <span className="text-xl font-bold text-gray-900">
-                  {formatCurrency(contractTotal)}
-                </span>
+                <div className="text-right">
+                  <span className="text-xl font-bold text-gray-900">{formatUSD(contractTotal)}</span>
+                  {!isOriginalUSD && (
+                    <div className="text-sm text-gray-500">{formatOriginal(contractTotal)}</div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -290,49 +461,100 @@ export const DealProposalView: React.FC<DealProposalViewProps> = ({
           {/* Network Details */}
           {networks.length > 0 && (
             <div className="bg-gray-50 rounded-xl p-6 mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <Globe className="w-5 h-5 text-purple-600" />
-                Network Configuration
-              </h3>
+              {/* Clickable Header */}
+              <button
+                type="button"
+                onClick={() => setIsNetworkExpanded(!isNetworkExpanded)}
+                className="w-full flex items-center justify-between text-left"
+              >
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  <Globe className="w-5 h-5 text-purple-600" />
+                  Network Configuration
+                  <span className="text-sm font-normal text-gray-500">({formData.countries.length} {formData.countries.length === 1 ? 'country' : 'countries'})</span>
+                </h3>
+                {isNetworkExpanded ? (
+                  <ChevronDown className="w-5 h-5 text-gray-500" />
+                ) : (
+                  <ChevronRight className="w-5 h-5 text-gray-500" />
+                )}
+              </button>
 
-              <div className="space-y-4">
-                {formData.countries.map((country: string) => {
-                  const countryNetworks = networks.filter(n => n.country === country);
-                  const usage = formData.usagePercentages?.[country] || (100 / formData.countries.length);
 
-                  return (
-                    <div key={country} className="border-b border-gray-200 pb-3 last:border-b-0 last:pb-0">
-                      <div className="flex justify-between items-center py-1">
-                        <span className="font-semibold text-gray-900">{country}</span>
-                      </div>
-                      {countryNetworks.map((network, idx) => {
-                        // Apply 50% markup to show the customer-facing rate
-                        const customerRate = network.dataRate * 1.5;
-                        return (
-                          <div key={idx} className="flex justify-between items-center py-1">
-                            <span className="text-sm text-gray-600">
-                              {usage.toFixed(0)}% of total data usage via <span className="font-semibold text-gray-900">{network.carrier}</span> network {network.operator && `(identity ${network.operator})`}
-                            </span>
-                            <span className="text-sm text-gray-700 font-medium">
-                              {formatDataCost(customerRate)}/MB • {formatDataCost(customerRate * 1024)}/GB
-                            </span>
+              {/* Collapsible Network List - Grouped by Region */}
+              {isNetworkExpanded && (
+                <div className="mt-4 space-y-2">
+                  {REGION_ORDER.filter(region =>
+                    formData.countries.some((country: string) => getRegion(country) === region)
+                  ).map(region => {
+                    const countriesInRegion = formData.countries.filter((country: string) => getRegion(country) === region);
+                    const isRegionExpanded = expandedRegions.has(region);
+
+                    return (
+                      <div key={region} className="border border-gray-200 rounded-lg overflow-hidden">
+                        {/* Region Header - Clickable */}
+                        <button
+                          type="button"
+                          onClick={() => toggleRegion(region)}
+                          className="w-full flex items-center justify-between px-4 py-2 bg-gray-100 hover:bg-gray-150 text-left"
+                        >
+                          <span className="font-semibold text-gray-800 flex items-center gap-2">
+                            {isRegionExpanded ? (
+                              <ChevronDown className="w-4 h-4 text-gray-500" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4 text-gray-500" />
+                            )}
+                            {region}
+                            {/* Identity Distribution Tags */}
+                            {getRegionIdentities[region] && (
+                              <span className="flex items-center gap-1.5 ml-2">
+                                {getRegionIdentities[region].map((identity) => (
+                                  <span
+                                    key={identity.operator}
+                                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getIdentityColor(identity.operator)}`}
+                                  >
+                                    {identity.operator}: {identity.percentage}%
+                                  </span>
+                                ))}
+                              </span>
+                            )}
+                          </span>
+                          <span className="text-sm text-gray-500">
+                            {countriesInRegion.length} {countriesInRegion.length === 1 ? 'country' : 'countries'}
+                          </span>
+                        </button>
+
+                        {/* Countries in Region - Collapsible */}
+                        {isRegionExpanded && (
+                          <div className="px-4 py-2 space-y-1">
+                            {countriesInRegion.map((country: string) => {
+                              const countryNetworks = networks.filter(n => n.country === country);
+                              const usage = formData.usagePercentages?.[country] || (100 / formData.countries.length);
+
+                              return countryNetworks.map((network, idx) => {
+                                const customerRate = network.dataRate * 1.5;
+                                return (
+                                  <div key={`${country}-${idx}`} className="flex items-center py-1.5 border-b border-gray-100 last:border-b-0">
+                                    <span className="font-medium text-gray-900 flex-1">{country}</span>
+                                    <span className="text-sm text-gray-600 w-80 text-left shrink-0 pl-4">
+                                      {usage.toFixed(0)}% via <span className="font-medium text-gray-800">{network.carrier}</span> {network.operator && `(${network.operator})`}
+                                    </span>
+                                    <div className="text-right w-56 shrink-0">
+                                      <span className="text-sm text-gray-700 font-medium">
+                                        {formatDataCostUSD(customerRate)}/MB
+                                        {!isOriginalUSD && (
+                                          <span className="text-gray-500 font-normal"> ({formatDataCostOriginal(customerRate)})</span>
+                                        )}
+                                      </span>
+                                    </div>
+                                  </div>
+                                );
+                              });
+                            })}
                           </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })}
-              </div>
-
-              {hasMultipleNetworks && (
-                <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                  <p className="text-sm text-blue-800 flex items-start gap-2">
-                    <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                    <span>
-                      Multiple networks selected for redundancy. Usage will be distributed based on
-                      configured percentages. IMSI access fees apply per active network.
-                    </span>
-                  </p>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
