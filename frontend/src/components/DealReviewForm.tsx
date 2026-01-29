@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Calculator, Plus, X, Loader2, TrendingUp, AlertCircle, Globe, Smartphone, DollarSign, Wifi, Network, Edit, Maximize2, Minimize2, ChevronDown } from 'lucide-react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { Calculator, Plus, X, Loader2, TrendingUp, AlertCircle, Globe, Smartphone, DollarSign, Wifi, Network, Edit, Maximize2, Minimize2, ChevronDown, ChevronRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { dealConfig } from '../config/dealConfig';
 import type { DealRequest, DealEvaluation } from '../config/dealConfig';
@@ -10,6 +10,115 @@ import type { DealRequestMandatory } from '../services/comprehensiveDealService'
 import { formatDealForSales } from '../utils/dealFormatter';
 import { DealProposalView } from './DealProposalView';
 import '../styles/monogoto-theme.css';
+
+// Country to Region mapping
+const countryToRegion: Record<string, string> = {
+  // Africa
+  'Algeria': 'Africa', 'Angola': 'Africa', 'Benin': 'Africa', 'Botswana': 'Africa',
+  'Burkina Faso': 'Africa', 'Burundi': 'Africa', 'Cameroon': 'Africa', 'Cape Verde': 'Africa',
+  'Central African Republic': 'Africa', 'Chad': 'Africa', 'Comoros': 'Africa', 'Congo': 'Africa',
+  'Congo, Democratic Republic': 'Africa', 'Democratic Republic of the Congo': 'Africa',
+  'Djibouti': 'Africa', 'Egypt': 'Africa', 'Equatorial Guinea': 'Africa', 'Eritrea': 'Africa',
+  'Eswatini': 'Africa', 'Ethiopia': 'Africa', 'Gabon': 'Africa', 'Gambia': 'Africa',
+  'Ghana': 'Africa', 'Guinea': 'Africa', 'Guinea-Bissau': 'Africa', 'Ivory Coast': 'Africa',
+  "Côte d'Ivoire": 'Africa', 'Kenya': 'Africa', 'Lesotho': 'Africa', 'Liberia': 'Africa',
+  'Libya': 'Africa', 'Madagascar': 'Africa', 'Malawi': 'Africa', 'Mali': 'Africa',
+  'Mauritania': 'Africa', 'Mauritius': 'Africa', 'Mayotte': 'Africa', 'Morocco': 'Africa',
+  'Mozambique': 'Africa', 'Namibia': 'Africa', 'Niger': 'Africa', 'Nigeria': 'Africa',
+  'Reunion': 'Africa', 'Réunion': 'Africa', 'Rwanda': 'Africa', 'Sao Tome and Principe': 'Africa',
+  'Senegal': 'Africa', 'Seychelles': 'Africa', 'Sierra Leone': 'Africa', 'Somalia': 'Africa',
+  'South Africa': 'Africa', 'South Sudan': 'Africa', 'Sudan': 'Africa', 'Swaziland': 'Africa',
+  'Tanzania': 'Africa', 'Togo': 'Africa', 'Tunisia': 'Africa', 'Uganda': 'Africa',
+  'Zambia': 'Africa', 'Zimbabwe': 'Africa',
+  // Asia
+  'Afghanistan': 'Asia', 'Armenia': 'Asia', 'Azerbaijan': 'Asia', 'Bangladesh': 'Asia',
+  'Bhutan': 'Asia', 'Brunei': 'Asia', 'Brunei Darussalam': 'Asia', 'Cambodia': 'Asia',
+  'China': 'Asia', 'Georgia': 'Asia', 'Hong Kong': 'Asia', 'India': 'Asia',
+  'Indonesia': 'Asia', 'Japan': 'Asia', 'Kazakhstan': 'Asia', 'Kyrgyzstan': 'Asia',
+  'Laos': 'Asia', 'Macau': 'Asia', 'Macao': 'Asia', 'Malaysia': 'Asia', 'Maldives': 'Asia',
+  'Mongolia': 'Asia', 'Myanmar': 'Asia', 'Nepal': 'Asia', 'North Korea': 'Asia',
+  'Pakistan': 'Asia', 'Philippines': 'Asia', 'Singapore': 'Asia', 'South Korea': 'Asia',
+  'Korea, Republic of': 'Asia', 'Sri Lanka': 'Asia', 'Taiwan': 'Asia', 'Tajikistan': 'Asia',
+  'Thailand': 'Asia', 'Timor-Leste': 'Asia', 'East Timor': 'Asia', 'Turkmenistan': 'Asia',
+  'Uzbekistan': 'Asia', 'Vietnam': 'Asia',
+  // Middle East
+  'Bahrain': 'Middle East', 'Iran': 'Middle East', 'Iraq': 'Middle East', 'Israel': 'Middle East',
+  'Jordan': 'Middle East', 'Kuwait': 'Middle East', 'Lebanon': 'Middle East', 'Oman': 'Middle East',
+  'Palestine': 'Middle East', 'Palestinian Territory': 'Middle East', 'Qatar': 'Middle East',
+  'Saudi Arabia': 'Middle East', 'Syria': 'Middle East', 'United Arab Emirates': 'Middle East',
+  'UAE': 'Middle East', 'Yemen': 'Middle East',
+  // Europe
+  'Albania': 'Europe', 'Andorra': 'Europe', 'Austria': 'Europe', 'Belarus': 'Europe',
+  'Belgium': 'Europe', 'Bosnia and Herzegovina': 'Europe', 'Bulgaria': 'Europe', 'Croatia': 'Europe',
+  'Cyprus': 'Europe', 'Czech Republic': 'Europe', 'Czechia': 'Europe', 'Denmark': 'Europe',
+  'Estonia': 'Europe', 'Faroe Islands': 'Europe', 'Finland': 'Europe', 'France': 'Europe',
+  'Germany': 'Europe', 'Gibraltar': 'Europe', 'Greece': 'Europe', 'Greenland': 'Europe',
+  'Guernsey': 'Europe', 'Hungary': 'Europe', 'Iceland': 'Europe', 'Ireland': 'Europe',
+  'Isle of Man': 'Europe', 'Italy': 'Europe', 'Jersey': 'Europe', 'Kosovo': 'Europe',
+  'Latvia': 'Europe', 'Liechtenstein': 'Europe', 'Lithuania': 'Europe', 'Luxembourg': 'Europe',
+  'Malta': 'Europe', 'Moldova': 'Europe', 'Monaco': 'Europe', 'Montenegro': 'Europe',
+  'Netherlands': 'Europe', 'North Macedonia': 'Europe', 'Macedonia': 'Europe', 'Norway': 'Europe',
+  'Poland': 'Europe', 'Portugal': 'Europe', 'Romania': 'Europe', 'Russia': 'Europe',
+  'Russian Federation': 'Europe', 'San Marino': 'Europe', 'Serbia': 'Europe', 'Slovakia': 'Europe',
+  'Slovenia': 'Europe', 'Spain': 'Europe', 'Svalbard': 'Europe', 'Sweden': 'Europe',
+  'Switzerland': 'Europe', 'Turkey': 'Europe', 'Ukraine': 'Europe', 'United Kingdom': 'Europe',
+  'UK': 'Europe', 'Vatican City': 'Europe',
+  // North America
+  'Bermuda': 'North America', 'Canada': 'North America', 'Mexico': 'North America',
+  'United States': 'North America', 'USA': 'North America', 'US': 'North America',
+  // Central America
+  'Belize': 'Central America', 'Costa Rica': 'Central America', 'El Salvador': 'Central America',
+  'Guatemala': 'Central America', 'Honduras': 'Central America', 'Nicaragua': 'Central America',
+  'Panama': 'Central America',
+  // Caribbean
+  'Anguilla': 'Caribbean', 'Antigua and Barbuda': 'Caribbean', 'Aruba': 'Caribbean',
+  'Bahamas': 'Caribbean', 'Barbados': 'Caribbean', 'British Virgin Islands': 'Caribbean',
+  'Cayman Islands': 'Caribbean', 'Cuba': 'Caribbean', 'Curaçao': 'Caribbean', 'Curacao': 'Caribbean',
+  'Dominica': 'Caribbean', 'Dominican Republic': 'Caribbean', 'Grenada': 'Caribbean',
+  'Guadeloupe': 'Caribbean', 'Haiti': 'Caribbean', 'Jamaica': 'Caribbean', 'Martinique': 'Caribbean',
+  'Montserrat': 'Caribbean', 'Netherlands Antilles': 'Caribbean', 'Puerto Rico': 'Caribbean',
+  'Saint Kitts and Nevis': 'Caribbean', 'Saint Lucia': 'Caribbean',
+  'Saint Vincent and the Grenadines': 'Caribbean', 'Sint Maarten': 'Caribbean',
+  'St. Kitts and Nevis': 'Caribbean', 'St. Lucia': 'Caribbean', 'St. Vincent': 'Caribbean',
+  'Trinidad and Tobago': 'Caribbean', 'Turks and Caicos': 'Caribbean',
+  'US Virgin Islands': 'Caribbean', 'Virgin Islands (US)': 'Caribbean', 'Virgin Islands (British)': 'Caribbean',
+  // South America
+  'Argentina': 'South America', 'Bolivia': 'South America', 'Brazil': 'South America',
+  'Chile': 'South America', 'Colombia': 'South America', 'Ecuador': 'South America',
+  'Falkland Islands': 'South America', 'French Guiana': 'South America', 'Guyana': 'South America',
+  'Paraguay': 'South America', 'Peru': 'South America', 'Suriname': 'South America',
+  'Uruguay': 'South America', 'Venezuela': 'South America',
+  // Oceania
+  'American Samoa': 'Oceania', 'Australia': 'Oceania', 'Cook Islands': 'Oceania', 'Fiji': 'Oceania',
+  'French Polynesia': 'Oceania', 'Guam': 'Oceania', 'Kiribati': 'Oceania', 'Marshall Islands': 'Oceania',
+  'Micronesia': 'Oceania', 'Nauru': 'Oceania', 'New Caledonia': 'Oceania', 'New Zealand': 'Oceania',
+  'Niue': 'Oceania', 'Norfolk Island': 'Oceania', 'Northern Mariana Islands': 'Oceania',
+  'Palau': 'Oceania', 'Papua New Guinea': 'Oceania', 'Samoa': 'Oceania', 'Solomon Islands': 'Oceania',
+  'Tonga': 'Oceania', 'Tuvalu': 'Oceania', 'Vanuatu': 'Oceania',
+};
+
+// Helper function to get region for a country
+const getRegion = (country: string): string => {
+  if (countryToRegion[country]) return countryToRegion[country];
+  const lowerCountry = country.toLowerCase();
+  for (const [key, value] of Object.entries(countryToRegion)) {
+    if (key.toLowerCase() === lowerCountry) return value;
+  }
+  return 'Other';
+};
+
+// Region display order
+const REGION_ORDER = [
+  'Africa', 'Asia', 'Europe', 'Middle East', 'North America',
+  'Central America', 'Caribbean', 'South America', 'Oceania', 'Other'
+];
+
+// Currency conversion rates to USD (approximate rates - should be updated periodically)
+const CURRENCY_TO_USD: Record<string, number> = {
+  'USD': 1.0,
+  'EUR': 1.08,  // 1 EUR = ~1.08 USD
+  'GBP': 1.27,  // 1 GBP = ~1.27 USD
+};
 
 interface DealReviewFormProps {
   initialDeal?: Partial<DealRequest>;
@@ -57,27 +166,98 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
   const [showCellularDropdown, setShowCellularDropdown] = useState(false);
   const [showLpwanDropdown, setShowLpwanDropdown] = useState(false);
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
+  const [expandedRegions, setExpandedRegions] = useState<Set<string>>(new Set());
+  const [countryDropdownSearch, setCountryDropdownSearch] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
   const countryListRef = useRef<HTMLDivElement>(null);
   const cellularDropdownRef = useRef<HTMLDivElement>(null);
   const lpwanDropdownRef = useRef<HTMLDivElement>(null);
   const countryDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Pure DOM-based filtering - no React re-renders
-  const handleCountrySearch = (searchTerm: string) => {
-    if (!countryListRef.current) return;
+  // Group available countries by region
+  const availableCountriesByRegion = useMemo(() => {
+    const grouped: Record<string, string[]> = {};
+    availableCountries.forEach(country => {
+      const region = getRegion(country);
+      if (!grouped[region]) {
+        grouped[region] = [];
+      }
+      grouped[region].push(country);
+    });
+    // Sort countries within each region
+    Object.keys(grouped).forEach(region => {
+      grouped[region].sort();
+    });
+    return grouped;
+  }, [availableCountries]);
 
-    const searchLower = searchTerm.toLowerCase();
-    const labels = countryListRef.current.querySelectorAll('label[data-country]');
-
-    labels.forEach((label) => {
-      const country = label.getAttribute('data-country') || '';
-      if (!searchTerm || country.toLowerCase().includes(searchLower)) {
-        (label as HTMLElement).style.display = 'flex';
-      } else {
-        (label as HTMLElement).style.display = 'none';
+  // Filter countries in dropdown based on search term
+  const filteredCountriesByRegion = useMemo(() => {
+    if (!countryDropdownSearch.trim()) {
+      return availableCountriesByRegion;
+    }
+    const searchLower = countryDropdownSearch.toLowerCase().trim();
+    const filtered: Record<string, string[]> = {};
+    Object.entries(availableCountriesByRegion).forEach(([region, countries]) => {
+      const matchingCountries = countries.filter(country =>
+        country.toLowerCase().includes(searchLower)
+      );
+      if (matchingCountries.length > 0) {
+        filtered[region] = matchingCountries;
       }
     });
+    return filtered;
+  }, [availableCountriesByRegion, countryDropdownSearch]);
+
+  // Toggle region expand/collapse
+  const toggleRegionExpand = (region: string) => {
+    const newSet = new Set(expandedRegions);
+    if (newSet.has(region)) {
+      newSet.delete(region);
+    } else {
+      newSet.add(region);
+    }
+    setExpandedRegions(newSet);
+  };
+
+  // Toggle entire region selection
+  const toggleRegionSelection = (region: string) => {
+    const countriesInRegion = availableCountriesByRegion[region] || [];
+    const currentSelected = formData.countries;
+    const allSelected = countriesInRegion.every(c => currentSelected.includes(c));
+
+    if (allSelected) {
+      // Deselect all countries in this region
+      setFormData(prev => ({
+        ...prev,
+        countries: prev.countries.filter(c => !countriesInRegion.includes(c))
+      }));
+    } else {
+      // Select all countries in this region
+      const newCountries = [...new Set([...currentSelected, ...countriesInRegion])];
+      setFormData(prev => ({ ...prev, countries: newCountries }));
+    }
+  };
+
+  // Check if a region is fully selected
+  const isRegionFullySelected = (region: string): boolean => {
+    const countriesInRegion = availableCountriesByRegion[region] || [];
+    if (countriesInRegion.length === 0) return false;
+    return countriesInRegion.every(c => formData.countries.includes(c));
+  };
+
+  // Check if a region is partially selected
+  const isRegionPartiallySelected = (region: string): boolean => {
+    const countriesInRegion = availableCountriesByRegion[region] || [];
+    if (countriesInRegion.length === 0) return false;
+    const selectedCount = countriesInRegion.filter(c => formData.countries.includes(c)).length;
+    return selectedCount > 0 && selectedCount < countriesInRegion.length;
+  };
+
+  // Get count of selected countries in a region
+  const getRegionSelectedCount = (region: string): number => {
+    const countriesInRegion = availableCountriesByRegion[region] || [];
+    return countriesInRegion.filter(c => formData.countries.includes(c)).length;
   };
 
   const evaluationService = new DealEvaluationService();
@@ -110,6 +290,16 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
     if (formData.countries.length > 0) {
       loadCarriersForCountries(formData.countries);
     }
+
+    // Auto-distribute usage evenly when countries change
+    if (formData.countries.length > 0) {
+      const evenPercentage = 100 / formData.countries.length;
+      const newPercentages: Record<string, number> = {};
+      formData.countries.forEach((country) => {
+        newPercentages[country] = evenPercentage;
+      });
+      setFormData(prev => ({ ...prev, usagePercentages: newPercentages }));
+    }
   }, [formData.countries]);
 
   useEffect(() => {
@@ -132,10 +322,12 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
   }, [dataAmount, dataUnit]);
 
   useEffect(() => {
-    // Sync price amount with formData
+    // Sync price amount with formData, converting to USD for calculations
     const numericPrice = parseFloat(priceAmount) || 0;
-    setFormData(prev => ({ ...prev, proposedPricePerSim: numericPrice }));
-  }, [priceAmount]);
+    const conversionRate = CURRENCY_TO_USD[formData.currency] || 1.0;
+    const priceInUSD = numericPrice * conversionRate;
+    setFormData(prev => ({ ...prev, proposedPricePerSim: priceInUSD }));
+  }, [priceAmount, formData.currency]);
 
   useEffect(() => {
     // Sync simQuantity string with formData
@@ -384,9 +576,9 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
     // If multiple countries, check that usage distribution equals 100%
     if (formData.countries.length > 1) {
       const total = formData.countries.reduce((sum, country) =>
-        sum + (formData.usagePercentages?.[country] || Math.round(100 / formData.countries.length)), 0
+        sum + (formData.usagePercentages?.[country] || (100 / formData.countries.length)), 0
       );
-      return basicFieldsValid && total === 100;
+      return basicFieldsValid && Math.abs(total - 100) < 0.01;
     }
 
     return basicFieldsValid;
@@ -510,18 +702,41 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
                 Target Price per SIM (monthly)
               </label>
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-sm">$</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const currencies = ['USD', 'GBP', 'EUR'] as const;
+                    const currentIndex = currencies.indexOf(formData.currency as 'USD' | 'GBP' | 'EUR');
+                    const nextIndex = (currentIndex + 1) % currencies.length;
+                    setFormData(prev => ({ ...prev, currency: currencies[nextIndex] }));
+                  }}
+                  className="absolute left-0 top-0 h-full px-4 flex items-center text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-l-xl transition-colors z-10 cursor-pointer"
+                  title="Click to cycle through USD → GBP → EUR"
+                >
+                  <span className="font-semibold text-sm">
+                    {formData.currency === 'USD' ? '$' : formData.currency === 'GBP' ? '£' : '€'}
+                  </span>
+                </button>
                 <input
                   type="number"
                   min="0"
                   step="0.01"
                   value={priceAmount}
                   onChange={(e) => setPriceAmount(e.target.value)}
-                  className="w-full pl-8 pr-4 py-3 text-sm bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]/50 focus:bg-white transition-all placeholder-gray-400"
+                  className="w-full pl-10 pr-4 py-3 text-sm bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]/50 focus:bg-white transition-all placeholder-gray-400"
                   placeholder="Enter price"
                   required
                 />
               </div>
+              <p className="text-xs text-gray-500 mt-1">
+                {formData.currency !== 'USD' && parseFloat(priceAmount) > 0 ? (
+                  <>
+                    = ${((parseFloat(priceAmount) || 0) * CURRENCY_TO_USD[formData.currency]).toFixed(2)} USD
+                    <span className="mx-1">•</span>
+                  </>
+                ) : null}
+                Click {formData.currency === 'USD' ? '$' : formData.currency === 'GBP' ? '£' : '€'} to change currency
+              </p>
             </div>
             
             {/* Contract Duration */}
@@ -663,44 +878,112 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
               </button>
 
               {showCountryDropdown && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-20 max-h-96 overflow-hidden flex flex-col">
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-20 max-h-[450px] overflow-hidden flex flex-col">
                   {/* Search Input */}
                   <div className="p-2 border-b border-gray-200">
                     <input
                       ref={searchInputRef}
                       type="text"
-                      defaultValue=""
-                      onInput={(e) => handleCountrySearch((e.target as HTMLInputElement).value)}
+                      value={countryDropdownSearch}
+                      onChange={(e) => setCountryDropdownSearch(e.target.value)}
                       placeholder="Search or type first letter..."
                       className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]/50"
                       autoFocus
                     />
                   </div>
-                  {/* Country List */}
-                  <div ref={countryListRef} className="overflow-y-auto max-h-80">
-                    {availableCountries.map((country: string) => (
-                        <label
-                          key={country}
-                          data-country={country}
-                          className={`flex items-center space-x-3 p-2 hover:bg-gray-50 cursor-pointer ${
-                            formData.countries.includes(country) ? 'bg-blue-50' : ''
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={formData.countries.includes(country)}
-                            onChange={() => {
-                              if (formData.countries.includes(country)) {
-                                removeCountry(country);
-                              } else {
-                                addCountry(country);
-                              }
-                            }}
-                            className="w-4 h-4 rounded border-gray-300 text-[#5B9BD5] focus:ring-[#5B9BD5]/50"
-                          />
-                          <span className="text-sm font-medium text-gray-700">{country}</span>
-                        </label>
-                      ))}
+
+                  {/* Selected Count & Clear All */}
+                  {formData.countries.length > 0 && (
+                    <div className="px-3 py-2 bg-blue-50 border-b border-gray-200 flex items-center justify-between">
+                      <span className="text-xs text-blue-700 font-medium">
+                        {formData.countries.length} countries selected
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, countries: [] }))}
+                        className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                      >
+                        Clear All
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Region Groups */}
+                  <div ref={countryListRef} className="overflow-y-auto flex-1">
+                    {REGION_ORDER.filter(region => filteredCountriesByRegion[region]?.length > 0).map(region => {
+                      const countries = filteredCountriesByRegion[region] || [];
+                      const isExpanded = expandedRegions.has(region) || countryDropdownSearch.trim() !== '';
+                      const isFullySelected = isRegionFullySelected(region);
+                      const isPartiallySelected = isRegionPartiallySelected(region);
+                      const selectedCount = getRegionSelectedCount(region);
+
+                      return (
+                        <div key={region} className="border-b border-gray-100 last:border-b-0">
+                          {/* Region Header */}
+                          <div
+                            className="flex items-center gap-2 px-3 py-2 bg-gray-50 hover:bg-gray-100 cursor-pointer"
+                            onClick={() => toggleRegionExpand(region)}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isFullySelected}
+                              ref={(el) => {
+                                if (el) el.indeterminate = isPartiallySelected;
+                              }}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                toggleRegionSelection(region);
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                              className="w-4 h-4 rounded border-gray-300 text-[#5B9BD5] focus:ring-[#5B9BD5]/50"
+                            />
+                            <ChevronRight
+                              className={`w-4 h-4 text-gray-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                            />
+                            <span className="text-sm font-medium text-gray-700 flex-1">{region}</span>
+                            <span className="text-xs text-gray-500">
+                              {selectedCount > 0 ? `${selectedCount}/` : ''}{countries.length}
+                            </span>
+                          </div>
+
+                          {/* Country List (when expanded) */}
+                          {isExpanded && (
+                            <div className="bg-white">
+                              {countries.map((country: string) => (
+                                <label
+                                  key={country}
+                                  data-country={country}
+                                  className={`flex items-center gap-2 px-3 py-1.5 pl-10 hover:bg-gray-50 cursor-pointer ${
+                                    formData.countries.includes(country) ? 'bg-blue-50' : ''
+                                  }`}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={formData.countries.includes(country)}
+                                    onChange={() => {
+                                      if (formData.countries.includes(country)) {
+                                        removeCountry(country);
+                                      } else {
+                                        addCountry(country);
+                                      }
+                                    }}
+                                    className="w-4 h-4 rounded border-gray-300 text-[#5B9BD5] focus:ring-[#5B9BD5]/50"
+                                  />
+                                  <span className="text-sm text-gray-700">{country}</span>
+                                </label>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+
+                    {/* Empty State */}
+                    {Object.keys(filteredCountriesByRegion).length === 0 && (
+                      <div className="px-3 py-4 text-center text-sm text-gray-500">
+                        No countries match "{countryDropdownSearch}"
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -747,7 +1030,8 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
               </h4>
               <div className="space-y-3">
                 {formData.countries.map((country, idx) => {
-                  const usage = formData.usagePercentages?.[country] || Math.round(100 / formData.countries.length);
+                  const usage = formData.usagePercentages?.[country] || (100 / formData.countries.length);
+                  const displayValue = Math.round(usage * 100) / 100; // Round to 2 decimal places for display
                   return (
                     <div key={country} className="flex items-center gap-3">
                       <span className="text-sm font-medium text-gray-600 w-24">{country}</span>
@@ -755,11 +1039,12 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
                         type="range"
                         min="0"
                         max="100"
+                        step="0.01"
                         value={usage}
                         onChange={(e) => {
                           const newPercentages = {
                             ...formData.usagePercentages,
-                            [country]: parseInt(e.target.value)
+                            [country]: parseFloat(e.target.value)
                           };
                           setFormData(prev => ({ ...prev, usagePercentages: newPercentages }));
                         }}
@@ -772,11 +1057,12 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
                         type="number"
                         min="0"
                         max="100"
-                        value={usage}
+                        step="0.01"
+                        value={displayValue}
                         onChange={(e) => {
                           const newPercentages = {
                             ...formData.usagePercentages,
-                            [country]: parseInt(e.target.value) || 0
+                            [country]: parseFloat(e.target.value) || 0
                           };
                           setFormData(prev => ({ ...prev, usagePercentages: newPercentages }));
                         }}
@@ -790,12 +1076,13 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
                 {/* Total validation */}
                 {(() => {
                   const total = formData.countries.reduce((sum, country) =>
-                    sum + (formData.usagePercentages?.[country] || Math.round(100 / formData.countries.length)), 0
+                    sum + (formData.usagePercentages?.[country] || (100 / formData.countries.length)), 0
                   );
-                  return total !== 100 && (
+                  const isValid = Math.abs(total - 100) < 0.01; // Allow small floating point tolerance
+                  return !isValid && (
                     <div className="flex items-center gap-2 mt-2 text-xs text-red-600">
                       <AlertCircle className="w-3 h-3" />
-                      <span>Total: {total}% - must equal 100% to proceed</span>
+                      <span>Total: {total.toFixed(2)}% - must equal 100% to proceed</span>
                     </div>
                   );
                 })()}
@@ -803,15 +1090,10 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
                 <button
                   type="button"
                   onClick={() => {
-                    const evenPercentage = Math.round(100 / formData.countries.length);
+                    const evenPercentage = 100 / formData.countries.length;
                     const newPercentages: Record<string, number> = {};
-                    formData.countries.forEach((country, idx) => {
-                      // Give remaining percentage to last country to ensure 100%
-                      if (idx === formData.countries.length - 1) {
-                        newPercentages[country] = 100 - (evenPercentage * (formData.countries.length - 1));
-                      } else {
-                        newPercentages[country] = evenPercentage;
-                      }
+                    formData.countries.forEach((country) => {
+                      newPercentages[country] = evenPercentage;
                     });
                     setFormData(prev => ({ ...prev, usagePercentages: newPercentages }));
                   }}

@@ -59,7 +59,7 @@ export interface DealRequest {
   
   // Customer pricing
   proposedPricePerSim: number; // What customer wants to pay
-  currency: 'USD' | 'EUR';
+  currency: 'USD' | 'EUR' | 'GBP';
   
   // Deal characteristics
   isNewCustomer: boolean;

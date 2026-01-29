@@ -1,12 +1,369 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { useUser } from '../contexts/UserContext';
-import { Wifi, Smartphone, Globe, DollarSign, Euro, Lock, Download, Eye, EyeOff, Search, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Wifi, Smartphone, Globe, DollarSign, Euro, Lock, Download, Eye, EyeOff, Search, ArrowUpDown, ArrowUp, ArrowDown, ChevronRight } from 'lucide-react';
 import '../styles/monogoto-theme.css';
+
+// Country to Region mapping
+const countryToRegion: Record<string, string> = {
+  // Africa
+  'Algeria': 'Africa',
+  'Angola': 'Africa',
+  'Benin': 'Africa',
+  'Buneer': 'Africa',
+  'Botswana': 'Africa',
+  'Burkina Faso': 'Africa',
+  'Burundi': 'Africa',
+  'Cameroon': 'Africa',
+  'Cape Verde': 'Africa',
+  'Cabo Verde': 'Africa',
+  'Central African Republic': 'Africa',
+  'Chad': 'Africa',
+  'Comoros': 'Africa',
+  'Congo': 'Africa',
+  'Congo, Democratic Republic': 'Africa',
+  'Congo Democratic Republic': 'Africa',
+  'Congo Democratic Republic of': 'Africa',
+  'Congo Democratic Rep of': 'Africa',
+  'Congo, Democratic Republic of the': 'Africa',
+  'Congo Democratic': 'Africa',
+  'Congo Republic Of': 'Africa',
+  'Congo Rep of': 'Africa',
+  'Congo, Republic Of': 'Africa',
+  'Democratic Republic of the Congo': 'Africa',
+  'Djibouti': 'Africa',
+  'Egypt': 'Africa',
+  'Equatorial Guinea': 'Africa',
+  'Eritrea': 'Africa',
+  'Eswatini': 'Africa',
+  'Ethiopia': 'Africa',
+  'Gabon': 'Africa',
+  'Gambia': 'Africa',
+  'Ghana': 'Africa',
+  'Guinea': 'Africa',
+  'Guinea-Bissau': 'Africa',
+  'Guinea Bissau': 'Africa',
+  'Ivory Coast': 'Africa',
+  'Côte d\'Ivoire': 'Africa',
+  'Cote d\'Ivoire': 'Africa',
+  'Cote dIvoire': 'Africa',
+  'Kenya': 'Africa',
+  'Lesotho': 'Africa',
+  'Liberia': 'Africa',
+  'Libya': 'Africa',
+  'Libyan Arab': 'Africa',
+  'Libyan Arab Jamahiriya': 'Africa',
+  'Madagascar': 'Africa',
+  'Malawi': 'Africa',
+  'Mali': 'Africa',
+  'Mauritania': 'Africa',
+  'Mauritius': 'Africa',
+  'Mayotte': 'Africa',
+  'Morocco': 'Africa',
+  'Mozambique': 'Africa',
+  'Namibia': 'Africa',
+  'Niger': 'Africa',
+  'Nigeria': 'Africa',
+  'Reunion': 'Africa',
+  'Réunion': 'Africa',
+  'Rwanda': 'Africa',
+  'Sao Tome and Principe': 'Africa',
+  'Saint Helena': 'Africa',
+  'Senegal': 'Africa',
+  'Seychelles': 'Africa',
+  'Sierra Leone': 'Africa',
+  'Somalia': 'Africa',
+  'South Africa': 'Africa',
+  'South Sudan': 'Africa',
+  'Sudan': 'Africa',
+  'Swaziland': 'Africa',
+  'Tanzania': 'Africa',
+  'Tanzania, United Republic': 'Africa',
+  'Tanzania United Republic': 'Africa',
+  'Tanzania United Republic of': 'Africa',
+  'Togo': 'Africa',
+  'Tunisia': 'Africa',
+  'Uganda': 'Africa',
+  'Zambia': 'Africa',
+  'Zimbabwe': 'Africa',
+
+  // Asia
+  'Afghanistan': 'Asia',
+  'Armenia': 'Asia',
+  'Azerbaijan': 'Asia',
+  'Bahrain': 'Middle East',
+  'Bangladesh': 'Asia',
+  'Bhutan': 'Asia',
+  'Brunei': 'Asia',
+  'Brunei Darussalam': 'Asia',
+  'Cambodia': 'Asia',
+  'China': 'Asia',
+  'Georgia': 'Asia',
+  'Hong Kong': 'Asia',
+  'India': 'Asia',
+  'Indonesia': 'Asia',
+  'Iran': 'Middle East',
+  'Iran, Islamic Republic Of': 'Middle East',
+  'Iran Islamic Republic Of': 'Middle East',
+  'Iraq': 'Middle East',
+  'Israel': 'Middle East',
+  'Japan': 'Asia',
+  'Jordan': 'Middle East',
+  'Kazakhstan': 'Asia',
+  'Kuwait': 'Middle East',
+  'Kyrgyzstan': 'Asia',
+  'Laos': 'Asia',
+  'Lao': 'Asia',
+  'Lao People\'s Democratic Republic': 'Asia',
+  'Lao PDR': 'Asia',
+  'Lebanon': 'Middle East',
+  'Macau': 'Asia',
+  'Macao': 'Asia',
+  'Malaysia': 'Asia',
+  'Maldives': 'Asia',
+  'Mongolia': 'Asia',
+  'Myanmar': 'Asia',
+  'Nepal': 'Asia',
+  'North Korea': 'Asia',
+  'Oman': 'Middle East',
+  'Pakistan': 'Asia',
+  'Palestine': 'Middle East',
+  'Palestinian Territory': 'Middle East',
+  'Philippines': 'Asia',
+  'Qatar': 'Middle East',
+  'Saudi Arabia': 'Middle East',
+  'Singapore': 'Asia',
+  'South Korea': 'Asia',
+  'Korea, Republic of': 'Asia',
+  'Korea Republic Of': 'Asia',
+  'Korea, Republic Of': 'Asia',
+  'Republic of Korea': 'Asia',
+  'Sri Lanka': 'Asia',
+  'Syria': 'Middle East',
+  'Syrian Arab Republic': 'Middle East',
+  'Taiwan': 'Asia',
+  'Taiwan, Province Of China': 'Asia',
+  'Tajikistan': 'Asia',
+  'Thailand': 'Asia',
+  'Timor-Leste': 'Asia',
+  'East Timor': 'Asia',
+  'Turkey': 'Europe',
+  'Turkmenistan': 'Asia',
+  'United Arab Emirates': 'Middle East',
+  'UAE': 'Middle East',
+  'Uzbekistan': 'Asia',
+  'Vietnam': 'Asia',
+  'Viet Nam': 'Asia',
+  'Yemen': 'Middle East',
+
+  // Europe
+  'Albania': 'Europe',
+  'Andorra': 'Europe',
+  'Austria': 'Europe',
+  'Belarus': 'Europe',
+  'Belgium': 'Europe',
+  'Bosnia and Herzegovina': 'Europe',
+  'Bulgaria': 'Europe',
+  'Croatia': 'Europe',
+  'Cyprus': 'Europe',
+  'Czech Republic': 'Europe',
+  'Czechia': 'Europe',
+  'Denmark': 'Europe',
+  'Estonia': 'Europe',
+  'Faroe Islands': 'Europe',
+  'Finland': 'Europe',
+  'France': 'Europe',
+  'Germany': 'Europe',
+  'Gibraltar': 'Europe',
+  'Greece': 'Europe',
+  'Greenland': 'Europe',
+  'Guernsey': 'Europe',
+  'Hungary': 'Europe',
+  'Iceland': 'Europe',
+  'Ireland': 'Europe',
+  'Isle of Man': 'Europe',
+  'Italy': 'Europe',
+  'Jersey': 'Europe',
+  'Kosovo': 'Europe',
+  'Latvia': 'Europe',
+  'Liechtenstein': 'Europe',
+  'Lithuania': 'Europe',
+  'Luxembourg': 'Europe',
+  'Malta': 'Europe',
+  'Moldova': 'Europe',
+  'Moldova, Republic Of': 'Europe',
+  'Moldova Republic Of': 'Europe',
+  'Republic of Moldova': 'Europe',
+  'Monaco': 'Europe',
+  'Montenegro': 'Europe',
+  'Montenegro, Republic of': 'Europe',
+  'Netherlands': 'Europe',
+  'North Macedonia': 'Europe',
+  'Macedonia': 'Europe',
+  'Macedonia, Republic Of': 'Europe',
+  'Macedonia Republic Of': 'Europe',
+  'Republic of Macedonia': 'Europe',
+  'The Former Yugoslav Republic of Macedonia': 'Europe',
+  'FYROM': 'Europe',
+  'Norway': 'Europe',
+  'Poland': 'Europe',
+  'Portugal': 'Europe',
+  'Romania': 'Europe',
+  'Russia': 'Europe',
+  'Russian Federation': 'Europe',
+  'San Marino': 'Europe',
+  'Serbia': 'Europe',
+  'Serbia Republic of': 'Europe',
+  'Serbia and Montenegro': 'Europe',
+  'Slovakia': 'Europe',
+  'Slovenia': 'Europe',
+  'Spain': 'Europe',
+  'Svalbard': 'Europe',
+  'Sweden': 'Europe',
+  'Switzerland': 'Europe',
+  'Ukraine': 'Europe',
+  'United Kingdom': 'Europe',
+  'UK': 'Europe',
+  'Great Britain': 'Europe',
+  'Britain': 'Europe',
+  'England': 'Europe',
+  'Scotland': 'Europe',
+  'Wales': 'Europe',
+  'Northern Ireland': 'Europe',
+  'Vatican City': 'Europe',
+  'Holy See': 'Europe',
+
+  // North America
+  'Bermuda': 'North America',
+  'Canada': 'North America',
+  'Mexico': 'North America',
+  'United States': 'North America',
+  'USA': 'North America',
+  'US': 'North America',
+
+  // Central America & Caribbean
+  'Anguilla': 'Caribbean',
+  'Antigua and Barbuda': 'Caribbean',
+  'Aruba': 'Caribbean',
+  'Bahamas': 'Caribbean',
+  'Barbados': 'Caribbean',
+  'Bonaire': 'Caribbean',
+  'Belize': 'Central America',
+  'British Virgin Islands': 'Caribbean',
+  'Cayman Islands': 'Caribbean',
+  'Costa Rica': 'Central America',
+  'Cuba': 'Caribbean',
+  'Curaçao': 'Caribbean',
+  'Curacao': 'Caribbean',
+  'Dominica': 'Caribbean',
+  'Dominican Republic': 'Caribbean',
+  'El Salvador': 'Central America',
+  'Grenada': 'Caribbean',
+  'Guadeloupe': 'Caribbean',
+  'Guatemala': 'Central America',
+  'Haiti': 'Caribbean',
+  'Honduras': 'Central America',
+  'Jamaica': 'Caribbean',
+  'Martinique': 'Caribbean',
+  'Montserrat': 'Caribbean',
+  'Netherlands Antilles': 'Caribbean',
+  'Nicaragua': 'Central America',
+  'Panama': 'Central America',
+  'Puerto Rico': 'Caribbean',
+  'Saint Kitts and Nevis': 'Caribbean',
+  'Saint Lucia': 'Caribbean',
+  'Saint Vincent and the Grenadines': 'Caribbean',
+  'Sint Maarten': 'Caribbean',
+  'Saint Martin': 'Caribbean',
+  'St. Kitts and Nevis': 'Caribbean',
+  'St. Lucia': 'Caribbean',
+  'St. Vincent': 'Caribbean',
+  'Trinidad and Tobago': 'Caribbean',
+  'Turks and Caicos': 'Caribbean',
+  'Turks and Caicos Islands': 'Caribbean',
+  'US Virgin Islands': 'Caribbean',
+  'Virgin Islands (US)': 'Caribbean',
+  'Virgin Islands (British)': 'Caribbean',
+
+  // South America
+  'Argentina': 'South America',
+  'Bolivia': 'South America',
+  'Bolivia, Plurinational State Of': 'South America',
+  'Brazil': 'South America',
+  'Chile': 'South America',
+  'Colombia': 'South America',
+  'Ecuador': 'South America',
+  'Falkland Islands': 'South America',
+  'Falkland Islands (Malvinas)': 'South America',
+  'French Guiana': 'South America',
+  'Guyana': 'South America',
+  'Paraguay': 'South America',
+  'Peru': 'South America',
+  'Suriname': 'South America',
+  'Uruguay': 'South America',
+  'Venezuela': 'South America',
+  'Venezuela, Bolivarian Republic Of': 'South America',
+
+  // Oceania
+  'American Samoa': 'Oceania',
+  'Australia': 'Oceania',
+  'Cook Islands': 'Oceania',
+  'Fiji': 'Oceania',
+  'French Polynesia': 'Oceania',
+  'Guam': 'Oceania',
+  'Kiribati': 'Oceania',
+  'Marshall Islands': 'Oceania',
+  'Micronesia': 'Oceania',
+  'Micronesia, Federated States Of': 'Oceania',
+  'Nauru': 'Oceania',
+  'New Caledonia': 'Oceania',
+  'New Zealand': 'Oceania',
+  'Niue': 'Oceania',
+  'Norfolk Island': 'Oceania',
+  'Northern Mariana Islands': 'Oceania',
+  'Palau': 'Oceania',
+  'Papua New Guinea': 'Oceania',
+  'Samoa': 'Oceania',
+  'Solomon Islands': 'Oceania',
+  'Tonga': 'Oceania',
+  'Tuvalu': 'Oceania',
+  'Vanuatu': 'Oceania',
+};
+
+// Helper function to get region for a country
+const getRegion = (country: string): string => {
+  // Try exact match first
+  if (countryToRegion[country]) {
+    return countryToRegion[country];
+  }
+  // Try case-insensitive match
+  const lowerCountry = country.toLowerCase();
+  for (const [key, value] of Object.entries(countryToRegion)) {
+    if (key.toLowerCase() === lowerCountry) {
+      return value;
+    }
+  }
+  return 'Other';
+};
+
+// Region display order for the country selector dropdown
+const REGION_ORDER = [
+  'Africa',
+  'Asia',
+  'Europe',
+  'Middle East',
+  'North America',
+  'Central America',
+  'Caribbean',
+  'South America',
+  'Oceania',
+  'Other'
+];
 
 interface NetworkData {
   network_name: string;
   country: string;
+  region: string;
   tadig: string;
   operator: string;
   identity?: string; // B, O, E, U, etc.
@@ -32,6 +389,7 @@ interface NetworkData {
 interface GroupedNetwork {
   network_name: string;
   country: string;
+  region: string;
   tadigs: string[];
   sources: Array<{
     operator: string;
@@ -131,6 +489,10 @@ interface PricingTableProps {
 // Threshold for expensive networks (data cost > $1/MB is considered expensive)
 const EXPENSIVE_NETWORK_THRESHOLD = 1.0; // $1.00 per MB
 
+// Cache for network data to avoid reloading on every page visit
+let networkDataCache: { data: any[] | null; timestamp: number } = { data: null, timestamp: 0 };
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
+
 export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurrency, onCurrencyChange }) => {
   const { isSales, isAdmin } = useUser();
   const [networks, setNetworks] = useState<NetworkData[]>([]);
@@ -149,21 +511,29 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
   const [networkSearch, setNetworkSearch] = useState('');
   const [countrySearch, setCountrySearch] = useState('');
   const [tadigSearch, setTagidSearch] = useState('');
+  const [regionSearch, setRegionSearch] = useState('');
   // Multi-select filters for Identity, Network Tech, and LP-WAN
   const [selectedIdentityFilters, setSelectedIdentityFilters] = useState<Set<string>>(new Set());
   const [selectedGenFilters, setSelectedGenFilters] = useState<Set<string>>(new Set());
   const [selectedLpwanFilters, setSelectedLpwanFilters] = useState<Set<string>>(new Set());
-  const [sortField, setSortField] = useState<'network' | 'country' | 'tadig' | 'source' | 'generation' | 'data' | 'sms' | 'imsi' | null>(null);
+  const [sortField, setSortField] = useState<'network' | 'country' | 'region' | 'tadig' | 'source' | 'generation' | 'data' | 'sms' | 'imsi' | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   // Search box / dropdown visibility state
   const [showNetworkSearch, setShowNetworkSearch] = useState(false);
   const [showCountrySearch, setShowCountrySearch] = useState(false);
   const [showTagidSearch, setShowTagidSearch] = useState(false);
+  const [showRegionSearch, setShowRegionSearch] = useState(false);
   const [showIdentityDropdown, setShowIdentityDropdown] = useState(false);
   const [showGenDropdown, setShowGenDropdown] = useState(false);
   const [showLpwanDropdown, setShowLpwanDropdown] = useState(false);
-  
+
+  // Country multi-select with region grouping
+  const [selectedCountries, setSelectedCountries] = useState<Set<string>>(new Set());
+  const [expandedRegions, setExpandedRegions] = useState<Set<string>>(new Set());
+  const [showCountryDropdown, setShowCountryDropdown] = useState(false);
+  const [countryDropdownSearch, setCountryDropdownSearch] = useState('');
+
   // Price threshold: $1/MB = approximately €0.90/MB at 1.1 exchange rate
   const MAX_REASONABLE_PRICE_EUR_MB = 0.90;
 
@@ -188,38 +558,53 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
 
   const loadNetworks = useCallback(async () => {
     try {
-      console.log('Loading networks from Supabase network_pricing...');
+      // Check if we have valid cached data
+      const now = Date.now();
+      const cacheValid = networkDataCache.data && (now - networkDataCache.timestamp) < CACHE_DURATION;
 
-      // Primary source: Supabase network_pricing table
-      // Fetch all records in batches (Supabase has 1000 row limit per request)
-      const allData: any[] = [];
-      const batchSize = 1000;
-      let offset = 0;
-      let hasMore = true;
+      let pricingData: any[];
 
-      while (hasMore) {
-        const { data: batch, error: batchError } = await supabase
-          .from('network_pricing')
-          .select('*')
-          .order('country', { ascending: true })
-          .order('network_name', { ascending: true })
-          .range(offset, offset + batchSize - 1);
+      if (cacheValid) {
+        console.log('Using cached network data');
+        pricingData = networkDataCache.data!;
+      } else {
+        console.log('Loading networks from Supabase network_pricing...');
 
-        if (batchError) {
-          console.error('Error fetching from network_pricing:', batchError);
-          throw batchError;
+        // Primary source: Supabase network_pricing table
+        // Fetch all records in batches (Supabase has 1000 row limit per request)
+        const allData: any[] = [];
+        const batchSize = 1000;
+        let offset = 0;
+        let hasMore = true;
+
+        while (hasMore) {
+          const { data: batch, error: batchError } = await supabase
+            .from('network_pricing')
+            .select('*')
+            .order('country', { ascending: true })
+            .order('network_name', { ascending: true })
+            .range(offset, offset + batchSize - 1);
+
+          if (batchError) {
+            console.error('Error fetching from network_pricing:', batchError);
+            throw batchError;
+          }
+
+          if (batch && batch.length > 0) {
+            allData.push(...batch);
+            offset += batchSize;
+            hasMore = batch.length === batchSize;
+          } else {
+            hasMore = false;
+          }
         }
 
-        if (batch && batch.length > 0) {
-          allData.push(...batch);
-          offset += batchSize;
-          hasMore = batch.length === batchSize;
-        } else {
-          hasMore = false;
-        }
+        pricingData = allData;
+
+        // Store in cache
+        networkDataCache = { data: pricingData, timestamp: now };
+        console.log(`Cached ${pricingData.length} records`);
       }
-
-      const pricingData = allData;
 
       if (pricingData && pricingData.length > 0) {
         console.log(`Loaded ${pricingData.length} records from Supabase`);
@@ -244,6 +629,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
           return {
             network_name: item.network_name,
             country: item.country,
+            region: getRegion(item.country),
             tadig: item.tadig,
             operator: item.identity || 'Unknown',
             identity: item.identity || '',
@@ -355,7 +741,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
     return `${symbol}${converted.toFixed(decimals)}`;
   };
 
-  const handleSort = (field: 'network' | 'country' | 'tadig' | 'source' | 'generation' | 'data' | 'sms' | 'imsi') => {
+  const handleSort = (field: 'network' | 'country' | 'region' | 'tadig' | 'source' | 'generation' | 'data' | 'sms' | 'imsi') => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
@@ -369,12 +755,15 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
     setShowNetworkSearch(false);
     setShowCountrySearch(false);
     setShowTagidSearch(false);
+    setShowRegionSearch(false);
     setShowIdentityDropdown(false);
     setShowGenDropdown(false);
     setShowLpwanDropdown(false);
+    setShowCountryDropdown(false);
+    setCountryDropdownSearch('');
   };
 
-  const toggleSearchBox = (field: 'network' | 'country' | 'tadig') => {
+  const toggleSearchBox = (field: 'network' | 'country' | 'tadig' | 'region') => {
     closeAllDropdowns();
     if (field === 'network') {
       setShowNetworkSearch(!showNetworkSearch);
@@ -382,6 +771,8 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
       setShowCountrySearch(!showCountrySearch);
     } else if (field === 'tadig') {
       setShowTagidSearch(!showTagidSearch);
+    } else if (field === 'region') {
+      setShowRegionSearch(!showRegionSearch);
     }
   };
 
@@ -437,6 +828,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
         grouped[key] = {
           network_name: network.network_name,
           country: network.country,
+          region: network.region,
           tadigs: [],
           sources: []
         };
@@ -472,6 +864,118 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
   // Apply show/hide toggle - admin can reveal expensive networks
   const visibleNetworks = showHiddenNetworks ? allNetworks : networks;
 
+  // Group available countries by region for the dropdown
+  const availableCountriesByRegion = useMemo(() => {
+    const grouped: Record<string, string[]> = {};
+    const seen = new Set<string>();
+
+    visibleNetworks.forEach(network => {
+      if (network.country && !seen.has(network.country)) {
+        seen.add(network.country);
+        const region = getRegion(network.country);
+        if (!grouped[region]) {
+          grouped[region] = [];
+        }
+        grouped[region].push(network.country);
+      }
+    });
+
+    // Sort countries within each region
+    Object.keys(grouped).forEach(region => {
+      grouped[region].sort();
+    });
+
+    return grouped;
+  }, [visibleNetworks]);
+
+  // Filter countries in dropdown based on search term
+  const filteredCountriesByRegion = useMemo(() => {
+    if (!countryDropdownSearch.trim()) {
+      return availableCountriesByRegion;
+    }
+
+    const searchLower = countryDropdownSearch.toLowerCase().trim();
+    const filtered: Record<string, string[]> = {};
+
+    Object.entries(availableCountriesByRegion).forEach(([region, countries]) => {
+      const matchingCountries = countries.filter(country =>
+        country.toLowerCase().includes(searchLower)
+      );
+      if (matchingCountries.length > 0) {
+        filtered[region] = matchingCountries;
+      }
+    });
+
+    return filtered;
+  }, [availableCountriesByRegion, countryDropdownSearch]);
+
+  // Toggle individual country selection
+  const toggleCountrySelection = (country: string) => {
+    const newSet = new Set(selectedCountries);
+    if (newSet.has(country)) {
+      newSet.delete(country);
+    } else {
+      newSet.add(country);
+    }
+    setSelectedCountries(newSet);
+  };
+
+  // Toggle entire region selection
+  const toggleRegionSelection = (region: string) => {
+    const countriesInRegion = availableCountriesByRegion[region] || [];
+    const newSet = new Set(selectedCountries);
+
+    // Check if all countries in region are currently selected
+    const allSelected = countriesInRegion.every(country => newSet.has(country));
+
+    if (allSelected) {
+      // Deselect all countries in this region
+      countriesInRegion.forEach(country => newSet.delete(country));
+    } else {
+      // Select all countries in this region
+      countriesInRegion.forEach(country => newSet.add(country));
+    }
+
+    setSelectedCountries(newSet);
+  };
+
+  // Toggle region expand/collapse
+  const toggleRegionExpand = (region: string) => {
+    const newSet = new Set(expandedRegions);
+    if (newSet.has(region)) {
+      newSet.delete(region);
+    } else {
+      newSet.add(region);
+    }
+    setExpandedRegions(newSet);
+  };
+
+  // Check if a region is fully selected
+  const isRegionFullySelected = (region: string): boolean => {
+    const countriesInRegion = availableCountriesByRegion[region] || [];
+    if (countriesInRegion.length === 0) return false;
+    return countriesInRegion.every(country => selectedCountries.has(country));
+  };
+
+  // Check if a region is partially selected
+  const isRegionPartiallySelected = (region: string): boolean => {
+    const countriesInRegion = availableCountriesByRegion[region] || [];
+    if (countriesInRegion.length === 0) return false;
+    const selectedCount = countriesInRegion.filter(c => selectedCountries.has(c)).length;
+    return selectedCount > 0 && selectedCount < countriesInRegion.length;
+  };
+
+  // Get count of selected countries in a region
+  const getRegionSelectedCount = (region: string): number => {
+    const countriesInRegion = availableCountriesByRegion[region] || [];
+    return countriesInRegion.filter(c => selectedCountries.has(c)).length;
+  };
+
+  // Clear all country selections
+  const clearAllCountries = () => {
+    setSelectedCountries(new Set());
+  };
+
   const filteredNetworks = visibleNetworks.filter(network => {
     // Apply identity filter (A1->E, TF->O, T2->B)
     if (selectedIdentities.size > 0) {
@@ -492,11 +996,20 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
     if (countrySearch && !network.country.toLowerCase().includes(countrySearch.toLowerCase().trim())) {
       return false;
     }
-    
+
+    // Apply country multi-select filter
+    if (selectedCountries.size > 0 && !selectedCountries.has(network.country)) {
+      return false;
+    }
+
     if (tadigSearch && !network.tadig.toLowerCase().includes(tadigSearch.toLowerCase().trim())) {
       return false;
     }
-    
+
+    if (regionSearch && !network.region.toLowerCase().includes(regionSearch.toLowerCase().trim())) {
+      return false;
+    }
+
     // Apply Identity multi-select filter
     if (selectedIdentityFilters.size > 0) {
       const identityLetter = network.identity?.includes('-')
@@ -570,6 +1083,9 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
     } else if (sortField === 'country') {
       const comparison = a.country.localeCompare(b.country);
       return sortDirection === 'asc' ? comparison : -comparison;
+    } else if (sortField === 'region') {
+      const comparison = a.region.localeCompare(b.region);
+      return sortDirection === 'asc' ? comparison : -comparison;
     } else if (sortField === 'tadig') {
       // Sort by first TADIG code
       const comparison = a.tadigs[0]?.localeCompare(b.tadigs[0] || '') || 0;
@@ -620,7 +1136,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
   
   // Export functionality
   const exportToCSV = () => {
-    const headers = ['Country', 'Network', 'TADIG', 'Identity', `Data (${currency}/${dataUnit})`, `SMS (${currency})`, `IMSI (${currency})`, 'NETWORK TECH.', 'Cat-M', 'NB-IoT', 'Notes'];
+    const headers = ['Region', 'Country', 'Network', 'TADIG', 'Identity', `Data (${currency}/${dataUnit})`, `SMS (${currency})`, `IMSI (${currency})`, 'NETWORK TECH.', 'Cat-M', 'NB-IoT', 'Notes'];
     const rows = filteredNetworks.map(network => {
       // Build generation string for CSV
       const generations = [];
@@ -631,6 +1147,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
       if (network.lte5G) generations.push('5G');
 
       return [
+        network.region,
         network.country,
         network.network_name,
         network.tadig,
@@ -1017,12 +1534,14 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
           </div>
       
           {/* Active filter indicator */}
-          {(searchTerm || networkSearch || countrySearch || tadigSearch || selectedIdentities.size > 0 || selectedIdentityFilters.size > 0 || selectedGenFilters.size > 0 || selectedLpwanFilters.size > 0) && (
+          {(searchTerm || networkSearch || countrySearch || tadigSearch || regionSearch || selectedIdentities.size > 0 || selectedIdentityFilters.size > 0 || selectedGenFilters.size > 0 || selectedLpwanFilters.size > 0 || selectedCountries.size > 0) && (
             <div className="mt-3 flex items-center gap-2 text-sm text-gray-500">
               <span>Active filters:
                 {searchTerm && <strong className="text-gray-700 ml-1">General: "{searchTerm}"</strong>}
+                {regionSearch && <strong className="text-gray-700 ml-1">Region: "{regionSearch}"</strong>}
                 {networkSearch && <strong className="text-gray-700 ml-1">Network: "{networkSearch}"</strong>}
                 {countrySearch && <strong className="text-gray-700 ml-1">Country: "{countrySearch}"</strong>}
+                {selectedCountries.size > 0 && <strong className="text-gray-700 ml-1">Countries: {selectedCountries.size} selected</strong>}
                 {tadigSearch && <strong className="text-gray-700 ml-1">TADIG: "{tadigSearch}"</strong>}
                 {selectedIdentities.size > 0 && <strong className="text-gray-700 ml-1">Carriers: {Array.from(selectedIdentities).join(', ')}</strong>}
                 {selectedIdentityFilters.size > 0 && <strong className="text-gray-700 ml-1">Identity: {Array.from(selectedIdentityFilters).join(', ')}</strong>}
@@ -1035,10 +1554,13 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
                   setNetworkSearch('');
                   setCountrySearch('');
                   setTagidSearch('');
+                  setRegionSearch('');
                   setSelectedIdentities(new Set());
                   setSelectedIdentityFilters(new Set());
                   setSelectedGenFilters(new Set());
                   setSelectedLpwanFilters(new Set());
+                  setSelectedCountries(new Set());
+                  setExpandedRegions(new Set());
                   // Hide all search boxes/dropdowns
                   closeAllDropdowns();
                 }}
@@ -1052,12 +1574,13 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
       </div>
 
       {/* Table - Apple Style */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="overflow-x-auto max-h-96 overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-visible">
+        <div className="overflow-x-auto max-h-96 overflow-y-auto rounded-2xl">
           <table className="w-full min-w-[1200px]">
           <colgroup>
+            <col className="w-[110px]" /> {/* Region */}
             <col className="w-[140px]" /> {/* Country */}
-            <col className="w-[240px]" /> {/* Network */}
+            <col className="w-[220px]" /> {/* Network */}
             <col className="w-[100px]" /> {/* TADIG */}
             <col className="w-[100px]" /> {/* Identity */}
             <col className="w-[120px]" /> {/* Data */}
@@ -1071,37 +1594,174 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
             <tr>
                 <th className="px-2 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-200">
                 <div className="flex items-center gap-1 group">
-                  <span>Country</span>
-                  <button 
-                    onClick={() => handleSort('country')}
+                  <span>Region</span>
+                  <button
+                    onClick={() => handleSort('region')}
                     className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 rounded"
-                    title="Sort countries"
+                    title="Sort regions"
                   >
-                    {sortField === 'country' ? (
-                      sortDirection === 'asc' ? 
-                      <ArrowUp className="w-3 h-3 text-gray-500" /> : 
+                    {sortField === 'region' ? (
+                      sortDirection === 'asc' ?
+                      <ArrowUp className="w-3 h-3 text-gray-500" /> :
                       <ArrowDown className="w-3 h-3 text-gray-500" />
                     ) : (
                       <ArrowUpDown className="w-3 h-3 text-gray-400" />
                     )}
                   </button>
                   <button
-                    onClick={() => toggleSearchBox('country')}
+                    onClick={() => toggleSearchBox('region')}
                     className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 rounded"
-                    title="Search countries"
+                    title="Search regions"
                   >
                     <Search className="w-3 h-3 text-gray-400" />
                   </button>
                 </div>
-                {showCountrySearch && (
+                {showRegionSearch && (
                   <input
                     type="text"
-                    placeholder="Search countries..."
-                    value={countrySearch}
-                    onChange={(e) => setCountrySearch(e.target.value)}
+                    placeholder="Search regions..."
+                    value={regionSearch}
+                    onChange={(e) => setRegionSearch(e.target.value)}
                     className="mt-1 w-full px-2 py-0.5 text-xs bg-gray-50 border-0 rounded focus:outline-none focus:ring-1 focus:ring-blue-300 focus:bg-white placeholder-gray-400"
                     autoFocus
                   />
+                )}
+              </th>
+                <th className="px-2 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-200 relative">
+                <div className="flex items-center gap-1 group">
+                  <span>Country</span>
+                  <button
+                    onClick={() => handleSort('country')}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 rounded"
+                    title="Sort countries"
+                  >
+                    {sortField === 'country' ? (
+                      sortDirection === 'asc' ?
+                      <ArrowUp className="w-3 h-3 text-gray-500" /> :
+                      <ArrowDown className="w-3 h-3 text-gray-500" />
+                    ) : (
+                      <ArrowUpDown className="w-3 h-3 text-gray-400" />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => {
+                      closeAllDropdowns();
+                      setShowCountryDropdown(!showCountryDropdown);
+                    }}
+                    className={`relative transition-opacity p-1 hover:bg-gray-200 rounded ${
+                      showCountryDropdown || selectedCountries.size > 0
+                        ? 'opacity-100'
+                        : 'opacity-0 group-hover:opacity-100'
+                    }`}
+                    title="Filter by country/region"
+                  >
+                    <Search className={`w-3 h-3 ${selectedCountries.size > 0 ? 'text-blue-500' : 'text-gray-400'}`} />
+                    {selectedCountries.size > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-[8px] rounded-full w-3 h-3 flex items-center justify-center">
+                        {selectedCountries.size}
+                      </span>
+                    )}
+                  </button>
+                </div>
+                {/* Country Multi-Select Dropdown with Region Grouping */}
+                {showCountryDropdown && (
+                  <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-[100] min-w-[220px]">
+                    {/* Search Input */}
+                    <div className="p-1.5 border-b border-gray-100">
+                      <input
+                        type="text"
+                        placeholder="Search..."
+                        value={countryDropdownSearch}
+                        onChange={(e) => setCountryDropdownSearch(e.target.value)}
+                        className="w-full px-2 py-1 text-xs bg-gray-50 border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-blue-300 focus:bg-white"
+                        autoFocus
+                      />
+                    </div>
+
+                    {/* Selected Count & Clear All */}
+                    {selectedCountries.size > 0 && (
+                      <div className="px-2 py-1 bg-blue-50 border-b border-gray-100 flex items-center justify-between">
+                        <span className="text-[10px] text-blue-700 font-medium">
+                          {selectedCountries.size} selected
+                        </span>
+                        <button
+                          onClick={clearAllCountries}
+                          className="text-[10px] text-blue-600 hover:text-blue-800 font-medium"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Region Groups */}
+                    <div className="max-h-[400px] overflow-y-auto">
+                      {REGION_ORDER.filter(region => filteredCountriesByRegion[region]?.length > 0).map(region => {
+                        const countries = filteredCountriesByRegion[region] || [];
+                        const isExpanded = expandedRegions.has(region) || countryDropdownSearch.trim() !== '';
+                        const isFullySelected = isRegionFullySelected(region);
+                        const isPartiallySelected = isRegionPartiallySelected(region);
+                        const selectedCount = getRegionSelectedCount(region);
+
+                        return (
+                          <div key={region} className="border-b border-gray-100 last:border-b-0">
+                            {/* Region Header */}
+                            <div
+                              className="flex items-center gap-1.5 px-2 py-1 bg-gray-50 hover:bg-gray-100 cursor-pointer"
+                              onClick={() => toggleRegionExpand(region)}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isFullySelected}
+                                ref={(el) => {
+                                  if (el) el.indeterminate = isPartiallySelected;
+                                }}
+                                onChange={(e) => {
+                                  e.stopPropagation();
+                                  toggleRegionSelection(region);
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                                className="w-3 h-3 text-blue-500 rounded border-gray-300 focus:ring-blue-500"
+                              />
+                              <ChevronRight
+                                className={`w-3 h-3 text-gray-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                              />
+                              <span className="text-xs font-medium text-gray-700 flex-1">{region}</span>
+                              <span className="text-[10px] text-gray-500">
+                                {selectedCount > 0 ? `${selectedCount}/` : ''}{countries.length}
+                              </span>
+                            </div>
+
+                            {/* Country List (when expanded) */}
+                            {isExpanded && (
+                              <div className="bg-white">
+                                {countries.map(country => (
+                                  <label
+                                    key={country}
+                                    className="flex items-center gap-1.5 px-2 py-0.5 pl-7 hover:bg-gray-50 cursor-pointer"
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={selectedCountries.has(country)}
+                                      onChange={() => toggleCountrySelection(country)}
+                                      className="w-3 h-3 text-blue-500 rounded border-gray-300 focus:ring-blue-500"
+                                    />
+                                    <span className="text-xs text-gray-700">{country}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+
+                      {/* Empty State */}
+                      {Object.keys(filteredCountriesByRegion).length === 0 && (
+                        <div className="px-2 py-2 text-center text-xs text-gray-500">
+                          No match
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 )}
               </th>
                 <th className="px-2 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide border-b border-gray-200">
@@ -1375,6 +2035,15 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
                         key={`${networkIndex}-${sourceIndex}`}
                         className={`hover:bg-gray-50 transition-colors ${isLastSource ? 'border-b border-gray-200' : ''}`}
                       >
+                        {/* Region - only show on first row, span all sources */}
+                        {isFirstSource && (
+                          <td
+                            className="px-2 py-0.5 text-gray-700 text-sm align-top"
+                            rowSpan={rowSpan}
+                          >
+                            {network.region}
+                          </td>
+                        )}
                         {/* Country - only show on first row, span all sources */}
                         {isFirstSource && (
                           <td
@@ -1386,12 +2055,8 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
                         )}
                         {/* Network - only show on first row, span all sources */}
                         {isFirstSource && (
-                          <td className="px-2 py-0.5 align-top" rowSpan={rowSpan}>
-                            <div className="flex-1">
-                              <div className="font-medium text-gray-900 text-sm" title={network.network_name}>
-                                {network.network_name}
-                              </div>
-                            </div>
+                          <td className="px-2 py-0.5 text-gray-700 text-sm align-top" rowSpan={rowSpan}>
+                            {network.network_name}
                           </td>
                         )}
                         {/* TADIG - only show on first row, span all sources */}
