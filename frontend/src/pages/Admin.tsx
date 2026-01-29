@@ -7,7 +7,11 @@ import { UserManagement } from './UserManagement';
 import { TestWeightedPricing } from '../components/TestWeightedPricing';
 import { DataUpload } from '../components/DataUpload';
 import { useUser } from '../contexts/UserContext';
+import { useAuth } from '../contexts/AuthContext';
 import { AccessDenied } from './AccessDenied';
+
+// Users who can see the Roadmap tab
+const ROADMAP_USERS = ['asaf@monogoto.io', 'maor@monogoto.io'];
 
 type AdminSection = 'users' | 'rules' | 'audit' | 'features' | 'security' | 'test' | 'database';
 
@@ -30,7 +34,11 @@ const loadAdminState = (): AdminSection => {
 export const Admin: React.FC = () => {
   // Use the already-loaded user permissions from context (no need to re-fetch)
   const { isAdmin } = useUser();
+  const { user } = useAuth();
   const [activeSection, setActiveSection] = useState<AdminSection>(loadAdminState);
+
+  // Check if user can see the Roadmap tab
+  const canSeeRoadmap = user?.email && ROADMAP_USERS.includes(user.email);
 
   // Save state when activeSection changes
   const handleSetActiveSection = (section: AdminSection) => {
@@ -101,8 +109,9 @@ export const Admin: React.FC = () => {
     },
     {
       id: 'features' as AdminSection,
-      label: 'Upcoming Features',
-      icon: Sparkles
+      label: 'Roadmap',
+      icon: Sparkles,
+      restricted: true
     },
     {
       id: 'security' as AdminSection,
@@ -130,23 +139,25 @@ export const Admin: React.FC = () => {
           {/* Tab Navigation */}
           <div className="border-b border-gray-200 mb-6">
             <div className="flex space-x-1">
-              {adminTabs.map((tab) => {
-                const Icon = tab.icon;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => handleSetActiveSection(tab.id)}
-                    className={`flex items-center space-x-2 px-4 py-3 text-sm font-medium transition-all border-b-2 whitespace-nowrap ${
-                      activeSection === tab.id
-                        ? 'text-blue-600 border-blue-600'
-                        : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    <span>{tab.label}</span>
-                  </button>
-                );
-              })}
+              {adminTabs
+                .filter((tab) => !tab.restricted || canSeeRoadmap)
+                .map((tab) => {
+                  const Icon = tab.icon;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => handleSetActiveSection(tab.id)}
+                      className={`flex items-center space-x-2 px-4 py-3 text-sm font-medium transition-all border-b-2 whitespace-nowrap ${
+                        activeSection === tab.id
+                          ? 'text-blue-600 border-blue-600'
+                          : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
+                      }`}
+                    >
+                      <Icon className="w-4 h-4" />
+                      <span>{tab.label}</span>
+                    </button>
+                  );
+                })}
             </div>
           </div>
           

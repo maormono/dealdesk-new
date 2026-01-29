@@ -1,5 +1,6 @@
--- Upcoming Features Table for Admin Feature Roadmap
--- This table stores upcoming features that admins can view and prioritize
+-- Upcoming Features Table for Roadmap
+-- This table stores upcoming features that specific users can view and prioritize
+-- Only asaf@monogoto.io and maor@monogoto.io can access this data
 
 CREATE TABLE IF NOT EXISTS upcoming_features (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -23,51 +24,51 @@ CREATE INDEX IF NOT EXISTS idx_upcoming_features_priority ON upcoming_features(p
 -- Enable RLS
 ALTER TABLE upcoming_features ENABLE ROW LEVEL SECURITY;
 
--- Policy: Only admins can view features
-CREATE POLICY "upcoming_features_admin_select" ON upcoming_features
+-- Policy: Only specific users can view features
+CREATE POLICY "upcoming_features_select" ON upcoming_features
   FOR SELECT
   TO authenticated
   USING (
     EXISTS (
-      SELECT 1 FROM user_profiles
-      WHERE user_profiles.user_id = auth.uid()
-      AND user_profiles.role = 'admin'
+      SELECT 1 FROM auth.users
+      WHERE auth.users.id = auth.uid()
+      AND auth.users.email IN ('asaf@monogoto.io', 'maor@monogoto.io')
     )
   );
 
--- Policy: Only admins can insert features
-CREATE POLICY "upcoming_features_admin_insert" ON upcoming_features
+-- Policy: Only specific users can insert features
+CREATE POLICY "upcoming_features_insert" ON upcoming_features
   FOR INSERT
   TO authenticated
   WITH CHECK (
     EXISTS (
-      SELECT 1 FROM user_profiles
-      WHERE user_profiles.user_id = auth.uid()
-      AND user_profiles.role = 'admin'
+      SELECT 1 FROM auth.users
+      WHERE auth.users.id = auth.uid()
+      AND auth.users.email IN ('asaf@monogoto.io', 'maor@monogoto.io')
     )
   );
 
--- Policy: Only admins can update features (for reordering)
-CREATE POLICY "upcoming_features_admin_update" ON upcoming_features
+-- Policy: Only specific users can update features (for reordering)
+CREATE POLICY "upcoming_features_update" ON upcoming_features
   FOR UPDATE
   TO authenticated
   USING (
     EXISTS (
-      SELECT 1 FROM user_profiles
-      WHERE user_profiles.user_id = auth.uid()
-      AND user_profiles.role = 'admin'
+      SELECT 1 FROM auth.users
+      WHERE auth.users.id = auth.uid()
+      AND auth.users.email IN ('asaf@monogoto.io', 'maor@monogoto.io')
     )
   )
   WITH CHECK (
     EXISTS (
-      SELECT 1 FROM user_profiles
-      WHERE user_profiles.user_id = auth.uid()
-      AND user_profiles.role = 'admin'
+      SELECT 1 FROM auth.users
+      WHERE auth.users.id = auth.uid()
+      AND auth.users.email IN ('asaf@monogoto.io', 'maor@monogoto.io')
     )
   );
 
--- Policy: Only specific users can delete (asaf@monogoto.io, maor@monogoto.io)
-CREATE POLICY "upcoming_features_superadmin_delete" ON upcoming_features
+-- Policy: Only specific users can delete features
+CREATE POLICY "upcoming_features_delete" ON upcoming_features
   FOR DELETE
   TO authenticated
   USING (

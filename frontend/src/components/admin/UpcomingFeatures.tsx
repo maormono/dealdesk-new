@@ -33,8 +33,7 @@ export const UpcomingFeatures: React.FC = () => {
 
   const dragRef = useRef<HTMLDivElement>(null);
 
-  // Check if current user can delete
-  const canDelete = user?.email === 'asaf@monogoto.io' || user?.email === 'maor@monogoto.io';
+  // All users who can view the roadmap can delete features
 
   useEffect(() => {
     loadFeatures();
@@ -190,7 +189,7 @@ export const UpcomingFeatures: React.FC = () => {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 className="text-lg font-medium text-gray-900">Upcoming Features</h3>
+          <h3 className="text-lg font-medium text-gray-900">Roadmap</h3>
           <p className="text-sm text-gray-500 mt-1">Drag and drop to reorder by priority</p>
         </div>
         <button
@@ -355,15 +354,13 @@ export const UpcomingFeatures: React.FC = () => {
                     >
                       <Edit2 className="w-4 h-4" />
                     </button>
-                    {canDelete && (
-                      <button
-                        onClick={() => handleDelete(feature.id)}
-                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Delete"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
+                    <button
+                      onClick={() => handleDelete(feature.id)}
+                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Delete"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               )}
