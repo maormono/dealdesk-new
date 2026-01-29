@@ -120,6 +120,31 @@ const CURRENCY_TO_USD: Record<string, number> = {
   'GBP': 1.27,  // 1 GBP = ~1.27 USD
 };
 
+// localStorage key for persisting form state
+const FORM_STORAGE_KEY = 'dealdesk_deal_review_form';
+
+// Helper to load form state from localStorage
+const loadFormState = () => {
+  try {
+    const saved = localStorage.getItem(FORM_STORAGE_KEY);
+    if (saved) {
+      return JSON.parse(saved);
+    }
+  } catch (e) {
+    console.warn('Failed to load form state from localStorage:', e);
+  }
+  return null;
+};
+
+// Helper to save form state to localStorage
+const saveFormState = (state: any) => {
+  try {
+    localStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(state));
+  } catch (e) {
+    console.warn('Failed to save form state to localStorage:', e);
+  }
+};
+
 interface DealReviewFormProps {
   initialDeal?: Partial<DealRequest>;
   onEvaluation?: (evaluation: DealEvaluation, deal: DealRequest) => void;
@@ -128,41 +153,49 @@ interface DealReviewFormProps {
 }
 
 export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onEvaluation, onExpandToggle, isExpanded = false }) => {
+  // Load saved state from localStorage on initial render
+  const savedState = loadFormState();
+
   const [loading, setLoading] = useState(false);
   const [countries, setCountries] = useState<string[]>([]);
   const [availableCountries, setAvailableCountries] = useState<string[]>([]);
   const [availableCarriers, setAvailableCarriers] = useState<Map<string, string[]>>(new Map());
-  
-  // Form state
-  const [formData, setFormData] = useState<DealRequest>({
-    simQuantity: initialDeal?.simQuantity || 1000,
-    countries: initialDeal?.countries || [],
-    usagePercentages: initialDeal?.usagePercentages || {}, // New: usage distribution
-    carriers: initialDeal?.carriers || [],
-    monthlyDataPerSim: initialDeal?.monthlyDataPerSim || 1,
-    monthlySmsPerSim: initialDeal?.monthlySmsPerSim || 0,
-    duration: initialDeal?.duration || 12,
-    proposedPricePerSim: initialDeal?.proposedPricePerSim || 2,
-    currency: initialDeal?.currency || 'USD',
-    isNewCustomer: initialDeal?.isNewCustomer ?? true,
-    expectedUsagePattern: initialDeal?.expectedUsagePattern || 'medium',
-    requiresIoT: initialDeal?.requiresIoT || false,
-    iotType: initialDeal?.iotType
+
+  // Form state - restore from localStorage if available, otherwise use defaults
+  const [formData, setFormData] = useState<DealRequest>(() => {
+    if (savedState?.formData) {
+      return savedState.formData;
+    }
+    return {
+      simQuantity: initialDeal?.simQuantity || 1000,
+      countries: initialDeal?.countries || [],
+      usagePercentages: initialDeal?.usagePercentages || {},
+      carriers: initialDeal?.carriers || [],
+      monthlyDataPerSim: initialDeal?.monthlyDataPerSim || 1,
+      monthlySmsPerSim: initialDeal?.monthlySmsPerSim || 0,
+      duration: initialDeal?.duration || 12,
+      proposedPricePerSim: initialDeal?.proposedPricePerSim || 2,
+      currency: initialDeal?.currency || 'USD',
+      isNewCustomer: initialDeal?.isNewCustomer ?? true,
+      expectedUsagePattern: initialDeal?.expectedUsagePattern || 'medium',
+      requiresIoT: initialDeal?.requiresIoT || false,
+      iotType: initialDeal?.iotType
+    };
   });
-  
+
   const [evaluation, setEvaluation] = useState<DealEvaluation | null>(null);
   const [enhancedAnalysis, setEnhancedAnalysis] = useState<any>(null);
   const [comprehensiveAnalysis, setComprehensiveAnalysis] = useState<any>(null);
   const [showResults, setShowResults] = useState(false);
   const [isResultsExpanded, setIsResultsExpanded] = useState(false);
-  const [dataAmount, setDataAmount] = useState<number>(1024);
-  const [dataUnit, setDataUnit] = useState<'KB' | 'MB' | 'GB'>('MB');
-  const [priceAmount, setPriceAmount] = useState<string>('2');
-  const [simQuantityStr, setSimQuantityStr] = useState<string>(String(initialDeal?.simQuantity || 1000));
-  const [monthlySmsStr, setMonthlySmsStr] = useState<string>(String(initialDeal?.monthlySmsPerSim || 0));
-  const [durationStr, setDurationStr] = useState<string>(String(initialDeal?.duration || 12));
-  const [cellularTechnologies, setCellularTechnologies] = useState<string[]>(['2G', '3G', '4G', '5G']);
-  const [lpwanTechnologies, setLpwanTechnologies] = useState<string[]>([]);
+  const [dataAmount, setDataAmount] = useState<number>(() => savedState?.dataAmount || 1024);
+  const [dataUnit, setDataUnit] = useState<'KB' | 'MB' | 'GB'>(() => savedState?.dataUnit || 'MB');
+  const [priceAmount, setPriceAmount] = useState<string>(() => savedState?.priceAmount || '2');
+  const [simQuantityStr, setSimQuantityStr] = useState<string>(() => savedState?.simQuantityStr || String(initialDeal?.simQuantity || 1000));
+  const [monthlySmsStr, setMonthlySmsStr] = useState<string>(() => savedState?.monthlySmsStr || String(initialDeal?.monthlySmsPerSim || 0));
+  const [durationStr, setDurationStr] = useState<string>(() => savedState?.durationStr || String(initialDeal?.duration || 12));
+  const [cellularTechnologies, setCellularTechnologies] = useState<string[]>(() => savedState?.cellularTechnologies || ['2G', '3G', '4G', '5G']);
+  const [lpwanTechnologies, setLpwanTechnologies] = useState<string[]>(() => savedState?.lpwanTechnologies || []);
   const [showCellularDropdown, setShowCellularDropdown] = useState(false);
   const [showLpwanDropdown, setShowLpwanDropdown] = useState(false);
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
@@ -173,6 +206,21 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
   const cellularDropdownRef = useRef<HTMLDivElement>(null);
   const lpwanDropdownRef = useRef<HTMLDivElement>(null);
   const countryDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Save form state to localStorage whenever it changes
+  useEffect(() => {
+    saveFormState({
+      formData,
+      dataAmount,
+      dataUnit,
+      priceAmount,
+      simQuantityStr,
+      monthlySmsStr,
+      durationStr,
+      cellularTechnologies,
+      lpwanTechnologies,
+    });
+  }, [formData, dataAmount, dataUnit, priceAmount, simQuantityStr, monthlySmsStr, durationStr, cellularTechnologies, lpwanTechnologies]);
 
   // Group available countries by region
   const availableCountriesByRegion = useMemo(() => {
