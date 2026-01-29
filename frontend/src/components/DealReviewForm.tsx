@@ -257,6 +257,7 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
   const [showPreferredCarriers, setShowPreferredCarriers] = useState(false);
   const [showUsageDistribution, setShowUsageDistribution] = useState(false);
+  const [showSelectedCountries, setShowSelectedCountries] = useState(true);
   const [expandedRegions, setExpandedRegions] = useState<Set<string>>(new Set());
   const [countryDropdownSearch, setCountryDropdownSearch] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -1140,45 +1141,62 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({
             </div>
           </div>
 
-          {/* Selected Countries - grouped by region (full width) */}
+          {/* Selected Countries - grouped by region (full width) - Collapsible */}
           {formData.countries.length > 0 && (
-            <div className="mb-6 space-y-3">
-              {REGION_ORDER.filter(region =>
-                formData.countries.some(country => getRegion(country) === region)
-              ).map((region, regionIdx) => {
-                const countriesInRegion = formData.countries
-                  .filter(country => getRegion(country) === region)
-                  .sort();
-                const colors = [
-                  'bg-[#5B9BD5]/10 text-[#5B9BD5] border-[#5B9BD5]/20',
-                  'bg-[#9B7BB6]/10 text-[#9B7BB6] border-[#9B7BB6]/20',
-                  'bg-[#EC6B9D]/10 text-[#EC6B9D] border-[#EC6B9D]/20',
-                  'bg-[#F5B342]/10 text-[#F5B342] border-[#F5B342]/20'
-                ];
-                const colorClass = colors[regionIdx % colors.length];
-                return (
-                  <div key={region} className="flex items-start gap-3">
-                    <div className="text-xs font-semibold text-gray-500 w-24 pt-1 shrink-0">{region}</div>
-                    <div className="flex flex-wrap gap-2 flex-1">
-                      {countriesInRegion.map((country) => (
-                        <span
-                          key={country}
-                          className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${colorClass}`}
-                        >
-                          {country}
-                          <button
-                            type="button"
-                            onClick={() => removeCountry(country)}
-                            className="ml-1.5 hover:opacity-70"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="mb-6">
+              <button
+                type="button"
+                onClick={() => setShowSelectedCountries(!showSelectedCountries)}
+                className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors mb-3"
+              >
+                <ChevronRight className={`w-4 h-4 transition-transform ${showSelectedCountries ? 'rotate-90' : ''}`} />
+                <Globe className="w-4 h-4 text-blue-600" />
+                <span>Selected Countries</span>
+                <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full ml-1">
+                  {formData.countries.length} selected
+                </span>
+              </button>
+
+              {showSelectedCountries && (
+                <div className="pl-6 space-y-3">
+                  {REGION_ORDER.filter(region =>
+                    formData.countries.some(country => getRegion(country) === region)
+                  ).map((region, regionIdx) => {
+                    const countriesInRegion = formData.countries
+                      .filter(country => getRegion(country) === region)
+                      .sort();
+                    const colors = [
+                      'bg-[#5B9BD5]/10 text-[#5B9BD5] border-[#5B9BD5]/20',
+                      'bg-[#9B7BB6]/10 text-[#9B7BB6] border-[#9B7BB6]/20',
+                      'bg-[#EC6B9D]/10 text-[#EC6B9D] border-[#EC6B9D]/20',
+                      'bg-[#F5B342]/10 text-[#F5B342] border-[#F5B342]/20'
+                    ];
+                    const colorClass = colors[regionIdx % colors.length];
+                    return (
+                      <div key={region} className="flex items-start gap-3">
+                        <div className="text-xs font-semibold text-gray-500 w-24 pt-1 shrink-0">{region}</div>
+                        <div className="flex flex-wrap gap-2 flex-1">
+                          {countriesInRegion.map((country) => (
+                            <span
+                              key={country}
+                              className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${colorClass}`}
+                            >
+                              {country}
+                              <button
+                                type="button"
+                                onClick={() => removeCountry(country)}
+                                className="ml-1.5 hover:opacity-70"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
           
