@@ -255,6 +255,8 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({
   const [showCellularDropdown, setShowCellularDropdown] = useState(false);
   const [showLpwanDropdown, setShowLpwanDropdown] = useState(false);
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
+  const [showPreferredCarriers, setShowPreferredCarriers] = useState(false);
+  const [showUsageDistribution, setShowUsageDistribution] = useState(false);
   const [expandedRegions, setExpandedRegions] = useState<Set<string>>(new Set());
   const [countryDropdownSearch, setCountryDropdownSearch] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -1180,127 +1182,154 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({
             </div>
           )}
           
-          {/* Usage Distribution for Multiple Countries */}
+          {/* Usage Distribution for Multiple Countries - Collapsible */}
           {formData.countries.length > 1 && (
-            <div className="mt-6 p-4 bg-gradient-to-r from-blue-50/50 to-purple-50/50 rounded-xl border border-blue-100/50">
-              <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+            <div className="mt-6">
+              <button
+                type="button"
+                onClick={() => setShowUsageDistribution(!showUsageDistribution)}
+                className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                <ChevronRight className={`w-4 h-4 transition-transform ${showUsageDistribution ? 'rotate-90' : ''}`} />
                 <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
-                Usage Distribution (% of total traffic)
-              </h4>
-              <div className="space-y-3">
-                {formData.countries.map((country, idx) => {
-                  const usage = formData.usagePercentages?.[country] || (100 / formData.countries.length);
-                  const displayValue = Math.round(usage * 100) / 100; // Round to 2 decimal places for display
-                  return (
-                    <div key={country} className="flex items-center gap-3">
-                      <span className="text-sm font-medium text-gray-600 w-24">{country}</span>
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        step="0.01"
-                        value={usage}
-                        onChange={(e) => {
-                          const newPercentages = {
-                            ...formData.usagePercentages,
-                            [country]: parseFloat(e.target.value)
-                          };
-                          setFormData(prev => ({ ...prev, usagePercentages: newPercentages }));
-                        }}
-                        className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                        style={{
-                          background: `linear-gradient(to right, #5B9BD5 0%, #5B9BD5 ${usage}%, #e5e7eb ${usage}%, #e5e7eb 100%)`
-                        }}
-                      />
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="0.01"
-                        value={displayValue}
-                        onChange={(e) => {
-                          const newPercentages = {
-                            ...formData.usagePercentages,
-                            [country]: parseFloat(e.target.value) || 0
-                          };
-                          setFormData(prev => ({ ...prev, usagePercentages: newPercentages }));
-                        }}
-                        className="w-16 px-2 py-1 text-sm text-center bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#5B9BD5]/50"
-                      />
-                      <span className="text-sm text-gray-500">%</span>
-                    </div>
-                  );
-                })}
-                
-                {/* Total validation */}
-                {(() => {
-                  const total = formData.countries.reduce((sum, country) =>
-                    sum + (formData.usagePercentages?.[country] || (100 / formData.countries.length)), 0
-                  );
-                  const isValid = Math.abs(total - 100) < 0.01; // Allow small floating point tolerance
-                  return !isValid && (
-                    <div className="flex items-center gap-2 mt-2 text-xs text-red-600">
-                      <AlertCircle className="w-3 h-3" />
-                      <span>Total: {total.toFixed(2)}% - must equal 100% to proceed</span>
-                    </div>
-                  );
-                })()}
-                
-                <button
-                  type="button"
-                  onClick={() => {
-                    const evenPercentage = 100 / formData.countries.length;
-                    const newPercentages: Record<string, number> = {};
-                    formData.countries.forEach((country) => {
-                      newPercentages[country] = evenPercentage;
-                    });
-                    setFormData(prev => ({ ...prev, usagePercentages: newPercentages }));
-                  }}
-                  className="text-xs text-blue-600 hover:text-blue-700 font-medium"
-                >
-                  Distribute Evenly
-                </button>
-              </div>
+                <span>Usage Distribution (% of total traffic)</span>
+                <span className="text-xs text-gray-400 ml-1">({formData.countries.length} countries)</span>
+              </button>
+
+              {showUsageDistribution && (
+                <div className="mt-3 pl-6 p-4 bg-gradient-to-r from-blue-50/50 to-purple-50/50 rounded-xl border border-blue-100/50">
+                  <div className="space-y-3">
+                    {formData.countries.map((country, idx) => {
+                      const usage = formData.usagePercentages?.[country] || (100 / formData.countries.length);
+                      const displayValue = Math.round(usage * 100) / 100; // Round to 2 decimal places for display
+                      return (
+                        <div key={country} className="flex items-center gap-3">
+                          <span className="text-sm font-medium text-gray-600 w-24">{country}</span>
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            step="0.01"
+                            value={usage}
+                            onChange={(e) => {
+                              const newPercentages = {
+                                ...formData.usagePercentages,
+                                [country]: parseFloat(e.target.value)
+                              };
+                              setFormData(prev => ({ ...prev, usagePercentages: newPercentages }));
+                            }}
+                            className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                            style={{
+                              background: `linear-gradient(to right, #5B9BD5 0%, #5B9BD5 ${usage}%, #e5e7eb ${usage}%, #e5e7eb 100%)`
+                            }}
+                          />
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.01"
+                            value={displayValue}
+                            onChange={(e) => {
+                              const newPercentages = {
+                                ...formData.usagePercentages,
+                                [country]: parseFloat(e.target.value) || 0
+                              };
+                              setFormData(prev => ({ ...prev, usagePercentages: newPercentages }));
+                            }}
+                            className="w-16 px-2 py-1 text-sm text-center bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#5B9BD5]/50"
+                          />
+                          <span className="text-sm text-gray-500">%</span>
+                        </div>
+                      );
+                    })}
+
+                    {/* Total validation */}
+                    {(() => {
+                      const total = formData.countries.reduce((sum, country) =>
+                        sum + (formData.usagePercentages?.[country] || (100 / formData.countries.length)), 0
+                      );
+                      const isValid = Math.abs(total - 100) < 0.01; // Allow small floating point tolerance
+                      return !isValid && (
+                        <div className="flex items-center gap-2 mt-2 text-xs text-red-600">
+                          <AlertCircle className="w-3 h-3" />
+                          <span>Total: {total.toFixed(2)}% - must equal 100% to proceed</span>
+                        </div>
+                      );
+                    })()}
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const evenPercentage = 100 / formData.countries.length;
+                        const newPercentages: Record<string, number> = {};
+                        formData.countries.forEach((country) => {
+                          newPercentages[country] = evenPercentage;
+                        });
+                        setFormData(prev => ({ ...prev, usagePercentages: newPercentages }));
+                      }}
+                      className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                    >
+                      Distribute Evenly
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
           
-          {/* Preferred Carriers - Optional */}
+          {/* Preferred Carriers - Optional, Collapsible */}
           {formData.countries.length > 0 && (
             <div className="mt-6">
-              <label className="block text-sm font-medium text-gray-500 mb-3">
-                Preferred Carriers <span className="text-xs text-gray-400">(Optional - Select multiple for redundancy)</span>
-              </label>
-              {formData.countries.map(country => {
-                const carriers = availableCarriers.get(country) || [];
-                const selectedInCountry = carriers.filter(c => formData.carriers.includes(c)).length;
-                return (
-                  <div key={country} className="mb-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-sm font-medium text-gray-600">{country}</p>
-                      {selectedInCountry > 0 && (
-                        <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
-                          {selectedInCountry} network{selectedInCountry > 1 ? 's' : ''} selected
-                        </span>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                      {carriers.map(carrier => (
-                        <label key={carrier} className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            checked={formData.carriers.includes(carrier)}
-                            onChange={() => toggleCarrier(carrier)}
-                            className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-offset-0"
-                          />
-                          <span className="text-sm text-gray-700 truncate">{carrier}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
+              <button
+                type="button"
+                onClick={() => setShowPreferredCarriers(!showPreferredCarriers)}
+                className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                <ChevronRight className={`w-4 h-4 transition-transform ${showPreferredCarriers ? 'rotate-90' : ''}`} />
+                <span>Preferred Carriers</span>
+                <span className="text-xs text-gray-400">(Optional - Select multiple for redundancy)</span>
+                {formData.carriers.length > 0 && (
+                  <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full ml-2">
+                    {formData.carriers.length} selected
+                  </span>
+                )}
+              </button>
+
+              {showPreferredCarriers && (
+                <div className="mt-3 pl-6">
+                  {formData.countries.map(country => {
+                    const carriers = availableCarriers.get(country) || [];
+                    const selectedInCountry = carriers.filter(c => formData.carriers.includes(c)).length;
+                    return (
+                      <div key={country} className="mb-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-sm font-medium text-gray-600">{country}</p>
+                          {selectedInCountry > 0 && (
+                            <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
+                              {selectedInCountry} network{selectedInCountry > 1 ? 's' : ''} selected
+                            </span>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                          {carriers.map(carrier => (
+                            <label key={carrier} className="flex items-center space-x-2">
+                              <input
+                                type="checkbox"
+                                checked={formData.carriers.includes(carrier)}
+                                onChange={() => toggleCarrier(carrier)}
+                                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-offset-0"
+                              />
+                              <span className="text-sm text-gray-700 truncate">{carrier}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
         </div>
