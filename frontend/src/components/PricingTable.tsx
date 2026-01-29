@@ -493,33 +493,78 @@ const EXPENSIVE_NETWORK_THRESHOLD = 1.0; // $1.00 per MB
 let networkDataCache: { data: any[] | null; timestamp: number } = { data: null, timestamp: 0 };
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
 
+// localStorage key for persisting filter state
+const PRICING_TABLE_STORAGE_KEY = 'dealdesk_pricing_table_state';
+
+// Helper to load filter state from localStorage
+const loadPricingTableState = () => {
+  try {
+    const saved = localStorage.getItem(PRICING_TABLE_STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // Convert arrays back to Sets
+      if (parsed.selectedIdentities) parsed.selectedIdentities = new Set(parsed.selectedIdentities);
+      if (parsed.selectedIdentityFilters) parsed.selectedIdentityFilters = new Set(parsed.selectedIdentityFilters);
+      if (parsed.selectedGenFilters) parsed.selectedGenFilters = new Set(parsed.selectedGenFilters);
+      if (parsed.selectedLpwanFilters) parsed.selectedLpwanFilters = new Set(parsed.selectedLpwanFilters);
+      if (parsed.selectedCountries) parsed.selectedCountries = new Set(parsed.selectedCountries);
+      return parsed;
+    }
+  } catch (e) {
+    console.warn('Failed to load pricing table state:', e);
+  }
+  return null;
+};
+
+// Helper to save filter state to localStorage
+const savePricingTableState = (state: any) => {
+  try {
+    // Convert Sets to arrays for JSON serialization
+    const toSave = {
+      ...state,
+      selectedIdentities: Array.from(state.selectedIdentities || []),
+      selectedIdentityFilters: Array.from(state.selectedIdentityFilters || []),
+      selectedGenFilters: Array.from(state.selectedGenFilters || []),
+      selectedLpwanFilters: Array.from(state.selectedLpwanFilters || []),
+      selectedCountries: Array.from(state.selectedCountries || []),
+    };
+    localStorage.setItem(PRICING_TABLE_STORAGE_KEY, JSON.stringify(toSave));
+  } catch (e) {
+    console.warn('Failed to save pricing table state:', e);
+  }
+};
+
 export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurrency, onCurrencyChange }) => {
   const { isSales, isAdmin } = useUser();
-  const [networks, setNetworks] = useState<NetworkData[]>([]);
-  const [allNetworks, setAllNetworks] = useState<NetworkData[]>([]); // Store all networks including hidden ones
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [currency, setCurrency] = useState<'EUR' | 'USD'>(propCurrency || 'USD');
-  const [dataUnit, setDataUnit] = useState<'MB' | 'GB'>('MB');
-  const [markupMultiplier, setMarkupMultiplier] = useState<1.0 | 1.1 | 1.5>(1.0);
-  const [exchangeRate, setExchangeRate] = useState(1.1); // Default EUR to USD rate
-  const [exchangeRateStatus, setExchangeRateStatus] = useState<'loading' | 'success' | 'error'>('loading');
-  const [selectedIdentities, setSelectedIdentities] = useState<Set<string>>(new Set());
-  const [showHiddenNetworks, setShowHiddenNetworks] = useState(false);
-  
-  // Search and sort state
-  const [networkSearch, setNetworkSearch] = useState('');
-  const [countrySearch, setCountrySearch] = useState('');
-  const [tadigSearch, setTagidSearch] = useState('');
-  const [regionSearch, setRegionSearch] = useState('');
-  // Multi-select filters for Identity, Network Tech, and LP-WAN
-  const [selectedIdentityFilters, setSelectedIdentityFilters] = useState<Set<string>>(new Set());
-  const [selectedGenFilters, setSelectedGenFilters] = useState<Set<string>>(new Set());
-  const [selectedLpwanFilters, setSelectedLpwanFilters] = useState<Set<string>>(new Set());
-  const [sortField, setSortField] = useState<'network' | 'country' | 'region' | 'tadig' | 'source' | 'generation' | 'data' | 'sms' | 'imsi' | null>(null);
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
-  // Search box / dropdown visibility state
+  // Load saved state from localStorage
+  const savedState = loadPricingTableState();
+
+  const [networks, setNetworks] = useState<NetworkData[]>([]);
+  const [allNetworks, setAllNetworks] = useState<NetworkData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState(() => savedState?.searchTerm || '');
+  const [currency, setCurrency] = useState<'EUR' | 'USD'>(() => savedState?.currency || propCurrency || 'USD');
+  const [dataUnit, setDataUnit] = useState<'MB' | 'GB'>(() => savedState?.dataUnit || 'MB');
+  const [markupMultiplier, setMarkupMultiplier] = useState<1.0 | 1.1 | 1.5>(() => savedState?.markupMultiplier || 1.0);
+  const [exchangeRate, setExchangeRate] = useState(1.1);
+  const [exchangeRateStatus, setExchangeRateStatus] = useState<'loading' | 'success' | 'error'>('loading');
+  const [selectedIdentities, setSelectedIdentities] = useState<Set<string>>(() => savedState?.selectedIdentities || new Set());
+  const [showHiddenNetworks, setShowHiddenNetworks] = useState(false);
+
+  // Search and sort state
+  const [networkSearch, setNetworkSearch] = useState(() => savedState?.networkSearch || '');
+  const [countrySearch, setCountrySearch] = useState(() => savedState?.countrySearch || '');
+  const [tadigSearch, setTagidSearch] = useState(() => savedState?.tadigSearch || '');
+  const [regionSearch, setRegionSearch] = useState(() => savedState?.regionSearch || '');
+  // Multi-select filters for Identity, Network Tech, and LP-WAN
+  const [selectedIdentityFilters, setSelectedIdentityFilters] = useState<Set<string>>(() => savedState?.selectedIdentityFilters || new Set());
+  const [selectedGenFilters, setSelectedGenFilters] = useState<Set<string>>(() => savedState?.selectedGenFilters || new Set());
+  const [selectedLpwanFilters, setSelectedLpwanFilters] = useState<Set<string>>(() => savedState?.selectedLpwanFilters || new Set());
+  const [sortField, setSortField] = useState<'network' | 'country' | 'region' | 'tadig' | 'source' | 'generation' | 'data' | 'sms' | 'imsi' | null>(() => savedState?.sortField || null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(() => savedState?.sortDirection || 'asc');
+
+  // Search box / dropdown visibility state (not persisted - always start closed)
   const [showNetworkSearch, setShowNetworkSearch] = useState(false);
   const [showCountrySearch, setShowCountrySearch] = useState(false);
   const [showTagidSearch, setShowTagidSearch] = useState(false);
@@ -529,10 +574,31 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
   const [showLpwanDropdown, setShowLpwanDropdown] = useState(false);
 
   // Country multi-select with region grouping
-  const [selectedCountries, setSelectedCountries] = useState<Set<string>>(new Set());
+  const [selectedCountries, setSelectedCountries] = useState<Set<string>>(() => savedState?.selectedCountries || new Set());
   const [expandedRegions, setExpandedRegions] = useState<Set<string>>(new Set());
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
   const [countryDropdownSearch, setCountryDropdownSearch] = useState('');
+
+  // Save filter state to localStorage whenever it changes
+  useEffect(() => {
+    savePricingTableState({
+      searchTerm,
+      currency,
+      dataUnit,
+      markupMultiplier,
+      selectedIdentities,
+      networkSearch,
+      countrySearch,
+      tadigSearch,
+      regionSearch,
+      selectedIdentityFilters,
+      selectedGenFilters,
+      selectedLpwanFilters,
+      sortField,
+      sortDirection,
+      selectedCountries,
+    });
+  }, [searchTerm, currency, dataUnit, markupMultiplier, selectedIdentities, networkSearch, countrySearch, tadigSearch, regionSearch, selectedIdentityFilters, selectedGenFilters, selectedLpwanFilters, sortField, sortDirection, selectedCountries]);
 
   // Price threshold: $1/MB = approximately €0.90/MB at 1.1 exchange rate
   const MAX_REASONABLE_PRICE_EUR_MB = 0.90;

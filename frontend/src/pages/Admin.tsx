@@ -1,62 +1,46 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Users, DollarSign, Database, Shield, Calculator } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
-import { getUserDealDeskPermissions } from '../lib/permissions';
-import { AccessDenied } from './AccessDenied';
 import { DealRules } from '../components/admin/DealRules';
 import { UserManagement } from './UserManagement';
 import { TestWeightedPricing } from '../components/TestWeightedPricing';
 import { DataUpload } from '../components/DataUpload';
+import { useUser } from '../contexts/UserContext';
+import { AccessDenied } from './AccessDenied';
 
 type AdminSection = 'users' | 'rules' | 'security' | 'test' | 'database';
 
+// localStorage key for persisting admin state
+const ADMIN_STORAGE_KEY = 'dealdesk_admin_state';
+
+// Load saved state from localStorage
+const loadAdminState = (): AdminSection => {
+  try {
+    const saved = localStorage.getItem(ADMIN_STORAGE_KEY);
+    if (saved) {
+      return JSON.parse(saved).activeSection || 'users';
+    }
+  } catch (e) {
+    console.warn('Failed to load admin state:', e);
+  }
+  return 'users';
+};
+
 export const Admin: React.FC = () => {
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [activeSection, setActiveSection] = useState<AdminSection>('users');
-  const navigate = useNavigate();
+  // Use the already-loaded user permissions from context (no need to re-fetch)
+  const { isAdmin } = useUser();
+  const [activeSection, setActiveSection] = useState<AdminSection>(loadAdminState);
 
-  useEffect(() => {
-    checkAdminAccess();
-  }, []);
-
-  const checkAdminAccess = async () => {
+  // Save state when activeSection changes
+  const handleSetActiveSection = (section: AdminSection) => {
+    setActiveSection(section);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        navigate('/login');
-        return;
-      }
-
-      const permissions = await getUserDealDeskPermissions(user.id);
-      const hasAdminAccess = permissions.role === 'admin';
-
-      if (!hasAdminAccess) {
-        console.log('Access denied - not DealDesk admin. User:', user.email);
-        setIsAdmin(false);
-        return;
-      }
-
-      console.log('Admin access granted for:', user.email);
-      setIsAdmin(true);
-    } catch (error) {
-      console.error('Error checking admin access:', error);
-      navigate('/');
-    } finally {
-      setLoading(false);
+      localStorage.setItem(ADMIN_STORAGE_KEY, JSON.stringify({ activeSection: section }));
+    } catch (e) {
+      console.warn('Failed to save admin state:', e);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#5B9BD5]"></div>
-      </div>
-    );
-  }
-
+  // ProtectedRoute already checks permissions, but double-check for admin
   if (!isAdmin) {
     return <AccessDenied />;
   }
@@ -131,7 +115,7 @@ export const Admin: React.FC = () => {
                 return (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveSection(tab.id)}
+                    onClick={() => handleSetActiveSection(tab.id)}
                     className={`flex items-center space-x-2 px-4 py-3 text-sm font-medium transition-all border-b-2 whitespace-nowrap ${
                       activeSection === tab.id
                         ? 'text-blue-600 border-blue-600'
