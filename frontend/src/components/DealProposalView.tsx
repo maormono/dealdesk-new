@@ -39,15 +39,45 @@ const countryToRegion: Record<string, string> = {
   'Canada': 'North America', 'Mexico': 'North America', 'United States': 'North America',
   // Central America & Caribbean
   'Costa Rica': 'Central America', 'El Salvador': 'Central America', 'Guatemala': 'Central America',
-  'Honduras': 'Central America', 'Nicaragua': 'Central America', 'Panama': 'Central America',
-  'Bahamas': 'Caribbean', 'Barbados': 'Caribbean', 'Cuba': 'Caribbean', 'Dominican Republic': 'Caribbean',
-  'Haiti': 'Caribbean', 'Jamaica': 'Caribbean', 'Puerto Rico': 'Caribbean', 'Trinidad and Tobago': 'Caribbean',
+  'Honduras': 'Central America', 'Nicaragua': 'Central America', 'Panama': 'Central America', 'Belize': 'Central America',
+  'Anguilla': 'Caribbean', 'Antigua and Barbuda': 'Caribbean', 'Aruba': 'Caribbean', 'Bahamas': 'Caribbean',
+  'Barbados': 'Caribbean', 'Bonaire': 'Caribbean', 'British Virgin Islands': 'Caribbean', 'Cayman Islands': 'Caribbean',
+  'Cuba': 'Caribbean', 'Curacao': 'Caribbean', 'Dominica': 'Caribbean', 'Dominican Republic': 'Caribbean',
+  'Grenada': 'Caribbean', 'Guadeloupe': 'Caribbean', 'Haiti': 'Caribbean', 'Jamaica': 'Caribbean',
+  'Martinique': 'Caribbean', 'Montserrat': 'Caribbean', 'Puerto Rico': 'Caribbean', 'Saint Kitts and Nevis': 'Caribbean',
+  'Saint Lucia': 'Caribbean', 'Saint Martin': 'Caribbean', 'Saint Vincent and the Grenadines': 'Caribbean',
+  'Sint Maarten': 'Caribbean', 'Trinidad and Tobago': 'Caribbean', 'Turks and Caicos Islands': 'Caribbean',
+  'US Virgin Islands': 'Caribbean', 'Virgin Islands, U.S.': 'Caribbean', 'Virgin Islands, British': 'Caribbean',
   // South America
   'Argentina': 'South America', 'Bolivia': 'South America', 'Brazil': 'South America',
   'Chile': 'South America', 'Colombia': 'South America', 'Ecuador': 'South America',
   'Paraguay': 'South America', 'Peru': 'South America', 'Uruguay': 'South America', 'Venezuela': 'South America',
   // Oceania
   'Australia': 'Oceania', 'Fiji': 'Oceania', 'New Zealand': 'Oceania', 'Papua New Guinea': 'Oceania',
+  'Guam': 'Oceania', 'Samoa': 'Oceania', 'American Samoa': 'Oceania', 'Tonga': 'Oceania',
+  'Vanuatu': 'Oceania', 'Solomon Islands': 'Oceania', 'Micronesia': 'Oceania', 'Palau': 'Oceania',
+  'Marshall Islands': 'Oceania', 'Kiribati': 'Oceania', 'Nauru': 'Oceania', 'Tuvalu': 'Oceania',
+  'French Polynesia': 'Oceania', 'New Caledonia': 'Oceania', 'Northern Mariana Islands': 'Oceania',
+  // Additional Asia
+  'Sri Lanka': 'Asia', 'Myanmar': 'Asia', 'Cambodia': 'Asia', 'Laos': 'Asia', 'Nepal': 'Asia',
+  'Brunei': 'Asia', 'Mongolia': 'Asia', 'Macao': 'Asia', 'Macau': 'Asia', 'Maldives': 'Asia',
+  'Bhutan': 'Asia', 'Timor-Leste': 'Asia', 'Afghanistan': 'Asia', 'Uzbekistan': 'Asia',
+  'Turkmenistan': 'Asia', 'Tajikistan': 'Asia', 'Kyrgyzstan': 'Asia', 'Azerbaijan': 'Asia',
+  'Armenia': 'Asia', 'Georgia': 'Asia',
+  // Additional Africa
+  'Senegal': 'Africa', 'Ivory Coast': 'Africa', "Cote d'Ivoire": 'Africa', 'Burkina Faso': 'Africa',
+  'Mali': 'Africa', 'Niger': 'Africa', 'Chad': 'Africa', 'Sudan': 'Africa', 'South Sudan': 'Africa',
+  'Eritrea': 'Africa', 'Djibouti': 'Africa', 'Somalia': 'Africa', 'Rwanda': 'Africa', 'Burundi': 'Africa',
+  'Malawi': 'Africa', 'Mozambique': 'Africa', 'Madagascar': 'Africa', 'Mauritius': 'Africa',
+  'Seychelles': 'Africa', 'Comoros': 'Africa', 'Reunion': 'Africa', 'Mayotte': 'Africa',
+  'Namibia': 'Africa', 'Lesotho': 'Africa', 'Eswatini': 'Africa', 'Swaziland': 'Africa',
+  'Gabon': 'Africa', 'Congo': 'Africa', 'Democratic Republic of the Congo': 'Africa',
+  'Central African Republic': 'Africa', 'Equatorial Guinea': 'Africa', 'Sao Tome and Principe': 'Africa',
+  'Cape Verde': 'Africa', 'Guinea': 'Africa', 'Guinea-Bissau': 'Africa', 'Gambia': 'Africa',
+  'Sierra Leone': 'Africa', 'Liberia': 'Africa', 'Togo': 'Africa', 'Benin': 'Africa',
+  // French territories
+  'French Guiana': 'South America', 'Suriname': 'South America', 'Guyana': 'South America',
+  'Falkland Islands': 'South America',
 };
 
 const getRegion = (country: string): string => {
@@ -209,6 +239,26 @@ export const DealProposalView: React.FC<DealProposalViewProps> = ({
     });
 
     return regionIdentityPercentages;
+  }, [networks]);
+
+  // Calculate overall identity distribution (across all networks)
+  const overallIdentities = useMemo(() => {
+    const identityCounts: Record<string, number> = {};
+
+    networks.forEach(network => {
+      const operator = network.operator || 'Unknown';
+      identityCounts[operator] = (identityCounts[operator] || 0) + 1;
+    });
+
+    const total = Object.values(identityCounts).reduce((sum, count) => sum + count, 0);
+    if (total === 0) return [];
+
+    return Object.entries(identityCounts)
+      .map(([operator, count]) => ({
+        operator,
+        percentage: Math.round((count / total) * 100)
+      }))
+      .sort((a, b) => b.percentage - a.percentage);
   }, [networks]);
 
   // Color palette for identity tags - based on identity letter
@@ -471,6 +521,19 @@ export const DealProposalView: React.FC<DealProposalViewProps> = ({
                   <Globe className="w-5 h-5 text-purple-600" />
                   Network Configuration
                   <span className="text-sm font-normal text-gray-500">({formData.countries.length} {formData.countries.length === 1 ? 'country' : 'countries'})</span>
+                  {/* Overall Identity Distribution Tags */}
+                  {overallIdentities.length > 0 && (
+                    <span className="flex items-center gap-1.5 ml-2">
+                      {overallIdentities.map((identity) => (
+                        <span
+                          key={identity.operator}
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${getIdentityColor(identity.operator)}`}
+                        >
+                          {identity.operator}: {identity.percentage}%
+                        </span>
+                      ))}
+                    </span>
+                  )}
                 </h3>
                 {isNetworkExpanded ? (
                   <ChevronDown className="w-5 h-5 text-gray-500" />
