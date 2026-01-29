@@ -908,25 +908,27 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
           {/* Fourth Row: Countries */}
           <div className="grid grid-cols-3 gap-6 mb-6">
             {/* Countries - Searchable Dropdown */}
-            <div className="relative" ref={countryDropdownRef}>
+            <div ref={countryDropdownRef}>
               <label className="block text-sm font-medium text-gray-500 mb-2">
                 Countries
               </label>
-              <button
-                type="button"
-                onClick={() => setShowCountryDropdown(!showCountryDropdown)}
-                className="w-full px-4 py-3 bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]/50 focus:bg-white transition-all text-sm flex items-center justify-between text-left"
-              >
-                <span className="text-gray-500">
-                  {formData.countries.length === 0
-                    ? `Select countries (${availableCountries.length})...`
-                    : `${formData.countries.length} selected`}
-                </span>
-                <ChevronDown className={`w-4 h-4 transition-transform ${showCountryDropdown ? 'rotate-180' : ''}`} />
-              </button>
+              {/* Button wrapper - dropdown positioned relative to this */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowCountryDropdown(!showCountryDropdown)}
+                  className="w-full px-4 py-3 bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]/50 focus:bg-white transition-all text-sm flex items-center justify-between text-left"
+                >
+                  <span className="text-gray-500">
+                    {formData.countries.length === 0
+                      ? `Select countries (${availableCountries.length})...`
+                      : `${formData.countries.length} selected`}
+                  </span>
+                  <ChevronDown className={`w-4 h-4 transition-transform ${showCountryDropdown ? 'rotate-180' : ''}`} />
+                </button>
 
-              {showCountryDropdown && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-20 max-h-[450px] overflow-hidden flex flex-col">
+                {showCountryDropdown && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-20 max-h-[450px] overflow-hidden flex flex-col">
                   {/* Search Input */}
                   <div className="p-2 border-b border-gray-200">
                     <input
@@ -1035,7 +1037,8 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
                   </div>
                 </div>
               )}
-              {/* Selected Countries - shown right below dropdown */}
+              </div>
+              {/* Selected Countries - shown below the button wrapper */}
               {formData.countries.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-2">
                   {formData.countries.map((country, index) => {
