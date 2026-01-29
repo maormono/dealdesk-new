@@ -20,6 +20,140 @@ import { dealPersistenceService } from '../../services/dealPersistenceService';
 import type { SavedDeal, DealFilters, DealStatus } from '../../config/dealConfig';
 import { formatDealId } from '../../config/dealConfig';
 
+// Country to region mapping
+const countryToRegion: Record<string, string> = {
+  // Africa
+  'Algeria': 'Africa', 'Angola': 'Africa', 'Benin': 'Africa', 'Buneer': 'Africa',
+  'Botswana': 'Africa', 'Burkina Faso': 'Africa', 'Burundi': 'Africa', 'Cameroon': 'Africa',
+  'Cape Verde': 'Africa', 'Cabo Verde': 'Africa', 'Central African Republic': 'Africa',
+  'Chad': 'Africa', 'Comoros': 'Africa', 'Congo': 'Africa',
+  'Congo, Democratic Republic': 'Africa', 'Congo Democratic Republic': 'Africa',
+  'Congo Democratic Republic of': 'Africa', 'Congo Democratic Rep of': 'Africa',
+  'Congo, Democratic Republic of the': 'Africa', 'Congo Democratic': 'Africa',
+  'Congo Republic Of': 'Africa', 'Congo Rep of': 'Africa', 'Congo, Republic Of': 'Africa',
+  'Democratic Republic of the Congo': 'Africa', 'Djibouti': 'Africa', 'Egypt': 'Africa',
+  'Equatorial Guinea': 'Africa', 'Eritrea': 'Africa', 'Eswatini': 'Africa', 'Ethiopia': 'Africa',
+  'Gabon': 'Africa', 'Gambia': 'Africa', 'Ghana': 'Africa', 'Guinea': 'Africa',
+  'Guinea-Bissau': 'Africa', 'Guinea Bissau': 'Africa', 'Ivory Coast': 'Africa',
+  "Côte d'Ivoire": 'Africa', "Cote d'Ivoire": 'Africa', 'Cote dIvoire': 'Africa',
+  'Kenya': 'Africa', 'Lesotho': 'Africa', 'Liberia': 'Africa', 'Libya': 'Africa',
+  'Libyan Arab': 'Africa', 'Libyan Arab Jamahiriya': 'Africa', 'Madagascar': 'Africa',
+  'Malawi': 'Africa', 'Mali': 'Africa', 'Mauritania': 'Africa', 'Mauritius': 'Africa',
+  'Mayotte': 'Africa', 'Morocco': 'Africa', 'Mozambique': 'Africa', 'Namibia': 'Africa',
+  'Niger': 'Africa', 'Nigeria': 'Africa', 'Reunion': 'Africa', 'Réunion': 'Africa',
+  'Rwanda': 'Africa', 'Sao Tome and Principe': 'Africa', 'Saint Helena': 'Africa',
+  'Senegal': 'Africa', 'Seychelles': 'Africa', 'Sierra Leone': 'Africa', 'Somalia': 'Africa',
+  'South Africa': 'Africa', 'South Sudan': 'Africa', 'Sudan': 'Africa', 'Swaziland': 'Africa',
+  'Tanzania': 'Africa', 'Tanzania, United Republic': 'Africa', 'Tanzania United Republic': 'Africa',
+  'Tanzania United Republic of': 'Africa', 'Togo': 'Africa', 'Tunisia': 'Africa',
+  'Uganda': 'Africa', 'Zambia': 'Africa', 'Zimbabwe': 'Africa',
+  // Asia
+  'Afghanistan': 'Asia', 'Armenia': 'Asia', 'Azerbaijan': 'Asia', 'Bangladesh': 'Asia',
+  'Bhutan': 'Asia', 'Brunei': 'Asia', 'Brunei Darussalam': 'Asia', 'Cambodia': 'Asia',
+  'China': 'Asia', 'Georgia': 'Asia', 'Hong Kong': 'Asia', 'India': 'Asia',
+  'Indonesia': 'Asia', 'Japan': 'Asia', 'Kazakhstan': 'Asia', 'Kyrgyzstan': 'Asia',
+  'Laos': 'Asia', 'Lao': 'Asia', "Lao People's Democratic Republic": 'Asia', 'Lao PDR': 'Asia',
+  'Macau': 'Asia', 'Macao': 'Asia', 'Malaysia': 'Asia', 'Maldives': 'Asia',
+  'Mongolia': 'Asia', 'Myanmar': 'Asia', 'Nepal': 'Asia', 'North Korea': 'Asia',
+  'Pakistan': 'Asia', 'Philippines': 'Asia', 'Singapore': 'Asia', 'South Korea': 'Asia',
+  'Korea, Republic of': 'Asia', 'Korea Republic Of': 'Asia', 'Korea, Republic Of': 'Asia',
+  'Republic of Korea': 'Asia', 'Sri Lanka': 'Asia', 'Taiwan': 'Asia',
+  'Taiwan, Province Of China': 'Asia', 'Tajikistan': 'Asia', 'Thailand': 'Asia',
+  'Timor-Leste': 'Asia', 'East Timor': 'Asia', 'Turkmenistan': 'Asia',
+  'Uzbekistan': 'Asia', 'Vietnam': 'Asia', 'Viet Nam': 'Asia',
+  // Middle East
+  'Bahrain': 'Middle East', 'Iran': 'Middle East', 'Iran, Islamic Republic Of': 'Middle East',
+  'Iran Islamic Republic Of': 'Middle East', 'Iraq': 'Middle East', 'Israel': 'Middle East',
+  'Jordan': 'Middle East', 'Kuwait': 'Middle East', 'Lebanon': 'Middle East', 'Oman': 'Middle East',
+  'Palestine': 'Middle East', 'Palestinian Territory': 'Middle East', 'Qatar': 'Middle East',
+  'Saudi Arabia': 'Middle East', 'Syria': 'Middle East', 'Syrian Arab Republic': 'Middle East',
+  'United Arab Emirates': 'Middle East', 'UAE': 'Middle East', 'Yemen': 'Middle East',
+  // Europe
+  'Albania': 'Europe', 'Andorra': 'Europe', 'Austria': 'Europe', 'Belarus': 'Europe',
+  'Belgium': 'Europe', 'Bosnia and Herzegovina': 'Europe', 'Bulgaria': 'Europe', 'Croatia': 'Europe',
+  'Cyprus': 'Europe', 'Czech Republic': 'Europe', 'Czechia': 'Europe', 'Denmark': 'Europe',
+  'Estonia': 'Europe', 'Faroe Islands': 'Europe', 'Finland': 'Europe', 'France': 'Europe',
+  'Germany': 'Europe', 'Gibraltar': 'Europe', 'Greece': 'Europe', 'Greenland': 'Europe',
+  'Guernsey': 'Europe', 'Hungary': 'Europe', 'Iceland': 'Europe', 'Ireland': 'Europe',
+  'Isle of Man': 'Europe', 'Italy': 'Europe', 'Jersey': 'Europe', 'Kosovo': 'Europe',
+  'Latvia': 'Europe', 'Liechtenstein': 'Europe', 'Lithuania': 'Europe', 'Luxembourg': 'Europe',
+  'Malta': 'Europe', 'Moldova': 'Europe', 'Moldova, Republic Of': 'Europe',
+  'Moldova Republic Of': 'Europe', 'Republic of Moldova': 'Europe', 'Monaco': 'Europe',
+  'Montenegro': 'Europe', 'Montenegro, Republic of': 'Europe', 'Netherlands': 'Europe',
+  'North Macedonia': 'Europe', 'Macedonia': 'Europe', 'Macedonia, Republic Of': 'Europe',
+  'Macedonia Republic Of': 'Europe', 'Republic of Macedonia': 'Europe',
+  'The Former Yugoslav Republic of Macedonia': 'Europe', 'FYROM': 'Europe', 'Norway': 'Europe',
+  'Poland': 'Europe', 'Portugal': 'Europe', 'Romania': 'Europe', 'Russia': 'Europe',
+  'Russian Federation': 'Europe', 'San Marino': 'Europe', 'Serbia': 'Europe',
+  'Serbia Republic of': 'Europe', 'Serbia and Montenegro': 'Europe', 'Slovakia': 'Europe',
+  'Slovenia': 'Europe', 'Spain': 'Europe', 'Svalbard': 'Europe', 'Sweden': 'Europe',
+  'Switzerland': 'Europe', 'Turkey': 'Europe', 'Ukraine': 'Europe', 'United Kingdom': 'Europe',
+  'UK': 'Europe', 'Great Britain': 'Europe', 'Britain': 'Europe', 'England': 'Europe',
+  'Scotland': 'Europe', 'Wales': 'Europe', 'Northern Ireland': 'Europe',
+  'Vatican City': 'Europe', 'Holy See': 'Europe',
+  // North America
+  'Bermuda': 'North America', 'Canada': 'North America', 'Mexico': 'North America',
+  'United States': 'North America', 'USA': 'North America', 'US': 'North America',
+  // Central America
+  'Belize': 'Central America', 'Costa Rica': 'Central America', 'El Salvador': 'Central America',
+  'Guatemala': 'Central America', 'Honduras': 'Central America', 'Nicaragua': 'Central America',
+  'Panama': 'Central America',
+  // Caribbean
+  'Anguilla': 'Caribbean', 'Antigua and Barbuda': 'Caribbean', 'Aruba': 'Caribbean',
+  'Bahamas': 'Caribbean', 'Barbados': 'Caribbean', 'Bonaire': 'Caribbean',
+  'British Virgin Islands': 'Caribbean', 'Cayman Islands': 'Caribbean', 'Cuba': 'Caribbean',
+  'Curaçao': 'Caribbean', 'Curacao': 'Caribbean', 'Dominica': 'Caribbean',
+  'Dominican Republic': 'Caribbean', 'Grenada': 'Caribbean', 'Guadeloupe': 'Caribbean',
+  'Haiti': 'Caribbean', 'Jamaica': 'Caribbean', 'Martinique': 'Caribbean',
+  'Montserrat': 'Caribbean', 'Netherlands Antilles': 'Caribbean', 'Puerto Rico': 'Caribbean',
+  'Saint Kitts and Nevis': 'Caribbean', 'Saint Lucia': 'Caribbean',
+  'Saint Vincent and the Grenadines': 'Caribbean', 'Sint Maarten': 'Caribbean',
+  'Saint Martin': 'Caribbean', 'St. Kitts and Nevis': 'Caribbean', 'St. Lucia': 'Caribbean',
+  'St. Vincent': 'Caribbean', 'Trinidad and Tobago': 'Caribbean', 'Turks and Caicos': 'Caribbean',
+  'Turks and Caicos Islands': 'Caribbean', 'US Virgin Islands': 'Caribbean',
+  'Virgin Islands (US)': 'Caribbean', 'Virgin Islands (British)': 'Caribbean',
+  // South America
+  'Argentina': 'South America', 'Bolivia': 'South America',
+  'Bolivia, Plurinational State Of': 'South America', 'Brazil': 'South America',
+  'Chile': 'South America', 'Colombia': 'South America', 'Ecuador': 'South America',
+  'Falkland Islands': 'South America', 'Falkland Islands (Malvinas)': 'South America',
+  'French Guiana': 'South America', 'Guyana': 'South America', 'Paraguay': 'South America',
+  'Peru': 'South America', 'Suriname': 'South America', 'Uruguay': 'South America',
+  'Venezuela': 'South America', 'Venezuela, Bolivarian Republic Of': 'South America',
+  // Oceania
+  'American Samoa': 'Oceania', 'Australia': 'Oceania', 'Cook Islands': 'Oceania', 'Fiji': 'Oceania',
+  'French Polynesia': 'Oceania', 'Guam': 'Oceania', 'Kiribati': 'Oceania', 'Marshall Islands': 'Oceania',
+  'Micronesia': 'Oceania', 'Micronesia, Federated States Of': 'Oceania', 'Nauru': 'Oceania',
+  'New Caledonia': 'Oceania', 'New Zealand': 'Oceania', 'Niue': 'Oceania', 'Norfolk Island': 'Oceania',
+  'Northern Mariana Islands': 'Oceania', 'Palau': 'Oceania', 'Papua New Guinea': 'Oceania',
+  'Samoa': 'Oceania', 'Solomon Islands': 'Oceania', 'Tonga': 'Oceania', 'Tuvalu': 'Oceania',
+  'Vanuatu': 'Oceania',
+};
+
+// Helper function to get region for a country
+const getRegion = (country: string): string => {
+  if (countryToRegion[country]) return countryToRegion[country];
+  const lowerCountry = country.toLowerCase();
+  for (const [key, value] of Object.entries(countryToRegion)) {
+    if (key.toLowerCase() === lowerCountry) return value;
+  }
+  return 'Other';
+};
+
+// Region display order
+const REGION_ORDER = [
+  'Africa', 'Asia', 'Europe', 'Middle East', 'North America',
+  'Central America', 'Caribbean', 'South America', 'Oceania', 'Other'
+];
+
+// Region colors for badges
+const regionColors = [
+  'bg-[#5B9BD5]/10 text-[#5B9BD5] border-[#5B9BD5]/20',
+  'bg-[#9B7BB6]/10 text-[#9B7BB6] border-[#9B7BB6]/20',
+  'bg-[#EC6B9D]/10 text-[#EC6B9D] border-[#EC6B9D]/20',
+  'bg-[#F5B342]/10 text-[#F5B342] border-[#F5B342]/20'
+];
+
 const statusConfig: Record<DealStatus, { label: string; color: string; icon: React.ElementType }> = {
   draft: {
     label: 'Draft',
@@ -596,21 +730,6 @@ export const DealAudit: React.FC = () => {
                       </div>
                     </div>
                   </div>
-
-                  {/* Countries */}
-                  <div>
-                    <h4 className="text-sm font-semibold text-gray-700 mb-3">Countries ({selectedDeal.countries.length})</h4>
-                    <div className="flex flex-wrap gap-1.5">
-                      {selectedDeal.countries.map((country) => (
-                        <span
-                          key={country}
-                          className="px-2 py-0.5 bg-[#5B9BD5]/10 text-[#5B9BD5] text-xs rounded-full"
-                        >
-                          {country}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
                 </div>
 
                 {/* Right Column - Evaluation Results */}
@@ -690,6 +809,36 @@ export const DealAudit: React.FC = () => {
                     <p>Full evaluation data stored in database.</p>
                     <p>Deal ID: {selectedDeal.id}</p>
                   </div>
+                </div>
+              </div>
+
+              {/* Countries - Grouped by Region (Full Width) */}
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <h4 className="text-sm font-semibold text-gray-700 mb-4">Countries ({selectedDeal.countries.length})</h4>
+                <div className="space-y-3">
+                  {REGION_ORDER.filter(region =>
+                    selectedDeal.countries.some(country => getRegion(country) === region)
+                  ).map((region, regionIdx) => {
+                    const countriesInRegion = selectedDeal.countries
+                      .filter(country => getRegion(country) === region)
+                      .sort();
+                    const colorClass = regionColors[regionIdx % regionColors.length];
+                    return (
+                      <div key={region} className="flex items-start gap-3">
+                        <div className="text-xs font-semibold text-gray-500 w-24 pt-1 shrink-0">{region}</div>
+                        <div className="flex flex-wrap gap-1.5 flex-1">
+                          {countriesInRegion.map((country) => (
+                            <span
+                              key={country}
+                              className={`px-2 py-0.5 text-xs rounded-full border ${colorClass}`}
+                            >
+                              {country}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>

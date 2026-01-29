@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Users, DollarSign, Database, Shield, Calculator, ClipboardList, Sparkles } from 'lucide-react';
+import { Users, DollarSign, Database, Shield, Calculator, ClipboardList, Sparkles, Key } from 'lucide-react';
 import { DealRules } from '../components/admin/DealRules';
 import { DealAudit } from '../components/admin/DealAudit';
 import { UpcomingFeatures } from '../components/admin/UpcomingFeatures';
+import { AIApiKeys } from '../components/admin/AIApiKeys';
 import { UserManagement } from './UserManagement';
 import { TestWeightedPricing } from '../components/TestWeightedPricing';
 import { DataUpload } from '../components/DataUpload';
@@ -13,7 +14,7 @@ import { AccessDenied } from './AccessDenied';
 // Users who can see the Roadmap tab
 const ROADMAP_USERS = ['asaf@monogoto.io', 'maor@monogoto.io'];
 
-type AdminSection = 'users' | 'rules' | 'audit' | 'features' | 'security' | 'test' | 'database';
+type AdminSection = 'users' | 'rules' | 'audit' | 'features' | 'security' | 'test' | 'database' | 'aikeys';
 
 // localStorage key for persisting admin state
 const ADMIN_STORAGE_KEY = 'dealdesk_admin_state';
@@ -86,6 +87,8 @@ export const Admin: React.FC = () => {
             <DataUpload />
           </div>
         );
+      case 'aikeys':
+        return <AIApiKeys />;
       default:
         return null;
     }
@@ -121,6 +124,11 @@ export const Admin: React.FC = () => {
       id: 'database' as AdminSection,
       label: 'Database',
       icon: Database
+    },
+    {
+      id: 'aikeys' as AdminSection,
+      label: 'AI API Keys',
+      icon: Key
     },
     {
       id: 'features' as AdminSection,
