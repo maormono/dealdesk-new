@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Calculator, Plus, X, Loader2, TrendingUp, AlertCircle, Globe, Smartphone, DollarSign, Wifi, Network, Edit, Maximize2, Minimize2, ChevronDown, ChevronRight } from 'lucide-react';
+import { Calculator, Plus, X, Loader2, TrendingUp, AlertCircle, Globe, Smartphone, DollarSign, Wifi, Network, Edit, Maximize2, Minimize2, ChevronDown, ChevronRight, FilePlus } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { dealConfig } from '../config/dealConfig';
-import type { DealRequest, DealEvaluation } from '../config/dealConfig';
+import type { DealRequest, DealEvaluation, SavedDeal } from '../config/dealConfig';
 import { DealEvaluationService } from '../services/dealEvaluationService';
 import { EnhancedDealService } from '../services/enhancedDealService';
 import { ComprehensiveDealService } from '../services/comprehensiveDealService';
+import { dealPersistenceService } from '../services/dealPersistenceService';
 import type { DealRequestMandatory } from '../services/comprehensiveDealService';
 import { formatDealForSales } from '../utils/dealFormatter';
 import { DealProposalView } from './DealProposalView';
@@ -190,12 +191,23 @@ const saveFormState = (state: any) => {
 
 interface DealReviewFormProps {
   initialDeal?: Partial<DealRequest>;
+  dealId?: string;
   onEvaluation?: (evaluation: DealEvaluation, deal: DealRequest) => void;
+  onDealSaved?: (deal: SavedDeal) => void;
   onExpandToggle?: () => void;
   isExpanded?: boolean;
+  onCreateNewDeal?: () => void;
 }
 
-export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onEvaluation, onExpandToggle, isExpanded = false }) => {
+export const DealReviewForm: React.FC<DealReviewFormProps> = ({
+  initialDeal,
+  dealId,
+  onEvaluation,
+  onDealSaved,
+  onExpandToggle,
+  isExpanded = false,
+  onCreateNewDeal
+}) => {
   // Load saved state from localStorage on initial render
   const savedState = loadFormState();
 
@@ -522,7 +534,7 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    
+
     try {
       // Prepare comprehensive deal request
       const comprehensiveDeal: DealRequestMandatory = {
@@ -551,7 +563,7 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
         }),
         comprehensiveService.evaluateDeal(comprehensiveDeal)
       ]);
-      
+
       console.log('=== DEBUGGING DEAL EVALUATION DATA ===');
       console.log('Basic evaluation result:', basicResult);
       console.log('Enhanced analysis result:', enhancedResult);
@@ -567,11 +579,29 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
       console.log('- verdict:', basicResult?.verdict);
       console.log('- notes:', basicResult?.notes);
       console.log('=========================================');
-      
+
       setEvaluation(basicResult);
       setEnhancedAnalysis(enhancedResult);
       setComprehensiveAnalysis(comprehensiveResult);
       setShowResults(true);
+
+      // Save evaluation to database if we have a deal ID
+      if (dealId) {
+        try {
+          const savedDeal = await dealPersistenceService.saveEvaluation(dealId, formData, {
+            basic_evaluation: basicResult,
+            enhanced_analysis: enhancedResult,
+            comprehensive_analysis: comprehensiveResult,
+          });
+          console.log('Deal evaluation saved:', savedDeal.id);
+          if (onDealSaved) {
+            onDealSaved(savedDeal);
+          }
+        } catch (saveError) {
+          console.error('Error saving deal evaluation:', saveError);
+          // Continue showing results even if save fails
+        }
+      }
 
       // Scroll to top when showing results
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -695,6 +725,15 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({ initialDeal, onE
             <Edit className="w-4 h-4" />
             <span>Edit Deal</span>
           </button>
+          {onCreateNewDeal && (
+            <button
+              onClick={onCreateNewDeal}
+              className="px-3 py-1.5 bg-gradient-to-r from-[#5B9BD5] to-[#9B7BB6] hover:opacity-90 text-white text-sm rounded-lg transition-colors flex items-center space-x-2 shadow-sm"
+            >
+              <FilePlus className="w-4 h-4" />
+              <span>Create New Deal</span>
+            </button>
+          )}
         </div>
 
         {/* New Professional Deal Proposal View */}

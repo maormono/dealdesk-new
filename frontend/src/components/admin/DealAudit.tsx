@@ -1,0 +1,711 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  Search,
+  Filter,
+  Download,
+  ChevronDown,
+  ChevronUp,
+  Loader2,
+  FileText,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  Clock,
+  Eye,
+  X,
+  Calendar,
+  User
+} from 'lucide-react';
+import { dealPersistenceService } from '../../services/dealPersistenceService';
+import type { SavedDeal, DealFilters, DealStatus } from '../../config/dealConfig';
+import { formatDealId } from '../../config/dealConfig';
+
+const statusConfig: Record<DealStatus, { label: string; color: string; icon: React.ElementType }> = {
+  draft: {
+    label: 'Draft',
+    color: 'bg-gray-100 text-gray-700 border-gray-200',
+    icon: FileText,
+  },
+  evaluated: {
+    label: 'Evaluated',
+    color: 'bg-blue-100 text-blue-700 border-blue-200',
+    icon: CheckCircle,
+  },
+  finalized: {
+    label: 'Finalized',
+    color: 'bg-green-100 text-green-700 border-green-200',
+    icon: CheckCircle,
+  },
+  archived: {
+    label: 'Archived',
+    color: 'bg-gray-100 text-gray-500 border-gray-200',
+    icon: Clock,
+  },
+};
+
+const verdictConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
+  approved: {
+    label: 'Approved',
+    color: 'bg-green-100 text-green-700 border-green-200',
+    icon: CheckCircle,
+  },
+  negotiable: {
+    label: 'Negotiable',
+    color: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+    icon: AlertCircle,
+  },
+  rejected: {
+    label: 'Rejected',
+    color: 'bg-red-100 text-red-700 border-red-200',
+    icon: XCircle,
+  },
+};
+
+export const DealAudit: React.FC = () => {
+  const [deals, setDeals] = useState<SavedDeal[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+  const [selectedDeal, setSelectedDeal] = useState<SavedDeal | null>(null);
+
+  // Filters
+  const [filters, setFilters] = useState<DealFilters>({});
+  const [statusFilter, setStatusFilter] = useState<DealStatus | ''>('');
+  const [verdictFilter, setVerdictFilter] = useState<string>('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+
+  // Sorting
+  const [sortBy, setSortBy] = useState<'created_at' | 'user_email' | 'sim_quantity'>('created_at');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
+  const fetchDeals = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const appliedFilters: DealFilters = {};
+
+      if (searchQuery.trim()) {
+        appliedFilters.searchQuery = searchQuery.trim();
+      }
+      if (statusFilter) {
+        appliedFilters.status = statusFilter;
+      }
+      if (verdictFilter) {
+        appliedFilters.verdict = verdictFilter;
+      }
+      if (dateFrom) {
+        appliedFilters.dateFrom = dateFrom;
+      }
+      if (dateTo) {
+        appliedFilters.dateTo = dateTo;
+      }
+
+      const allDeals = await dealPersistenceService.getAllDeals(appliedFilters);
+
+      // Sort deals
+      const sortedDeals = [...allDeals].sort((a, b) => {
+        let comparison = 0;
+        switch (sortBy) {
+          case 'created_at':
+            comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+            break;
+          case 'user_email':
+            comparison = a.user_email.localeCompare(b.user_email);
+            break;
+          case 'sim_quantity':
+            comparison = a.sim_quantity - b.sim_quantity;
+            break;
+        }
+        return sortOrder === 'asc' ? comparison : -comparison;
+      });
+
+      setDeals(sortedDeals);
+    } catch (error) {
+      console.error('Error fetching deals for audit:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [searchQuery, statusFilter, verdictFilter, dateFrom, dateTo, sortBy, sortOrder]);
+
+  useEffect(() => {
+    fetchDeals();
+  }, [fetchDeals]);
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const formatCountries = (countries: string[]) => {
+    if (countries.length === 0) return 'None';
+    if (countries.length === 1) return countries[0];
+    if (countries.length <= 2) return countries.join(', ');
+    return `${countries.slice(0, 2).join(', ')} +${countries.length - 2}`;
+  };
+
+  const handleSort = (column: typeof sortBy) => {
+    if (sortBy === column) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(column);
+      setSortOrder('desc');
+    }
+  };
+
+  const exportToCSV = () => {
+    const headers = [
+      'Deal ID',
+      'User Email',
+      'Status',
+      'Verdict',
+      'SIM Quantity',
+      'Countries',
+      'Price/SIM',
+      'Currency',
+      'Duration (months)',
+      'Profit Margin',
+      'Created At',
+      'Evaluated At',
+    ];
+
+    const rows = deals.map(deal => [
+      formatDealId(deal.id),
+      deal.user_email,
+      deal.status,
+      deal.verdict || 'N/A',
+      deal.sim_quantity,
+      deal.countries.join('; '),
+      deal.proposed_price_per_sim?.toFixed(2) || 'N/A',
+      deal.currency,
+      deal.duration_months || 'N/A',
+      deal.profit_margin ? `${(deal.profit_margin * 100).toFixed(1)}%` : 'N/A',
+      formatDate(deal.created_at),
+      deal.evaluated_at ? formatDate(deal.evaluated_at) : 'N/A',
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(',')),
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `deal-audit-${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+  };
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setStatusFilter('');
+    setVerdictFilter('');
+    setDateFrom('');
+    setDateTo('');
+  };
+
+  const hasActiveFilters = searchQuery || statusFilter || verdictFilter || dateFrom || dateTo;
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Deal Audit</h2>
+          <p className="text-sm text-gray-500 mt-1">
+            Review and audit all deal evaluations across the organization
+          </p>
+        </div>
+        <button
+          onClick={exportToCSV}
+          disabled={deals.length === 0}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <Download className="w-4 h-4" />
+          Export CSV
+        </button>
+      </div>
+
+      {/* Search and Filters */}
+      <div className="bg-white rounded-xl border border-gray-200 p-4">
+        <div className="flex items-center gap-4">
+          {/* Search */}
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by Deal ID or User Email..."
+              className="w-full pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]/50 focus:border-[#5B9BD5]"
+            />
+          </div>
+
+          {/* Filter Toggle */}
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`inline-flex items-center gap-2 px-4 py-2 border rounded-lg font-medium transition-colors ${
+              showFilters || hasActiveFilters
+                ? 'bg-[#5B9BD5]/10 border-[#5B9BD5] text-[#5B9BD5]'
+                : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            <Filter className="w-4 h-4" />
+            Filters
+            {hasActiveFilters && (
+              <span className="w-2 h-2 rounded-full bg-[#5B9BD5]" />
+            )}
+          </button>
+        </div>
+
+        {/* Filter Panel */}
+        {showFilters && (
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <div className="grid grid-cols-4 gap-4">
+              {/* Status Filter */}
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1.5">Status</label>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as DealStatus | '')}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]/50"
+                >
+                  <option value="">All Statuses</option>
+                  <option value="draft">Draft</option>
+                  <option value="evaluated">Evaluated</option>
+                  <option value="finalized">Finalized</option>
+                  <option value="archived">Archived</option>
+                </select>
+              </div>
+
+              {/* Verdict Filter */}
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1.5">Verdict</label>
+                <select
+                  value={verdictFilter}
+                  onChange={(e) => setVerdictFilter(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]/50"
+                >
+                  <option value="">All Verdicts</option>
+                  <option value="approved">Approved</option>
+                  <option value="negotiable">Negotiable</option>
+                  <option value="rejected">Rejected</option>
+                </select>
+              </div>
+
+              {/* Date From */}
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1.5">From Date</label>
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]/50"
+                />
+              </div>
+
+              {/* Date To */}
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1.5">To Date</label>
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]/50"
+                />
+              </div>
+            </div>
+
+            {hasActiveFilters && (
+              <div className="mt-3 flex justify-end">
+                <button
+                  onClick={clearFilters}
+                  className="text-sm text-gray-500 hover:text-gray-700"
+                >
+                  Clear all filters
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Stats Summary */}
+      <div className="grid grid-cols-4 gap-4">
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <div className="text-2xl font-bold text-gray-900">{deals.length}</div>
+          <div className="text-sm text-gray-500">Total Deals</div>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <div className="text-2xl font-bold text-green-600">
+            {deals.filter(d => d.verdict === 'approved').length}
+          </div>
+          <div className="text-sm text-gray-500">Approved</div>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <div className="text-2xl font-bold text-yellow-600">
+            {deals.filter(d => d.verdict === 'negotiable').length}
+          </div>
+          <div className="text-sm text-gray-500">Negotiable</div>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <div className="text-2xl font-bold text-red-600">
+            {deals.filter(d => d.verdict === 'rejected').length}
+          </div>
+          <div className="text-sm text-gray-500">Rejected</div>
+        </div>
+      </div>
+
+      {/* Deals Table */}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 text-[#5B9BD5] animate-spin" />
+            <span className="ml-3 text-gray-600">Loading deals...</span>
+          </div>
+        ) : deals.length === 0 ? (
+          <div className="text-center py-12">
+            <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No deals found</h3>
+            <p className="text-gray-500">
+              {hasActiveFilters
+                ? 'Try adjusting your filters to see more results.'
+                : 'No deals have been created yet.'}
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Deal ID
+                  </th>
+                  <th
+                    className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700"
+                    onClick={() => handleSort('user_email')}
+                  >
+                    <div className="flex items-center gap-1">
+                      User
+                      {sortBy === 'user_email' && (
+                        sortOrder === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                      )}
+                    </div>
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Verdict
+                  </th>
+                  <th
+                    className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700"
+                    onClick={() => handleSort('sim_quantity')}
+                  >
+                    <div className="flex items-center gap-1">
+                      SIMs
+                      {sortBy === 'sim_quantity' && (
+                        sortOrder === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                      )}
+                    </div>
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Countries
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Margin
+                  </th>
+                  <th
+                    className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700"
+                    onClick={() => handleSort('created_at')}
+                  >
+                    <div className="flex items-center gap-1">
+                      Created
+                      {sortBy === 'created_at' && (
+                        sortOrder === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                      )}
+                    </div>
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {deals.map((deal) => {
+                  const status = statusConfig[deal.status];
+                  const verdict = deal.verdict ? verdictConfig[deal.verdict] : null;
+                  const StatusIcon = status.icon;
+                  const VerdictIcon = verdict?.icon;
+
+                  return (
+                    <tr key={deal.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3">
+                        <span className="font-mono text-sm font-medium text-[#5B9BD5]">
+                          {formatDealId(deal.id)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#5B9BD5] to-[#9B7BB6] flex items-center justify-center">
+                            <span className="text-xs font-medium text-white">
+                              {deal.user_email.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                          <span className="text-sm text-gray-900">{deal.user_email}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${status.color}`}>
+                          <StatusIcon className="w-3 h-3" />
+                          {status.label}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        {verdict ? (
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${verdict.color}`}>
+                            {VerdictIcon && <VerdictIcon className="w-3 h-3" />}
+                            {verdict.label}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-gray-400">-</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-900">
+                        {deal.sim_quantity.toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600" title={deal.countries.join(', ')}>
+                        {formatCountries(deal.countries)}
+                      </td>
+                      <td className="px-4 py-3">
+                        {deal.profit_margin !== null && deal.profit_margin !== undefined ? (
+                          <span className={`text-sm font-medium ${
+                            deal.profit_margin >= 0.35 ? 'text-green-600' :
+                            deal.profit_margin >= 0.20 ? 'text-yellow-600' :
+                            'text-red-600'
+                          }`}>
+                            {(deal.profit_margin * 100).toFixed(1)}%
+                          </span>
+                        ) : (
+                          <span className="text-xs text-gray-400">-</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-500">
+                        {formatDate(deal.created_at)}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <button
+                          onClick={() => setSelectedDeal(deal)}
+                          className="inline-flex items-center gap-1 px-2 py-1 text-xs text-[#5B9BD5] hover:bg-[#5B9BD5]/10 rounded transition-colors"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          View
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Deal Detail Modal */}
+      {selectedDeal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+              <div className="flex items-center gap-3">
+                <span className="font-mono text-lg font-semibold text-[#5B9BD5]">
+                  {formatDealId(selectedDeal.id)}
+                </span>
+                {selectedDeal.verdict && verdictConfig[selectedDeal.verdict] && (
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${verdictConfig[selectedDeal.verdict].color}`}>
+                    {selectedDeal.verdict.charAt(0).toUpperCase() + selectedDeal.verdict.slice(1)}
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={() => setSelectedDeal(null)}
+                className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="overflow-y-auto max-h-[calc(90vh-130px)] p-6">
+              <div className="grid grid-cols-2 gap-6">
+                {/* Left Column - Deal Info */}
+                <div className="space-y-6">
+                  {/* User Info */}
+                  <div className="bg-gray-50 rounded-xl p-4">
+                    <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                      <User className="w-4 h-4" />
+                      Created By
+                    </h4>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#5B9BD5] to-[#9B7BB6] flex items-center justify-center">
+                        <span className="text-sm font-medium text-white">
+                          {selectedDeal.user_email.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                      <div>
+                        <div className="font-medium text-gray-900">{selectedDeal.user_email}</div>
+                        <div className="text-xs text-gray-500">
+                          Created on {formatDate(selectedDeal.created_at)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Deal Parameters */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-700 mb-3">Deal Parameters</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between py-1 border-b border-gray-100">
+                        <span className="text-gray-500">SIM Quantity</span>
+                        <span className="font-medium text-gray-900">{selectedDeal.sim_quantity.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between py-1 border-b border-gray-100">
+                        <span className="text-gray-500">Proposed Price</span>
+                        <span className="font-medium text-gray-900">
+                          ${selectedDeal.proposed_price_per_sim?.toFixed(2)}/SIM
+                        </span>
+                      </div>
+                      <div className="flex justify-between py-1 border-b border-gray-100">
+                        <span className="text-gray-500">Duration</span>
+                        <span className="font-medium text-gray-900">{selectedDeal.duration_months} months</span>
+                      </div>
+                      <div className="flex justify-between py-1 border-b border-gray-100">
+                        <span className="text-gray-500">Monthly Data</span>
+                        <span className="font-medium text-gray-900">
+                          {selectedDeal.monthly_data_per_sim ? `${selectedDeal.monthly_data_per_sim} GB` : '-'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between py-1">
+                        <span className="text-gray-500">Currency</span>
+                        <span className="font-medium text-gray-900">{selectedDeal.currency}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Countries */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-700 mb-3">Countries ({selectedDeal.countries.length})</h4>
+                    <div className="flex flex-wrap gap-1.5">
+                      {selectedDeal.countries.map((country) => (
+                        <span
+                          key={country}
+                          className="px-2 py-0.5 bg-[#5B9BD5]/10 text-[#5B9BD5] text-xs rounded-full"
+                        >
+                          {country}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column - Evaluation Results */}
+                <div className="space-y-6">
+                  {/* Evaluation Summary */}
+                  {selectedDeal.basic_evaluation && (
+                    <div className="bg-gradient-to-br from-gray-50 to-[#5B9BD5]/5 rounded-xl p-4">
+                      <h4 className="text-sm font-semibold text-gray-700 mb-3">Evaluation Results</h4>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-500">Verdict</span>
+                          {selectedDeal.verdict && verdictConfig[selectedDeal.verdict] && (
+                            <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium ${verdictConfig[selectedDeal.verdict].color}`}>
+                              {selectedDeal.verdict.charAt(0).toUpperCase() + selectedDeal.verdict.slice(1)}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-500">Profit Margin</span>
+                          <span className={`text-lg font-bold ${
+                            (selectedDeal.profit_margin || 0) >= 0.35 ? 'text-green-600' :
+                            (selectedDeal.profit_margin || 0) >= 0.20 ? 'text-yellow-600' :
+                            'text-red-600'
+                          }`}>
+                            {selectedDeal.profit_margin ? `${(selectedDeal.profit_margin * 100).toFixed(1)}%` : '-'}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-500">Risk Score</span>
+                          <span className="font-medium text-gray-900">
+                            {selectedDeal.risk_score ?? '-'}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-500">Total Contract Value</span>
+                          <span className="font-medium text-gray-900">
+                            {selectedDeal.total_contract_value
+                              ? `$${selectedDeal.total_contract_value.toLocaleString()}`
+                              : '-'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Timeline */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      Timeline
+                    </h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-full bg-gray-400" />
+                        <span className="text-gray-500">Created:</span>
+                        <span className="text-gray-900">{formatDate(selectedDeal.created_at)}</span>
+                      </div>
+                      {selectedDeal.evaluated_at && (
+                        <div className="flex items-center gap-3">
+                          <div className="w-2 h-2 rounded-full bg-blue-500" />
+                          <span className="text-gray-500">Evaluated:</span>
+                          <span className="text-gray-900">{formatDate(selectedDeal.evaluated_at)}</span>
+                        </div>
+                      )}
+                      {selectedDeal.finalized_at && (
+                        <div className="flex items-center gap-3">
+                          <div className="w-2 h-2 rounded-full bg-green-500" />
+                          <span className="text-gray-500">Finalized:</span>
+                          <span className="text-gray-900">{formatDate(selectedDeal.finalized_at)}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Raw Data Info */}
+                  <div className="text-xs text-gray-400">
+                    <p>Full evaluation data stored in database.</p>
+                    <p>Deal ID: {selectedDeal.id}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50">
+              <button
+                onClick={() => setSelectedDeal(null)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};

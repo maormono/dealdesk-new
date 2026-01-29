@@ -112,3 +112,49 @@ export interface CarrierOption {
   };
   totalCostPerSim: number;
 }
+
+// Deal status for audit system
+export type DealStatus = 'draft' | 'evaluated' | 'finalized' | 'archived';
+
+// Saved deal interface for persistence
+export interface SavedDeal {
+  id: string;
+  user_id: string;
+  user_email: string;
+  deal_name?: string;
+  status: DealStatus;
+  deal_request: DealRequest;
+  basic_evaluation?: DealEvaluation;
+  enhanced_analysis?: any;
+  comprehensive_analysis?: any;
+  sim_quantity: number;
+  countries: string[];
+  monthly_data_per_sim?: number;
+  proposed_price_per_sim?: number;
+  currency: string;
+  duration_months?: number;
+  verdict?: 'approved' | 'negotiable' | 'rejected';
+  profit_margin?: number;
+  risk_score?: number;
+  total_contract_value?: number;
+  created_at: string;
+  updated_at: string;
+  evaluated_at?: string;
+  finalized_at?: string;
+}
+
+// Filters for querying deals (admin audit)
+export interface DealFilters {
+  userId?: string;
+  userEmail?: string;
+  status?: DealStatus;
+  verdict?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  searchQuery?: string;
+}
+
+// Helper to format deal ID for display
+export const formatDealId = (uuid: string): string => {
+  return `DEAL-${uuid.slice(0, 8).toUpperCase()}`;
+};

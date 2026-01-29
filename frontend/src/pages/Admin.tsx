@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import { Users, DollarSign, Database, Shield, Calculator } from 'lucide-react';
+import { Users, DollarSign, Database, Shield, Calculator, ClipboardList } from 'lucide-react';
 import { DealRules } from '../components/admin/DealRules';
+import { DealAudit } from '../components/admin/DealAudit';
 import { UserManagement } from './UserManagement';
 import { TestWeightedPricing } from '../components/TestWeightedPricing';
 import { DataUpload } from '../components/DataUpload';
 import { useUser } from '../contexts/UserContext';
 import { AccessDenied } from './AccessDenied';
 
-type AdminSection = 'users' | 'rules' | 'security' | 'test' | 'database';
+type AdminSection = 'users' | 'rules' | 'audit' | 'security' | 'test' | 'database';
 
 // localStorage key for persisting admin state
 const ADMIN_STORAGE_KEY = 'dealdesk_admin_state';
@@ -51,6 +52,12 @@ export const Admin: React.FC = () => {
         return <UserManagement />;
       case 'rules':
         return <DealRules />;
+      case 'audit':
+        return (
+          <div className="p-6">
+            <DealAudit />
+          </div>
+        );
       case 'test':
         return <TestWeightedPricing />;
       case 'security':
@@ -83,6 +90,11 @@ export const Admin: React.FC = () => {
       id: 'rules' as AdminSection,
       label: 'Deal Rules',
       icon: DollarSign
+    },
+    {
+      id: 'audit' as AdminSection,
+      label: 'Deal Audit',
+      icon: ClipboardList
     },
     {
       id: 'security' as AdminSection,
