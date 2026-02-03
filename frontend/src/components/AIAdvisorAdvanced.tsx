@@ -64,7 +64,7 @@ export const AIAdvisorAdvanced: React.FC<AIAdvisorAdvancedProps> = ({
     proposedPricePerSim: 2,
     currency: 'USD',
     isNewCustomer: true,
-    expectedUsagePattern: 'medium',
+    expectedUsagePattern: 'low',
     requiresIoT: false,
     queryText: ''
   });

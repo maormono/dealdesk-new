@@ -14,7 +14,7 @@ interface DealRules {
   maxDiscountStandard: number; // max discount for standard deals (25%)
   maxDiscountEnterprise: number; // max discount for enterprise deals (40%)
   autoCarrierOptimization: boolean; // automatically select best carrier per country
-  geminiModel: string; // AI model to use (gemini-2.5-flash)
+  geminiModel: string; // AI model to use (gemini-2.0-flash)
 }
 
 // Process Flow Diagram Component
@@ -97,7 +97,7 @@ export const DealRules: React.FC = () => {
     maxDiscountStandard: 25, // 25% max for standard deals
     maxDiscountEnterprise: 40, // 40% max for enterprise
     autoCarrierOptimization: true, // auto-select best carriers
-    geminiModel: 'gemini-2.5-flash' // latest AI model
+    geminiModel: 'gemini-2.0-flash' // stable AI model
   });
   
   const [isSaving, setIsSaving] = useState(false);
@@ -130,7 +130,7 @@ export const DealRules: React.FC = () => {
           maxDiscountStandard: data.rules.maxDiscountStandard ?? 25,
           maxDiscountEnterprise: data.rules.maxDiscountEnterprise ?? 40,
           autoCarrierOptimization: data.rules.autoCarrierOptimization ?? true,
-          geminiModel: data.rules.geminiModel ?? 'gemini-2.5-flash'
+          geminiModel: data.rules.geminiModel ?? 'gemini-2.0-flash'
         });
       }
     } catch (error) {
@@ -489,16 +489,12 @@ export const DealRules: React.FC = () => {
                   onChange={(e) => setRules(prev => ({ ...prev, geminiModel: e.target.value }))}
                   className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#5B9BD5] focus:border-transparent"
                 >
-                  <optgroup label="Gemini 2.5 (Latest)">
-                    <option value="gemini-2.5-pro">Gemini 2.5 Pro (Best for complex analysis)</option>
-                    <option value="gemini-2.5-flash">Gemini 2.5 Flash (Fast & efficient)</option>
-                  </optgroup>
-                  <optgroup label="Gemini 2.0">
-                    <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+                  <optgroup label="Gemini 2.0 (Recommended)">
+                    <option value="gemini-2.0-flash">Gemini 2.0 Flash (Fast & efficient)</option>
                     <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite (Cost-effective)</option>
                   </optgroup>
                   <optgroup label="Gemini 1.5">
-                    <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                    <option value="gemini-1.5-pro">Gemini 1.5 Pro (Best for complex analysis)</option>
                     <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
                   </optgroup>
                 </select>

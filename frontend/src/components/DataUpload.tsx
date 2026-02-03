@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Upload, FileSpreadsheet, Trash2, Check, AlertCircle, Loader2, History, CheckCircle, Clock, Download } from 'lucide-react';
+import { Upload, FileSpreadsheet, Check, AlertCircle, Loader2, History, CheckCircle, Clock, Download } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import * as XLSX from 'xlsx';
 
@@ -21,7 +21,6 @@ export const DataUpload: React.FC<DataUploadProps> = ({ onDataLoaded }) => {
   const [uploadHistory, setUploadHistory] = useState<UploadInfo[]>([]);
   const [activeUpload, setActiveUpload] = useState<UploadInfo | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [isClearing, setIsClearing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -228,28 +227,6 @@ export const DataUpload: React.FC<DataUploadProps> = ({ onDataLoaded }) => {
     }
   };
 
-  const handleClearData = async () => {
-    if (!confirm('Are you sure you want to clear all pricing data and upload history?')) return;
-
-    setIsClearing(true);
-    setError(null);
-    setSuccess(null);
-
-    try {
-      await supabase.from('network_pricing').delete().gte('id', 0);
-      await supabase.from('data_uploads').delete().gte('id', 0);
-
-      setUploadHistory([]);
-      setActiveUpload(null);
-      setSuccess('All data and history cleared');
-      onDataLoaded?.();
-    } catch (err) {
-      setError('Failed to clear data');
-    } finally {
-      setIsClearing(false);
-    }
-  };
-
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleString();
   };
@@ -342,26 +319,6 @@ export const DataUpload: React.FC<DataUploadProps> = ({ onDataLoaded }) => {
                 className="hidden"
               />
             </label>
-
-            {/* Clear button */}
-            {uploadHistory.length > 0 && (
-              <button
-                onClick={handleClearData}
-                disabled={isClearing}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
-                  isClearing
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                    : 'bg-red-50 text-red-600 hover:bg-red-100'
-                }`}
-              >
-                {isClearing ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Trash2 className="w-4 h-4" />
-                )}
-                <span className="text-sm font-medium">Clear All</span>
-              </button>
-            )}
           </div>
         </div>
 

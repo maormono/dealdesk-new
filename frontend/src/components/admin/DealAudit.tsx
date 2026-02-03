@@ -578,6 +578,17 @@ export const DealAudit: React.FC = () => {
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
+                  <th
+                    className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700"
+                    onClick={() => handleSort('created_at')}
+                  >
+                    <div className="flex items-center gap-1">
+                      Created
+                      {sortBy === 'created_at' && (
+                        sortOrder === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                      )}
+                    </div>
+                  </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                     Deal ID
                   </th>
@@ -615,17 +626,6 @@ export const DealAudit: React.FC = () => {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                     Margin
                   </th>
-                  <th
-                    className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700"
-                    onClick={() => handleSort('created_at')}
-                  >
-                    <div className="flex items-center gap-1">
-                      Created
-                      {sortBy === 'created_at' && (
-                        sortOrder === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
-                      )}
-                    </div>
-                  </th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
                     Actions
                   </th>
@@ -640,6 +640,9 @@ export const DealAudit: React.FC = () => {
 
                   return (
                     <tr key={deal.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3 text-sm text-gray-500">
+                        {formatDate(deal.created_at)}
+                      </td>
                       <td className="px-4 py-3">
                         <button
                           onClick={() => navigate(`/deal-review?dealId=${deal.id}&from=audit`)}
@@ -693,9 +696,6 @@ export const DealAudit: React.FC = () => {
                         ) : (
                           <span className="text-xs text-gray-400">-</span>
                         )}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-500">
-                        {formatDate(deal.created_at)}
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1">

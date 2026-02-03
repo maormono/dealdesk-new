@@ -96,7 +96,7 @@ export const DealReviewTabs: React.FC = () => {
         proposedPricePerSim: 2,
         currency: 'USD',
         isNewCustomer: true,
-        expectedUsagePattern: 'medium',
+        expectedUsagePattern: 'low',
         requiresIoT: false,
       };
 
@@ -240,6 +240,7 @@ export const DealReviewTabs: React.FC = () => {
                         key={currentDealId || 'new'}
                         initialDeal={sharedDeal}
                         initialEvaluation={currentDeal?.basic_evaluation}
+                        initialEnhancedAnalysis={currentDeal?.enhanced_analysis}
                         dealId={currentDealId || undefined}
                         onEvaluation={handleFormEvaluation}
                         onDealSaved={handleDealSaved}

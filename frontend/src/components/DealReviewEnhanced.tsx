@@ -127,7 +127,7 @@ export const DealReviewEnhanced: React.FC<DealReviewEnhancedProps> = ({ onExpand
           proposedPricePerSim: 2, // Default price, will be calculated
           currency: 'USD',
           isNewCustomer: true,
-          expectedUsagePattern: 'medium',
+          expectedUsagePattern: 'low',
           requiresIoT: false,
           usagePercentages: {}
         };

@@ -208,7 +208,7 @@ Extract these parameters and return as JSON:
   "currency": "EUR" or "USD" (default EUR),
   "carriers": [] (specific carrier names if mentioned),
   "isNewCustomer": boolean (default true),
-  "expectedUsagePattern": "low" | "medium" | "high" (default "medium"),
+  "expectedUsagePattern": "low" | "medium" | "high" (default "low"),
   "requiresIoT": boolean (default false)
 }
 
@@ -256,7 +256,7 @@ If you cannot extract clear deal parameters, return null.
             currency: params.currency || 'EUR',
             carriers: params.carriers || [],
             isNewCustomer: params.isNewCustomer !== false,
-            expectedUsagePattern: params.expectedUsagePattern || 'medium',
+            expectedUsagePattern: params.expectedUsagePattern || 'low',
             requiresIoT: params.requiresIoT || false,
             usagePercentages: this.calculateUsagePercentages(params.countries)
           } as DealRequest;

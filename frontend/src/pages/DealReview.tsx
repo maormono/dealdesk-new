@@ -207,7 +207,7 @@ I'll help optimize the deal - suggesting network choices, usage limits, and pric
     // Default values
     deal.duration = 12; // Default 12 month contract
     deal.isNewCustomer = true;
-    deal.expectedUsagePattern = 'medium';
+    deal.expectedUsagePattern = 'low';
     
     return deal;
   };

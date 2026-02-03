@@ -189,9 +189,24 @@ const saveFormState = (state: any) => {
   }
 };
 
+// Carrier info with technology capabilities
+interface CarrierInfo {
+  name: string;
+  technologies: {
+    gsm: boolean;
+    gprs2G: boolean;
+    umts3G: boolean;
+    lte4G: boolean;
+    lte5G: boolean;
+    lteM: boolean;
+    nbIot: boolean;
+  };
+}
+
 interface DealReviewFormProps {
   initialDeal?: Partial<DealRequest>;
   initialEvaluation?: DealEvaluation;
+  initialEnhancedAnalysis?: any;
   dealId?: string;
   onEvaluation?: (evaluation: DealEvaluation, deal: DealRequest) => void;
   onDealSaved?: (deal: SavedDeal) => void;
@@ -203,6 +218,7 @@ interface DealReviewFormProps {
 export const DealReviewForm: React.FC<DealReviewFormProps> = ({
   initialDeal,
   initialEvaluation,
+  initialEnhancedAnalysis,
   dealId,
   onEvaluation,
   onDealSaved,
@@ -216,7 +232,7 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({
   const [loading, setLoading] = useState(false);
   const [countries, setCountries] = useState<string[]>([]);
   const [availableCountries, setAvailableCountries] = useState<string[]>([]);
-  const [availableCarriers, setAvailableCarriers] = useState<Map<string, string[]>>(new Map());
+  const [availableCarriers, setAvailableCarriers] = useState<Map<string, CarrierInfo[]>>(new Map());
 
   // Form state - use initialDeal if loading a specific deal (dealId), otherwise restore from localStorage
   const [formData, setFormData] = useState<DealRequest>(() => {
@@ -240,7 +256,10 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({
     }
     // Otherwise restore from localStorage for new deals or editing
     if (savedState?.formData) {
-      return savedState.formData;
+      return {
+        ...savedState.formData,
+        expectedUsagePattern: 'low' // Always default to 'low' for new deals
+      };
     }
     return {
       simQuantity: initialDeal?.simQuantity || 1000,
@@ -260,7 +279,7 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({
   });
 
   const [evaluation, setEvaluation] = useState<DealEvaluation | null>(initialEvaluation || null);
-  const [enhancedAnalysis, setEnhancedAnalysis] = useState<any>(null);
+  const [enhancedAnalysis, setEnhancedAnalysis] = useState<any>(initialEnhancedAnalysis || null);
   const [comprehensiveAnalysis, setComprehensiveAnalysis] = useState<any>(null);
   const [showResults, setShowResults] = useState(!!initialEvaluation);
   const [isResultsExpanded, setIsResultsExpanded] = useState(false);
@@ -304,13 +323,16 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({
     });
   }, [formData, dataAmount, dataUnit, priceAmount, simQuantityStr, monthlySmsStr, durationStr, cellularTechnologies, lpwanTechnologies]);
 
-  // Update evaluation state when initialEvaluation prop changes (e.g., loading from URL)
+  // Update evaluation state when initialEvaluation/initialEnhancedAnalysis prop changes (e.g., loading from URL)
   useEffect(() => {
     if (initialEvaluation) {
       setEvaluation(initialEvaluation);
       setShowResults(true);
     }
-  }, [initialEvaluation]);
+    if (initialEnhancedAnalysis) {
+      setEnhancedAnalysis(initialEnhancedAnalysis);
+    }
+  }, [initialEvaluation, initialEnhancedAnalysis]);
 
   // Update form data when initialDeal or dealId changes (e.g., loading different deal from URL)
   useEffect(() => {
@@ -589,22 +611,63 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({
   };
 
   const loadCarriersForCountries = async (selectedCountries: string[]) => {
-    const carrierMap = new Map<string, string[]>();
+    const carrierMap = new Map<string, CarrierInfo[]>();
+    const allCarrierNames: string[] = [];
 
     for (const country of selectedCountries) {
       const { data, error } = await supabase
         .from('network_pricing')
-        .select('network_name')
+        .select('network_name, gsm, gprs_2g, umts_3g, lte_4g, lte_5g, lte_m, nb_iot')
         .eq('country', country)
         .order('network_name');
-      
+
       if (!error && data) {
-        const uniqueCarriers = [...new Set(data.map(d => d.network_name))];
-        carrierMap.set(country, uniqueCarriers);
+        // Group by network name and aggregate technologies (OR logic - if any record has the tech, show it)
+        const carrierTechMap = new Map<string, CarrierInfo['technologies']>();
+        data.forEach(d => {
+          const existing = carrierTechMap.get(d.network_name);
+          if (existing) {
+            // OR the technologies together
+            carrierTechMap.set(d.network_name, {
+              gsm: existing.gsm || d.gsm,
+              gprs2G: existing.gprs2G || d.gprs_2g,
+              umts3G: existing.umts3G || d.umts_3g,
+              lte4G: existing.lte4G || d.lte_4g,
+              lte5G: existing.lte5G || d.lte_5g,
+              lteM: existing.lteM || d.lte_m,
+              nbIot: existing.nbIot || d.nb_iot,
+            });
+          } else {
+            carrierTechMap.set(d.network_name, {
+              gsm: d.gsm || false,
+              gprs2G: d.gprs_2g || false,
+              umts3G: d.umts_3g || false,
+              lte4G: d.lte_4g || false,
+              lte5G: d.lte_5g || false,
+              lteM: d.lte_m || false,
+              nbIot: d.nb_iot || false,
+            });
+          }
+        });
+
+        const carriers: CarrierInfo[] = Array.from(carrierTechMap.entries()).map(([name, technologies]) => ({
+          name,
+          technologies
+        }));
+        carrierMap.set(country, carriers);
+
+        // Collect all carrier names for auto-selection
+        carriers.forEach(c => allCarrierNames.push(c.name));
       }
     }
-    
+
     setAvailableCarriers(carrierMap);
+
+    // Auto-select all carriers by default
+    setFormData(prev => ({
+      ...prev,
+      carriers: [...new Set([...prev.carriers, ...allCarrierNames])]
+    }));
   };
   
   const handleSubmit = async (e: React.FormEvent) => {
@@ -712,7 +775,7 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({
       // Also remove carriers from this country
       carriers: prev.carriers.filter(carrier => {
         const carriersInCountry = availableCarriers.get(country) || [];
-        return !carriersInCountry.includes(carrier);
+        return !carriersInCountry.some(c => c.name === carrier);
       })
     }));
   };
@@ -1410,7 +1473,6 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({
               >
                 <ChevronRight className={`w-4 h-4 transition-transform ${showPreferredCarriers ? 'rotate-90' : ''}`} />
                 <span>Preferred Carriers</span>
-                <span className="text-xs text-gray-400">(Optional - Select multiple for redundancy)</span>
                 {formData.carriers.length > 0 && (
                   <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full ml-2">
                     {formData.carriers.length} selected
@@ -1419,30 +1481,30 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({
               </button>
 
               {showPreferredCarriers && (
-                <div className="mt-3 pl-6">
+                <div className="mt-3">
                   {formData.countries.map(country => {
                     const carriers = availableCarriers.get(country) || [];
-                    const selectedInCountry = carriers.filter(c => formData.carriers.includes(c)).length;
+                    const selectedInCountry = carriers.filter(c => formData.carriers.includes(c.name)).length;
                     return (
                       <div key={country} className="mb-4">
-                        <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2 mb-2">
                           <p className="text-sm font-medium text-gray-600">{country}</p>
                           {selectedInCountry > 0 && (
-                            <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
-                              {selectedInCountry} network{selectedInCountry > 1 ? 's' : ''} selected
+                            <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">
+                              {selectedInCountry} selected
                             </span>
                           )}
                         </div>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                        <div className="flex flex-wrap gap-x-4 gap-y-1">
                           {carriers.map(carrier => (
-                            <label key={carrier} className="flex items-center space-x-2">
+                            <label key={carrier.name} className="flex items-center space-x-1.5">
                               <input
                                 type="checkbox"
-                                checked={formData.carriers.includes(carrier)}
-                                onChange={() => toggleCarrier(carrier)}
+                                checked={formData.carriers.includes(carrier.name)}
+                                onChange={() => toggleCarrier(carrier.name)}
                                 className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-offset-0"
                               />
-                              <span className="text-sm text-gray-700 truncate">{carrier}</span>
+                              <span className="text-sm text-gray-700 truncate">{carrier.name}</span>
                             </label>
                           ))}
                         </div>
