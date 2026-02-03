@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Upload, FileSpreadsheet, Trash2, Check, AlertCircle, Loader2 } from 'lucide-react';
+import { Upload, FileSpreadsheet, Trash2, Check, AlertCircle, Loader2, History, CheckCircle, Clock, Download } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import * as XLSX from 'xlsx';
 
@@ -9,6 +9,8 @@ interface UploadInfo {
   record_count: number;
   uploaded_by: string;
   uploaded_at: string;
+  is_active?: boolean;
+  storage_path?: string;
 }
 
 interface DataUploadProps {
@@ -16,7 +18,8 @@ interface DataUploadProps {
 }
 
 export const DataUpload: React.FC<DataUploadProps> = ({ onDataLoaded }) => {
-  const [uploadInfo, setUploadInfo] = useState<UploadInfo | null>(null);
+  const [uploadHistory, setUploadHistory] = useState<UploadInfo[]>([]);
+  const [activeUpload, setActiveUpload] = useState<UploadInfo | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -24,21 +27,24 @@ export const DataUpload: React.FC<DataUploadProps> = ({ onDataLoaded }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    loadUploadInfo();
+    loadUploadHistory();
   }, []);
 
-  const loadUploadInfo = async () => {
+  const loadUploadHistory = async () => {
+    // Load all upload history
     const { data, error } = await supabase
       .from('data_uploads')
       .select('*')
-      .order('uploaded_at', { ascending: false })
-      .limit(1)
-      .single();
+      .order('uploaded_at', { ascending: false });
 
     if (data && !error) {
-      setUploadInfo(data);
+      setUploadHistory(data);
+      // Find active upload (most recent or marked as active)
+      const active = data.find(u => u.is_active) || data[0] || null;
+      setActiveUpload(active);
     } else {
-      setUploadInfo(null);
+      setUploadHistory([]);
+      setActiveUpload(null);
     }
   };
 
@@ -153,9 +159,14 @@ export const DataUpload: React.FC<DataUploadProps> = ({ onDataLoaded }) => {
         throw new Error('No valid records found in file');
       }
 
-      // Clear existing data
+      // Clear existing pricing data (but keep upload history!)
       await supabase.from('network_pricing').delete().gte('id', 0);
-      await supabase.from('data_uploads').delete().gte('id', 0);
+
+      // Mark all previous uploads as inactive
+      await supabase
+        .from('data_uploads')
+        .update({ is_active: false })
+        .gte('id', 0);
 
       // Insert in batches of 100
       const batchSize = 100;
@@ -173,13 +184,31 @@ export const DataUpload: React.FC<DataUploadProps> = ({ onDataLoaded }) => {
       // Get current user email
       const { data: { user } } = await supabase.auth.getUser();
 
-      // Record the upload
+      // Upload the original file to Supabase Storage for future audit
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const storagePath = `${user?.id || 'unknown'}/${timestamp}_${file.name}`;
+
+      const { error: storageError } = await supabase.storage
+        .from('pricing-files')
+        .upload(storagePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (storageError) {
+        console.warn('Failed to store original file (audit copy):', storageError.message);
+        // Continue anyway - the data is still saved, just the original file won't be downloadable
+      }
+
+      // Record the new upload as active with storage path
       const { error: uploadError } = await supabase
         .from('data_uploads')
         .insert({
           filename: file.name,
           record_count: records.length,
-          uploaded_by: user?.email || 'unknown'
+          uploaded_by: user?.email || 'unknown',
+          is_active: true,
+          storage_path: storageError ? null : storagePath
         });
 
       if (uploadError) {
@@ -187,7 +216,7 @@ export const DataUpload: React.FC<DataUploadProps> = ({ onDataLoaded }) => {
       }
 
       setSuccess(`Successfully uploaded ${records.length} records from ${file.name}`);
-      await loadUploadInfo();
+      await loadUploadHistory();
       onDataLoaded?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed');
@@ -200,18 +229,19 @@ export const DataUpload: React.FC<DataUploadProps> = ({ onDataLoaded }) => {
   };
 
   const handleClearData = async () => {
-    if (!confirm('Are you sure you want to clear all pricing data?')) return;
+    if (!confirm('Are you sure you want to clear all pricing data and upload history?')) return;
 
     setIsClearing(true);
     setError(null);
     setSuccess(null);
 
     try {
-      await supabase.from('network_pricing_v2').delete().gte('id', 0);
+      await supabase.from('network_pricing').delete().gte('id', 0);
       await supabase.from('data_uploads').delete().gte('id', 0);
 
-      setUploadInfo(null);
-      setSuccess('All data cleared');
+      setUploadHistory([]);
+      setActiveUpload(null);
+      setSuccess('All data and history cleared');
       onDataLoaded?.();
     } catch (err) {
       setError('Failed to clear data');
@@ -224,95 +254,190 @@ export const DataUpload: React.FC<DataUploadProps> = ({ onDataLoaded }) => {
     return new Date(dateStr).toLocaleString();
   };
 
+  const handleDownloadFile = async (upload: UploadInfo) => {
+    if (!upload.storage_path) {
+      setError('Original file not available for download');
+      return;
+    }
+
+    try {
+      const { data, error: downloadError } = await supabase.storage
+        .from('pricing-files')
+        .download(upload.storage_path);
+
+      if (downloadError) {
+        throw new Error(downloadError.message);
+      }
+
+      // Create download link
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = upload.filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to download file');
+    }
+  };
+
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          {/* Current file info */}
-          {uploadInfo ? (
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-50 rounded-lg">
-                <FileSpreadsheet className="w-5 h-5 text-green-600" />
-              </div>
-              <div>
-                <div className="text-sm font-medium text-gray-900">{uploadInfo.filename}</div>
-                <div className="text-xs text-gray-500">
-                  {uploadInfo.record_count} records • Uploaded {formatDate(uploadInfo.uploaded_at)}
-                  {uploadInfo.uploaded_by && ` by ${uploadInfo.uploaded_by}`}
+    <div className="space-y-4">
+      {/* Current Active Data */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            {activeUpload ? (
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-green-50 rounded-lg">
+                  <FileSpreadsheet className="w-5 h-5 text-green-600" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-gray-900">{activeUpload.filename}</span>
+                    <span className="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700 rounded-full">Active</span>
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {activeUpload.record_count} records • Uploaded {formatDate(activeUpload.uploaded_at)}
+                    {activeUpload.uploaded_by && ` by ${activeUpload.uploaded_by}`}
+                  </div>
                 </div>
               </div>
-            </div>
-          ) : (
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-gray-50 rounded-lg">
-                <FileSpreadsheet className="w-5 h-5 text-gray-400" />
-              </div>
-              <div>
-                <div className="text-sm font-medium text-gray-500">No data loaded</div>
-                <div className="text-xs text-gray-400">Upload an Excel file to get started</div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2">
-          {/* Upload button */}
-          <label className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${
-            isUploading
-              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-              : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
-          }`}>
-            {isUploading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
-              <Upload className="w-4 h-4" />
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-gray-50 rounded-lg">
+                  <FileSpreadsheet className="w-5 h-5 text-gray-400" />
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-gray-500">No data loaded</div>
+                  <div className="text-xs text-gray-400">Upload an Excel file to get started</div>
+                </div>
+              </div>
             )}
-            <span className="text-sm font-medium">
-              {isUploading ? 'Uploading...' : (uploadInfo ? 'Replace Data' : 'Upload File')}
-            </span>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".xlsx,.xls"
-              onChange={handleFileUpload}
-              disabled={isUploading}
-              className="hidden"
-            />
-          </label>
+          </div>
 
-          {/* Clear button */}
-          {uploadInfo && (
-            <button
-              onClick={handleClearData}
-              disabled={isClearing}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
-                isClearing
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : 'bg-red-50 text-red-600 hover:bg-red-100'
-              }`}
-            >
-              {isClearing ? (
+          <div className="flex items-center gap-2">
+            {/* Upload button */}
+            <label className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${
+              isUploading
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+            }`}>
+              {isUploading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
-                <Trash2 className="w-4 h-4" />
+                <Upload className="w-4 h-4" />
               )}
-              <span className="text-sm font-medium">Clear</span>
-            </button>
-          )}
+              <span className="text-sm font-medium">
+                {isUploading ? 'Uploading...' : (activeUpload ? 'Update Data' : 'Upload File')}
+              </span>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={handleFileUpload}
+                disabled={isUploading}
+                className="hidden"
+              />
+            </label>
+
+            {/* Clear button */}
+            {uploadHistory.length > 0 && (
+              <button
+                onClick={handleClearData}
+                disabled={isClearing}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
+                  isClearing
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-red-50 text-red-600 hover:bg-red-100'
+                }`}
+              >
+                {isClearing ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Trash2 className="w-4 h-4" />
+                )}
+                <span className="text-sm font-medium">Clear All</span>
+              </button>
+            )}
+          </div>
         </div>
+
+        {/* Status messages */}
+        {error && (
+          <div className="mt-3 flex items-center gap-2 text-red-600 text-sm bg-red-50 px-3 py-2 rounded-lg">
+            <AlertCircle className="w-4 h-4" />
+            {error}
+          </div>
+        )}
+        {success && (
+          <div className="mt-3 flex items-center gap-2 text-green-600 text-sm bg-green-50 px-3 py-2 rounded-lg">
+            <Check className="w-4 h-4" />
+            {success}
+          </div>
+        )}
       </div>
 
-      {/* Status messages */}
-      {error && (
-        <div className="mt-3 flex items-center gap-2 text-red-600 text-sm bg-red-50 px-3 py-2 rounded-lg">
-          <AlertCircle className="w-4 h-4" />
-          {error}
-        </div>
-      )}
-      {success && (
-        <div className="mt-3 flex items-center gap-2 text-green-600 text-sm bg-green-50 px-3 py-2 rounded-lg">
-          <Check className="w-4 h-4" />
-          {success}
+      {/* Upload History */}
+      {uploadHistory.length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+          <div className="flex items-center gap-2 mb-4">
+            <History className="w-4 h-4 text-gray-500" />
+            <h4 className="text-sm font-semibold text-gray-700">Upload History</h4>
+            <span className="text-xs text-gray-400">({uploadHistory.length} uploads)</span>
+          </div>
+          <div className="space-y-2">
+            {uploadHistory.map((upload, index) => (
+              <div
+                key={upload.id}
+                className={`flex items-center justify-between p-3 rounded-lg border ${
+                  index === 0
+                    ? 'bg-green-50/50 border-green-200'
+                    : 'bg-gray-50 border-gray-100'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  {index === 0 ? (
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                  ) : (
+                    <Clock className="w-4 h-4 text-gray-400" />
+                  )}
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-sm font-medium ${index === 0 ? 'text-gray-900' : 'text-gray-600'}`}>
+                        {upload.filename}
+                      </span>
+                      {index === 0 && (
+                        <span className="px-1.5 py-0.5 text-[10px] font-medium bg-green-100 text-green-700 rounded">
+                          Current
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {upload.record_count.toLocaleString()} records
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="text-right">
+                    <div className="text-xs text-gray-500">{formatDate(upload.uploaded_at)}</div>
+                    <div className="text-xs text-gray-400">{upload.uploaded_by}</div>
+                  </div>
+                  {upload.storage_path && (
+                    <button
+                      onClick={() => handleDownloadFile(upload)}
+                      className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      title="Download original file"
+                    >
+                      <Download className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

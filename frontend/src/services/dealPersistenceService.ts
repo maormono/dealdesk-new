@@ -10,6 +10,23 @@ export interface EvaluationResults {
 
 class DealPersistenceService {
   /**
+   * Get the currently active pricing data upload
+   */
+  private async getActivePricingData(): Promise<{ id: number; filename: string } | null> {
+    const { data, error } = await supabase
+      .from('data_uploads')
+      .select('id, filename')
+      .order('uploaded_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error || !data) {
+      return null;
+    }
+    return { id: data.id, filename: data.filename };
+  }
+
+  /**
    * Create a new deal in draft status
    */
   async createDeal(request: DealRequest, userId: string, userEmail: string): Promise<SavedDeal> {
@@ -79,6 +96,10 @@ class DealPersistenceService {
    */
   async saveEvaluation(dealId: string, request: DealRequest, results: EvaluationResults): Promise<SavedDeal> {
     const basicEval = results.basic_evaluation;
+
+    // Get the currently active pricing data
+    const pricingData = await this.getActivePricingData();
+
     const updateData: any = {
       deal_request: request,
       sim_quantity: request.simQuantity,
@@ -92,6 +113,9 @@ class DealPersistenceService {
       comprehensive_analysis: results.comprehensive_analysis || null,
       status: 'evaluated',
       evaluated_at: new Date().toISOString(),
+      // Store reference to pricing data used for this evaluation
+      pricing_data_id: pricingData?.id || null,
+      pricing_data_filename: pricingData?.filename || null,
     };
 
     // Extract key metrics from evaluation
@@ -118,13 +142,14 @@ class DealPersistenceService {
   }
 
   /**
-   * Get all deals for a specific user
+   * Get all deals for a specific user, excluding deleted deals
    */
   async getUserDeals(userId: string): Promise<SavedDeal[]> {
     const { data, error } = await supabase
       .from('deal_evaluations')
       .select('*')
       .eq('user_id', userId)
+      .is('deleted_at', null) // Exclude soft-deleted deals
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -179,12 +204,13 @@ class DealPersistenceService {
   }
 
   /**
-   * Get all deals (admin only - for audit)
+   * Get all deals (admin only - for audit), excluding deleted deals
    */
   async getAllDeals(filters?: DealFilters): Promise<SavedDeal[]> {
     let query = supabase
       .from('deal_evaluations')
       .select('*')
+      .is('deleted_at', null) // Exclude soft-deleted deals
       .order('created_at', { ascending: false });
 
     // Apply filters
@@ -224,10 +250,73 @@ class DealPersistenceService {
   }
 
   /**
+   * Get all deleted deals (admin only - for audit)
+   */
+  async getDeletedDeals(): Promise<SavedDeal[]> {
+    const { data, error } = await supabase
+      .from('deal_evaluations')
+      .select('*')
+      .not('deleted_at', 'is', null) // Only soft-deleted deals
+      .order('deleted_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching deleted deals:', error);
+      throw new Error(`Failed to fetch deleted deals: ${error.message}`);
+    }
+
+    return (data || []).map(this.mapToSavedDeal);
+  }
+
+  /**
    * Delete a deal (soft delete by archiving)
    */
   async archiveDeal(dealId: string): Promise<void> {
     await this.updateDealStatus(dealId, 'archived');
+  }
+
+  /**
+   * Soft delete a deal (admin only) - sets deleted_at timestamp
+   */
+  async deleteDeal(dealId: string): Promise<void> {
+    const { error } = await supabase
+      .from('deal_evaluations')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', dealId);
+
+    if (error) {
+      console.error('Error deleting deal:', error);
+      throw new Error(`Failed to delete deal: ${error.message}`);
+    }
+  }
+
+  /**
+   * Restore a soft-deleted deal (admin only)
+   */
+  async restoreDeal(dealId: string): Promise<void> {
+    const { error } = await supabase
+      .from('deal_evaluations')
+      .update({ deleted_at: null })
+      .eq('id', dealId);
+
+    if (error) {
+      console.error('Error restoring deal:', error);
+      throw new Error(`Failed to restore deal: ${error.message}`);
+    }
+  }
+
+  /**
+   * Permanently delete a deal (admin only) - removes from database
+   */
+  async permanentlyDeleteDeal(dealId: string): Promise<void> {
+    const { error } = await supabase
+      .from('deal_evaluations')
+      .delete()
+      .eq('id', dealId);
+
+    if (error) {
+      console.error('Error permanently deleting deal:', error);
+      throw new Error(`Failed to permanently delete deal: ${error.message}`);
+    }
   }
 
   /**
@@ -258,6 +347,9 @@ class DealPersistenceService {
       updated_at: row.updated_at,
       evaluated_at: row.evaluated_at,
       finalized_at: row.finalized_at,
+      deleted_at: row.deleted_at,
+      pricing_data_id: row.pricing_data_id,
+      pricing_data_filename: row.pricing_data_filename,
     };
   }
 }

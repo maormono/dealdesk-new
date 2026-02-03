@@ -141,6 +141,10 @@ export interface SavedDeal {
   updated_at: string;
   evaluated_at?: string;
   finalized_at?: string;
+  deleted_at?: string;
+  // Pricing data reference (which Excel file was used for evaluation)
+  pricing_data_id?: number;
+  pricing_data_filename?: string;
 }
 
 // Filters for querying deals (admin audit)

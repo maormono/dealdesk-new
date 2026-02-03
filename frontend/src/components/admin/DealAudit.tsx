@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Search,
   Filter,
@@ -7,6 +8,7 @@ import {
   ChevronUp,
   Loader2,
   FileText,
+  FileSpreadsheet,
   CheckCircle,
   XCircle,
   AlertCircle,
@@ -14,7 +16,10 @@ import {
   Eye,
   X,
   Calendar,
-  User
+  User,
+  Trash2,
+  RotateCcw,
+  ExternalLink
 } from 'lucide-react';
 import { dealPersistenceService } from '../../services/dealPersistenceService';
 import type { SavedDeal, DealFilters, DealStatus } from '../../config/dealConfig';
@@ -196,11 +201,18 @@ const verdictConfig: Record<string, { label: string; color: string; icon: React.
 };
 
 export const DealAudit: React.FC = () => {
+  const navigate = useNavigate();
   const [deals, setDeals] = useState<SavedDeal[]>([]);
+  const [deletedDeals, setDeletedDeals] = useState<SavedDeal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const [showDeletedDeals, setShowDeletedDeals] = useState(false);
   const [selectedDeal, setSelectedDeal] = useState<SavedDeal | null>(null);
+  const [dealToDelete, setDealToDelete] = useState<SavedDeal | null>(null);
+  const [dealToRestore, setDealToRestore] = useState<SavedDeal | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
 
   // Filters
   const [filters, setFilters] = useState<DealFilters>({});
@@ -261,9 +273,24 @@ export const DealAudit: React.FC = () => {
     }
   }, [searchQuery, statusFilter, verdictFilter, dateFrom, dateTo, sortBy, sortOrder]);
 
+  const fetchDeletedDeals = useCallback(async () => {
+    try {
+      const deleted = await dealPersistenceService.getDeletedDeals();
+      setDeletedDeals(deleted);
+    } catch (error) {
+      console.error('Error fetching deleted deals:', error);
+    }
+  }, []);
+
   useEffect(() => {
     fetchDeals();
   }, [fetchDeals]);
+
+  useEffect(() => {
+    if (showDeletedDeals) {
+      fetchDeletedDeals();
+    }
+  }, [showDeletedDeals, fetchDeletedDeals]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -341,6 +368,40 @@ export const DealAudit: React.FC = () => {
     setVerdictFilter('');
     setDateFrom('');
     setDateTo('');
+  };
+
+  const handleDeleteDeal = async () => {
+    if (!dealToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      await dealPersistenceService.deleteDeal(dealToDelete.id);
+      setDealToDelete(null);
+      await fetchDeals(); // Refresh the active list
+      await fetchDeletedDeals(); // Refresh the deleted list
+    } catch (error) {
+      console.error('Error deleting deal:', error);
+      alert('Failed to delete deal. Please try again.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleRestoreDeal = async () => {
+    if (!dealToRestore) return;
+
+    setIsRestoring(true);
+    try {
+      await dealPersistenceService.restoreDeal(dealToRestore.id);
+      setDealToRestore(null);
+      await fetchDeals(); // Refresh the active list
+      await fetchDeletedDeals(); // Refresh the deleted list
+    } catch (error) {
+      console.error('Error restoring deal:', error);
+      alert('Failed to restore deal. Please try again.');
+    } finally {
+      setIsRestoring(false);
+    }
   };
 
   const hasActiveFilters = searchQuery || statusFilter || verdictFilter || dateFrom || dateTo;
@@ -580,9 +641,13 @@ export const DealAudit: React.FC = () => {
                   return (
                     <tr key={deal.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-4 py-3">
-                        <span className="font-mono text-sm font-medium text-[#5B9BD5]">
+                        <button
+                          onClick={() => navigate(`/deal-review?dealId=${deal.id}&from=audit`)}
+                          className="font-mono text-sm font-medium text-[#5B9BD5] hover:text-[#4A8AC4] hover:underline flex items-center gap-1 transition-colors"
+                        >
                           {formatDealId(deal.id)}
-                        </span>
+                          <ExternalLink className="w-3 h-3 opacity-50" />
+                        </button>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
@@ -633,19 +698,115 @@ export const DealAudit: React.FC = () => {
                         {formatDate(deal.created_at)}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <button
-                          onClick={() => setSelectedDeal(deal)}
-                          className="inline-flex items-center gap-1 px-2 py-1 text-xs text-[#5B9BD5] hover:bg-[#5B9BD5]/10 rounded transition-colors"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                          View
-                        </button>
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => setSelectedDeal(deal)}
+                            className="inline-flex items-center gap-1 px-2 py-1 text-xs text-[#5B9BD5] hover:bg-[#5B9BD5]/10 rounded transition-colors"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            View
+                          </button>
+                          <button
+                            onClick={() => setDealToDelete(deal)}
+                            className="inline-flex items-center gap-1 px-2 py-1 text-xs text-red-500 hover:bg-red-50 rounded transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            Delete
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
+          </div>
+        )}
+      </div>
+
+      {/* Deleted Deals Section */}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <button
+          onClick={() => setShowDeletedDeals(!showDeletedDeals)}
+          className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <Trash2 className="w-4 h-4 text-gray-400" />
+            <span className="text-sm font-medium text-gray-700">Deleted Deals</span>
+            {deletedDeals.length > 0 && (
+              <span className="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-700 rounded-full">
+                {deletedDeals.length}
+              </span>
+            )}
+          </div>
+          {showDeletedDeals ? (
+            <ChevronUp className="w-4 h-4 text-gray-400" />
+          ) : (
+            <ChevronDown className="w-4 h-4 text-gray-400" />
+          )}
+        </button>
+
+        {showDeletedDeals && (
+          <div className="border-t border-gray-200">
+            {deletedDeals.length === 0 ? (
+              <div className="text-center py-8">
+                <Trash2 className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                <p className="text-sm text-gray-500">No deleted deals</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-red-50/50 border-b border-gray-200">
+                    <tr>
+                      <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        Deal ID
+                      </th>
+                      <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        User
+                      </th>
+                      <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        SIMs
+                      </th>
+                      <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        Deleted At
+                      </th>
+                      <th className="px-4 py-2 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {deletedDeals.map((deal) => (
+                      <tr key={deal.id} className="hover:bg-red-50/30 transition-colors">
+                        <td className="px-4 py-2">
+                          <span className="font-mono text-sm font-medium text-gray-500">
+                            {formatDealId(deal.id)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2 text-sm text-gray-600">
+                          {deal.user_email}
+                        </td>
+                        <td className="px-4 py-2 text-sm text-gray-600">
+                          {deal.sim_quantity.toLocaleString()}
+                        </td>
+                        <td className="px-4 py-2 text-sm text-gray-500">
+                          {deal.deleted_at ? formatDate(deal.deleted_at) : '-'}
+                        </td>
+                        <td className="px-4 py-2 text-right">
+                          <button
+                            onClick={() => setDealToRestore(deal)}
+                            className="inline-flex items-center gap-1 px-2 py-1 text-xs text-green-600 hover:bg-green-50 rounded transition-colors"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5" />
+                            Restore
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -804,6 +965,22 @@ export const DealAudit: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* Pricing Data Used */}
+                  {selectedDeal.pricing_data_filename && (
+                    <div className="bg-blue-50/50 rounded-xl p-4 border border-blue-100">
+                      <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                        <FileSpreadsheet className="w-4 h-4 text-blue-600" />
+                        Pricing Data Used
+                      </h4>
+                      <div className="text-sm text-gray-600">
+                        {selectedDeal.pricing_data_filename}
+                      </div>
+                      <div className="text-xs text-gray-400 mt-1">
+                        Data ID: #{selectedDeal.pricing_data_id}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Raw Data Info */}
                   <div className="text-xs text-gray-400">
                     <p>Full evaluation data stored in database.</p>
@@ -850,6 +1027,150 @@ export const DealAudit: React.FC = () => {
                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {dealToDelete && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                <Trash2 className="w-5 h-5 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Delete Deal</h3>
+                <p className="text-sm text-gray-500">You can restore this deal later</p>
+              </div>
+            </div>
+
+            <div className="bg-gray-50 rounded-lg p-4 mb-6">
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Deal ID</span>
+                  <span className="font-mono font-medium text-[#5B9BD5]">
+                    {formatDealId(dealToDelete.id)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">User</span>
+                  <span className="text-gray-900">{dealToDelete.user_email}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">SIMs</span>
+                  <span className="text-gray-900">{dealToDelete.sim_quantity.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Countries</span>
+                  <span className="text-gray-900">{dealToDelete.countries.length}</span>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-sm text-gray-600 mb-6">
+              Are you sure you want to delete this deal evaluation? The deal will be moved to the Deleted Deals section and can be restored later.
+            </p>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setDealToDelete(null)}
+                disabled={isDeleting}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteDeal}
+                disabled={isDeleting}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    Delete Deal
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Restore Confirmation Modal */}
+      {dealToRestore && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                <RotateCcw className="w-5 h-5 text-green-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Restore Deal</h3>
+                <p className="text-sm text-gray-500">Bring this deal back to the active list</p>
+              </div>
+            </div>
+
+            <div className="bg-gray-50 rounded-lg p-4 mb-6">
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Deal ID</span>
+                  <span className="font-mono font-medium text-[#5B9BD5]">
+                    {formatDealId(dealToRestore.id)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">User</span>
+                  <span className="text-gray-900">{dealToRestore.user_email}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">SIMs</span>
+                  <span className="text-gray-900">{dealToRestore.sim_quantity.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Deleted At</span>
+                  <span className="text-gray-900">
+                    {dealToRestore.deleted_at ? formatDate(dealToRestore.deleted_at) : '-'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-sm text-gray-600 mb-6">
+              Are you sure you want to restore this deal? It will be moved back to the active deals list.
+            </p>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setDealToRestore(null)}
+                disabled={isRestoring}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRestoreDeal}
+                disabled={isRestoring}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+              >
+                {isRestoring ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Restoring...
+                  </>
+                ) : (
+                  <>
+                    <RotateCcw className="w-4 h-4" />
+                    Restore Deal
+                  </>
+                )}
               </button>
             </div>
           </div>

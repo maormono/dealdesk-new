@@ -191,6 +191,7 @@ const saveFormState = (state: any) => {
 
 interface DealReviewFormProps {
   initialDeal?: Partial<DealRequest>;
+  initialEvaluation?: DealEvaluation;
   dealId?: string;
   onEvaluation?: (evaluation: DealEvaluation, deal: DealRequest) => void;
   onDealSaved?: (deal: SavedDeal) => void;
@@ -201,6 +202,7 @@ interface DealReviewFormProps {
 
 export const DealReviewForm: React.FC<DealReviewFormProps> = ({
   initialDeal,
+  initialEvaluation,
   dealId,
   onEvaluation,
   onDealSaved,
@@ -216,8 +218,27 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({
   const [availableCountries, setAvailableCountries] = useState<string[]>([]);
   const [availableCarriers, setAvailableCarriers] = useState<Map<string, string[]>>(new Map());
 
-  // Form state - restore from localStorage if available, otherwise use defaults
+  // Form state - use initialDeal if loading a specific deal (dealId), otherwise restore from localStorage
   const [formData, setFormData] = useState<DealRequest>(() => {
+    // If loading a specific deal (e.g., from audit), prioritize initialDeal over localStorage
+    if (dealId && initialDeal) {
+      return {
+        simQuantity: initialDeal.simQuantity || 1000,
+        countries: initialDeal.countries || [],
+        usagePercentages: initialDeal.usagePercentages || {},
+        carriers: initialDeal.carriers || [],
+        monthlyDataPerSim: initialDeal.monthlyDataPerSim || 1,
+        monthlySmsPerSim: initialDeal.monthlySmsPerSim || 0,
+        duration: initialDeal.duration || 12,
+        proposedPricePerSim: initialDeal.proposedPricePerSim || 2,
+        currency: initialDeal.currency || 'USD',
+        isNewCustomer: initialDeal.isNewCustomer ?? true,
+        expectedUsagePattern: initialDeal.expectedUsagePattern || 'low',
+        requiresIoT: initialDeal.requiresIoT || false,
+        iotType: initialDeal.iotType
+      };
+    }
+    // Otherwise restore from localStorage for new deals or editing
     if (savedState?.formData) {
       return savedState.formData;
     }
@@ -232,16 +253,16 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({
       proposedPricePerSim: initialDeal?.proposedPricePerSim || 2,
       currency: initialDeal?.currency || 'USD',
       isNewCustomer: initialDeal?.isNewCustomer ?? true,
-      expectedUsagePattern: initialDeal?.expectedUsagePattern || 'medium',
+      expectedUsagePattern: initialDeal?.expectedUsagePattern || 'low',
       requiresIoT: initialDeal?.requiresIoT || false,
       iotType: initialDeal?.iotType
     };
   });
 
-  const [evaluation, setEvaluation] = useState<DealEvaluation | null>(null);
+  const [evaluation, setEvaluation] = useState<DealEvaluation | null>(initialEvaluation || null);
   const [enhancedAnalysis, setEnhancedAnalysis] = useState<any>(null);
   const [comprehensiveAnalysis, setComprehensiveAnalysis] = useState<any>(null);
-  const [showResults, setShowResults] = useState(false);
+  const [showResults, setShowResults] = useState(!!initialEvaluation);
   const [isResultsExpanded, setIsResultsExpanded] = useState(false);
   const [currencyRates, setCurrencyRates] = useState<Record<string, number>>(DEFAULT_CURRENCY_TO_USD);
   const [dataAmount, setDataAmount] = useState<number>(() => savedState?.dataAmount || 1024);
@@ -254,6 +275,7 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({
   const [lpwanTechnologies, setLpwanTechnologies] = useState<string[]>(() => savedState?.lpwanTechnologies || []);
   const [showCellularDropdown, setShowCellularDropdown] = useState(false);
   const [showLpwanDropdown, setShowLpwanDropdown] = useState(false);
+  const [showUsagePatternDropdown, setShowUsagePatternDropdown] = useState(false);
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
   const [showPreferredCarriers, setShowPreferredCarriers] = useState(false);
   const [showUsageDistribution, setShowUsageDistribution] = useState(false);
@@ -265,6 +287,7 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({
   const cellularDropdownRef = useRef<HTMLDivElement>(null);
   const lpwanDropdownRef = useRef<HTMLDivElement>(null);
   const countryDropdownRef = useRef<HTMLDivElement>(null);
+  const usagePatternDropdownRef = useRef<HTMLDivElement>(null);
 
   // Save form state to localStorage whenever it changes
   useEffect(() => {
@@ -280,6 +303,53 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({
       lpwanTechnologies,
     });
   }, [formData, dataAmount, dataUnit, priceAmount, simQuantityStr, monthlySmsStr, durationStr, cellularTechnologies, lpwanTechnologies]);
+
+  // Update evaluation state when initialEvaluation prop changes (e.g., loading from URL)
+  useEffect(() => {
+    if (initialEvaluation) {
+      setEvaluation(initialEvaluation);
+      setShowResults(true);
+    }
+  }, [initialEvaluation]);
+
+  // Update form data when initialDeal or dealId changes (e.g., loading different deal from URL)
+  useEffect(() => {
+    if (initialDeal && dealId) {
+      setFormData({
+        simQuantity: initialDeal.simQuantity || 1000,
+        countries: initialDeal.countries || [],
+        usagePercentages: initialDeal.usagePercentages || {},
+        carriers: initialDeal.carriers || [],
+        monthlyDataPerSim: initialDeal.monthlyDataPerSim || 1,
+        monthlySmsPerSim: initialDeal.monthlySmsPerSim || 0,
+        duration: initialDeal.duration || 12,
+        proposedPricePerSim: initialDeal.proposedPricePerSim || 2,
+        currency: initialDeal.currency || 'USD',
+        isNewCustomer: initialDeal.isNewCustomer ?? true,
+        expectedUsagePattern: initialDeal.expectedUsagePattern || 'low',
+        requiresIoT: initialDeal.requiresIoT || false,
+        iotType: initialDeal.iotType
+      });
+      // Update related input states
+      setSimQuantityStr(String(initialDeal.simQuantity || 1000));
+      setMonthlySmsStr(String(initialDeal.monthlySmsPerSim || 0));
+      setDurationStr(String(initialDeal.duration || 12));
+      setPriceAmount(String(initialDeal.proposedPricePerSim || 2));
+      if (initialDeal.monthlyDataPerSim) {
+        const mbValue = initialDeal.monthlyDataPerSim;
+        if (mbValue >= 1024) {
+          setDataAmount(mbValue / 1024);
+          setDataUnit('GB');
+        } else if (mbValue < 1) {
+          setDataAmount(mbValue * 1024);
+          setDataUnit('KB');
+        } else {
+          setDataAmount(mbValue);
+          setDataUnit('MB');
+        }
+      }
+    }
+  }, [dealId, initialDeal]);
 
   // Group available countries by region
   const availableCountriesByRegion = useMemo(() => {
@@ -475,6 +545,9 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({
         if (searchInputRef.current) {
           searchInputRef.current.value = '';
         }
+      }
+      if (usagePatternDropdownRef.current && !usagePatternDropdownRef.current.contains(event.target as Node)) {
+        setShowUsagePatternDropdown(false);
       }
     };
 
@@ -989,19 +1062,49 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({
             </div>
             
             {/* Expected Usage Pattern */}
-            <div>
+            <div className="relative" ref={usagePatternDropdownRef}>
               <label className="block text-sm font-medium text-gray-500 mb-2">
                 Expected Usage Pattern
               </label>
-              <select
-                value={formData.expectedUsagePattern}
-                onChange={(e) => setFormData(prev => ({ ...prev, expectedUsagePattern: e.target.value as 'low' | 'medium' | 'high' }))}
-                className="w-full px-4 py-3 text-sm bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]/50 focus:bg-white transition-all"
+              <button
+                type="button"
+                onClick={() => setShowUsagePatternDropdown(!showUsagePatternDropdown)}
+                className="w-full px-4 py-3 bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]/50 focus:bg-white transition-all text-sm flex items-center justify-between"
               >
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-              </select>
+                <span className="text-left">
+                  {formData.expectedUsagePattern === 'low' && 'Low (up to 10MB)'}
+                  {formData.expectedUsagePattern === 'medium' && 'Medium (10-100MB)'}
+                  {formData.expectedUsagePattern === 'high' && 'High (above 100MB)'}
+                </span>
+                <ChevronDown className={`w-4 h-4 transition-transform ${showUsagePatternDropdown ? 'rotate-180' : ''}`} />
+              </button>
+
+              {showUsagePatternDropdown && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-20">
+                  <div className="p-2">
+                    {[
+                      { value: 'low', label: 'Low', description: 'up to 10MB' },
+                      { value: 'medium', label: 'Medium', description: '10-100MB' },
+                      { value: 'high', label: 'High', description: 'above 100MB' }
+                    ].map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => {
+                          setFormData(prev => ({ ...prev, expectedUsagePattern: option.value as 'low' | 'medium' | 'high' }));
+                          setShowUsagePatternDropdown(false);
+                        }}
+                        className={`w-full flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg text-left ${
+                          formData.expectedUsagePattern === option.value ? 'bg-blue-50' : ''
+                        }`}
+                      >
+                        <span className="text-sm font-medium text-gray-700">{option.label}</span>
+                        <span className="text-xs text-gray-500">({option.description})</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

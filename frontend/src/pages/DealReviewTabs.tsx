@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Calculator, Sparkles, ArrowLeft } from 'lucide-react';
 import { DealReviewForm } from '../components/DealReviewForm';
 import { DealReviewEnhanced } from '../components/DealReviewEnhanced';
@@ -14,6 +15,12 @@ type ViewMode = 'list' | 'form';
 
 export const DealReviewTabs: React.FC = () => {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+
+  // Get URL parameters
+  const urlDealId = searchParams.get('dealId');
+  const fromSource = searchParams.get('from');
 
   // View mode state
   const [viewMode, setViewMode] = useState<ViewMode>('list');
@@ -46,6 +53,30 @@ export const DealReviewTabs: React.FC = () => {
   useEffect(() => {
     fetchDeals();
   }, [fetchDeals]);
+
+  // Load deal from URL parameter (e.g., when coming from audit)
+  useEffect(() => {
+    const loadDealFromUrl = async () => {
+      // Load if we have a URL dealId and it's different from current deal
+      if (urlDealId && urlDealId !== currentDealId) {
+        try {
+          const deal = await dealPersistenceService.getDealById(urlDealId);
+          if (deal) {
+            setCurrentDealId(deal.id);
+            setCurrentDeal(deal);
+            setSharedDeal(deal.deal_request);
+            if (deal.basic_evaluation) {
+              setSharedEvaluation(deal.basic_evaluation);
+            }
+            setViewMode('form');
+          }
+        } catch (error) {
+          console.error('Error loading deal from URL:', error);
+        }
+      }
+    };
+    loadDealFromUrl();
+  }, [urlDealId, currentDealId]);
 
   // Create a new deal
   const handleCreateNewDeal = async () => {
@@ -93,8 +124,16 @@ export const DealReviewTabs: React.FC = () => {
     setViewMode('form');
   };
 
-  // Go back to list view
+  // Go back to list view or audit (if coming from audit)
   const handleBackToList = () => {
+    // If we came from audit, navigate back to admin audit tab
+    if (fromSource === 'audit') {
+      navigate('/admin?tab=audit');
+      return;
+    }
+
+    // Clear URL params when going back to list
+    setSearchParams({});
     setViewMode('list');
     setCurrentDealId(null);
     setCurrentDeal(null);
@@ -170,7 +209,7 @@ export const DealReviewTabs: React.FC = () => {
                         className="inline-flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
                       >
                         <ArrowLeft className="w-4 h-4" />
-                        Back to Deals
+                        {fromSource === 'audit' ? 'Back to Audit' : 'Back to Deals'}
                       </button>
                       {currentDealId && (
                         <div className="flex items-center gap-2">
@@ -198,7 +237,9 @@ export const DealReviewTabs: React.FC = () => {
                   <div className="min-h-[600px]">
                     <div className="h-full overflow-y-auto">
                       <DealReviewForm
+                        key={currentDealId || 'new'}
                         initialDeal={sharedDeal}
+                        initialEvaluation={currentDeal?.basic_evaluation}
                         dealId={currentDealId || undefined}
                         onEvaluation={handleFormEvaluation}
                         onDealSaved={handleDealSaved}

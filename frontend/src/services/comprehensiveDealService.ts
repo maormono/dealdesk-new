@@ -492,14 +492,14 @@ CRITICAL:
   // Step 4: Send to Gemini for analysis
   async analyzeWithGemini(prompt: string): Promise<string> {
     try {
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      const apiKey = import.meta.env.VITE_GEMINI_COMPREHENSIVE_API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
       
       if (!apiKey) {
         throw new Error('Gemini API key not configured');
       }
       
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
         {
           method: 'POST',
           headers: {
@@ -734,7 +734,7 @@ ${detailedAnalysis.riskAssessment && detailedAnalysis.riskAssessment.length > 0 
   // Enhanced natural language parser using Gemini
   private async parseNaturalLanguageInput(query: string): Promise<Partial<DealRequestMandatory>> {
     try {
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      const apiKey = import.meta.env.VITE_GEMINI_COMPREHENSIVE_API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
       if (!apiKey) {
         // Fallback to basic parsing if no API key
         return this.parseUserInput(query);
@@ -757,7 +757,7 @@ Extract:
 If unclear, use reasonable defaults. Return only JSON.`;
       
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

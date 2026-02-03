@@ -8,10 +8,9 @@ import type { DealRequest } from '../config/dealConfig';
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || '');
 
 export class AIAdvisorService {
-  // Using Gemini 2.0 Flash Experimental - latest and best model with good performance
-  // Alternative options: 'gemini-2.0-flash' (stable), 'gemini-2.0-pro' (highest quality)
-  private model = genAI.getGenerativeModel({ 
-    model: 'gemini-2.0-flash-exp',
+  // Using Gemini 2.0 Flash - stable production model with good performance
+  private model = genAI.getGenerativeModel({
+    model: 'gemini-2.0-flash',
     generationConfig: {
       temperature: 0.7,
       topK: 40,

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Users, DollarSign, Database, Shield, Calculator, ClipboardList, Sparkles, Key } from 'lucide-react';
 import { DealRules } from '../components/admin/DealRules';
 import { DealAudit } from '../components/admin/DealAudit';
@@ -36,10 +37,21 @@ export const Admin: React.FC = () => {
   // Use the already-loaded user permissions from context (no need to re-fetch)
   const { isAdmin } = useUser();
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activeSection, setActiveSection] = useState<AdminSection>(loadAdminState);
 
   // Check if user can see the Roadmap tab
   const canSeeRoadmap = user?.email && ROADMAP_USERS.includes(user.email);
+
+  // Handle tab parameter from URL (e.g., /admin?tab=audit)
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam && ['users', 'rules', 'audit', 'features', 'security', 'test', 'database', 'aikeys'].includes(tabParam)) {
+      setActiveSection(tabParam as AdminSection);
+      // Clear the URL param after setting the tab
+      setSearchParams({});
+    }
+  }, [searchParams, setSearchParams]);
 
   // Save state when activeSection changes
   const handleSetActiveSection = (section: AdminSection) => {

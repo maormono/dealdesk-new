@@ -5,7 +5,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 // These networks are blocked in roaming policy and customers won't use them
 const EXPENSIVE_NETWORK_THRESHOLD = 1.0; // $1.00 per MB
 
-const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || '');
+const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_ENHANCED_API_KEY || import.meta.env.VITE_GEMINI_API_KEY || '');
 
 interface DealAnalysisRequest {
   simCount: number;
@@ -45,8 +45,8 @@ interface DealAnalysisResponse {
 }
 
 export class EnhancedDealService {
-  private model = genAI.getGenerativeModel({ 
-    model: 'gemini-2.5-flash',
+  private model = genAI.getGenerativeModel({
+    model: 'gemini-2.0-flash',
     generationConfig: {
       temperature: 0.7,
       maxOutputTokens: 2048,

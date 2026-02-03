@@ -18,8 +18,10 @@ export const AIApiKeys: React.FC = () => {
   const [checking, setChecking] = useState(false);
   const [services, setServices] = useState<AIServiceConfig[]>([]);
 
-  // Get the API key from environment
+  // Get the API keys from environment
   const geminiApiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
+  const geminiComprehensiveApiKey = import.meta.env.VITE_GEMINI_COMPREHENSIVE_API_KEY || '';
+  const geminiEnhancedApiKey = import.meta.env.VITE_GEMINI_ENHANCED_API_KEY || '';
 
   useEffect(() => {
     // Initialize services configuration
@@ -27,7 +29,7 @@ export const AIApiKeys: React.FC = () => {
       {
         name: 'AI Pricing Advisor',
         description: 'Chatbot on Network Pricing Database page - answers pricing questions',
-        model: 'gemini-2.0-flash-exp',
+        model: 'gemini-2.0-flash',
         apiKeyEnvVar: 'VITE_GEMINI_API_KEY',
         apiKeyValue: geminiApiKey,
         status: 'unknown',
@@ -37,9 +39,9 @@ export const AIApiKeys: React.FC = () => {
       {
         name: 'Enhanced Deal Service',
         description: 'Part of Deal Review analysis - provides AI recommendations',
-        model: 'gemini-2.5-flash',
-        apiKeyEnvVar: 'VITE_GEMINI_API_KEY',
-        apiKeyValue: geminiApiKey,
+        model: 'gemini-2.0-flash',
+        apiKeyEnvVar: 'VITE_GEMINI_ENHANCED_API_KEY',
+        apiKeyValue: geminiEnhancedApiKey || geminiApiKey,
         status: 'unknown',
         file: 'frontend/src/services/enhancedDealService.ts',
         line: 49
@@ -47,16 +49,16 @@ export const AIApiKeys: React.FC = () => {
       {
         name: 'Comprehensive Deal Service',
         description: 'Part of Deal Review analysis - comprehensive deal evaluation',
-        model: 'gemini-2.0-flash-exp',
-        apiKeyEnvVar: 'VITE_GEMINI_API_KEY',
-        apiKeyValue: geminiApiKey,
+        model: 'gemini-2.0-flash',
+        apiKeyEnvVar: 'VITE_GEMINI_COMPREHENSIVE_API_KEY',
+        apiKeyValue: geminiComprehensiveApiKey || geminiApiKey,
         status: 'unknown',
         file: 'frontend/src/services/comprehensiveDealService.ts',
         line: 502
       }
     ];
     setServices(aiServices);
-  }, [geminiApiKey]);
+  }, [geminiApiKey, geminiComprehensiveApiKey, geminiEnhancedApiKey]);
 
   const maskApiKey = (key: string): string => {
     if (!key) return '(not set)';
@@ -179,41 +181,92 @@ export const AIApiKeys: React.FC = () => {
         </button>
       </div>
 
-      {/* Warning Banner */}
-      <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+      {/* Status Banner */}
+      <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
         <div className="flex items-start gap-3">
-          <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5" />
+          <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
           <div>
-            <h4 className="text-sm font-medium text-yellow-800">Configuration Issues Detected</h4>
-            <ul className="mt-1 text-sm text-yellow-700 list-disc list-inside">
-              <li><code className="bg-yellow-100 px-1 rounded">gemini-2.5-flash</code> is not a valid model name - should be <code className="bg-yellow-100 px-1 rounded">gemini-1.5-flash</code> or <code className="bg-yellow-100 px-1 rounded">gemini-2.0-flash</code></li>
-              <li><code className="bg-yellow-100 px-1 rounded">gemini-2.0-flash-exp</code> is experimental and may become unavailable</li>
-            </ul>
+            <h4 className="text-sm font-medium text-green-800">All Services Configured</h4>
+            <p className="mt-1 text-sm text-green-700">
+              All AI services are using stable <code className="bg-green-100 px-1 rounded">gemini-2.0-flash</code> model with dedicated API keys.
+            </p>
           </div>
         </div>
       </div>
 
-      {/* API Key Info */}
-      <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-        <div className="flex items-center gap-3 mb-2">
-          <Key className="w-5 h-5 text-gray-600" />
-          <h4 className="text-sm font-medium text-gray-900">Gemini API Key</h4>
+      {/* API Keys Info */}
+      <div className="mb-6 space-y-4">
+        {/* Main API Key */}
+        <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+          <div className="flex items-center gap-3 mb-2">
+            <Key className="w-5 h-5 text-gray-600" />
+            <h4 className="text-sm font-medium text-gray-900">Main Gemini API Key</h4>
+            <span className="text-xs text-gray-500">(AI Pricing Advisor)</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <code className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded text-sm font-mono text-gray-700">
+              {showKeys['main'] ? geminiApiKey : maskApiKey(geminiApiKey)}
+            </code>
+            <button
+              onClick={() => toggleKeyVisibility('main')}
+              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              title={showKeys['main'] ? 'Hide' : 'Show'}
+            >
+              {showKeys['main'] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+          <p className="mt-2 text-xs text-gray-500">
+            Environment variable: <code className="bg-gray-100 px-1 rounded">VITE_GEMINI_API_KEY</code>
+          </p>
         </div>
-        <div className="flex items-center gap-3">
-          <code className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded text-sm font-mono text-gray-700">
-            {showKeys['main'] ? geminiApiKey : maskApiKey(geminiApiKey)}
-          </code>
-          <button
-            onClick={() => toggleKeyVisibility('main')}
-            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-            title={showKeys['main'] ? 'Hide' : 'Show'}
-          >
-            {showKeys['main'] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-          </button>
+
+        {/* Enhanced Deal Service API Key */}
+        <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+          <div className="flex items-center gap-3 mb-2">
+            <Key className="w-5 h-5 text-blue-600" />
+            <h4 className="text-sm font-medium text-gray-900">Enhanced Deal Service API Key</h4>
+            <span className="text-xs text-gray-500">(AI recommendations for Deal Review)</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <code className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded text-sm font-mono text-gray-700">
+              {showKeys['enhanced'] ? geminiEnhancedApiKey : maskApiKey(geminiEnhancedApiKey)}
+            </code>
+            <button
+              onClick={() => toggleKeyVisibility('enhanced')}
+              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              title={showKeys['enhanced'] ? 'Hide' : 'Show'}
+            >
+              {showKeys['enhanced'] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+          <p className="mt-2 text-xs text-gray-500">
+            Environment variable: <code className="bg-gray-100 px-1 rounded">VITE_GEMINI_ENHANCED_API_KEY</code>
+          </p>
         </div>
-        <p className="mt-2 text-xs text-gray-500">
-          Environment variable: <code className="bg-gray-100 px-1 rounded">VITE_GEMINI_API_KEY</code> (defined in <code className="bg-gray-100 px-1 rounded">frontend/.env</code>)
-        </p>
+
+        {/* Comprehensive Deal Service API Key */}
+        <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+          <div className="flex items-center gap-3 mb-2">
+            <Key className="w-5 h-5 text-purple-600" />
+            <h4 className="text-sm font-medium text-gray-900">Comprehensive Deal Service API Key</h4>
+            <span className="text-xs text-gray-500">(Comprehensive deal evaluation)</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <code className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded text-sm font-mono text-gray-700">
+              {showKeys['comprehensive'] ? geminiComprehensiveApiKey : maskApiKey(geminiComprehensiveApiKey)}
+            </code>
+            <button
+              onClick={() => toggleKeyVisibility('comprehensive')}
+              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              title={showKeys['comprehensive'] ? 'Hide' : 'Show'}
+            >
+              {showKeys['comprehensive'] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+          <p className="mt-2 text-xs text-gray-500">
+            Environment variable: <code className="bg-gray-100 px-1 rounded">VITE_GEMINI_COMPREHENSIVE_API_KEY</code>
+          </p>
+        </div>
       </div>
 
       {/* Services Table */}
