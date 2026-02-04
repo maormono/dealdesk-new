@@ -1364,7 +1364,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
           <div className="flex gap-3 items-center">
             {/* Filter Buttons Row: B,E,O,U | 2G,3G,4G,5G | NB-IoT,Cat-M | Hidden (admin) */}
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 shrink-0">
               {/* Identity Filters: B, E, O, U */}
               {['B', 'E', 'O', 'U'].map((identity) => {
                 const config = operatorConfig[identity as keyof typeof operatorConfig];
@@ -1428,7 +1428,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
                     }
                     setSelectedLpwanFilters(newSet);
                   }}
-                  className={`px-2 py-0.5 rounded-lg text-xs font-medium transition-all border ${
+                  className={`min-w-[52px] px-2 py-0.5 rounded-lg text-xs font-medium transition-all border whitespace-nowrap ${
                     selectedLpwanFilters.has(value)
                       ? 'bg-purple-50 text-purple-600 border-purple-200 border-2'
                       : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
@@ -1463,19 +1463,11 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
               )}
             </div>
 
-            {/* Search Bar - Center */}
-            <div className="flex-1 relative mx-4">
-              <input
-                type="text"
-                placeholder="Search networks, countries, TADIG codes..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-3 py-0.5.5 bg-gray-50 border-0 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]/50 focus:bg-white transition-all placeholder-gray-400 text-sm"
-              />
-            </div>
+            {/* Spacer to push right elements to the right */}
+            <div className="flex-1" />
             
             {/* Data Unit Toggle - Right Side */}
-            <div className="flex items-center bg-gray-50 rounded-xl p-1">
+            <div className="flex items-center bg-gray-50 rounded-xl p-1 shrink-0">
               <button
                 onClick={() => setDataUnit('MB')}
                 className={`px-3 py-0.5.5 rounded-lg text-sm transition-all ${
@@ -1500,7 +1492,7 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
 
             {/* Markup Multiplier Toggle - Admin Only */}
             {isAdmin && (
-              <div className="flex items-center bg-gray-50 rounded-xl p-1">
+              <div className="flex items-center bg-gray-50 rounded-xl p-1 shrink-0">
                 <button
                   onClick={() => setMarkupMultiplier(1.0)}
                   className={`px-3 py-0.5.5 rounded-lg text-sm transition-all ${
@@ -1538,35 +1530,37 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
             )}
 
             {/* Currency Toggle - Right Side */}
-            <div className="flex items-center gap-2">
-              <div className="flex items-center bg-gray-50 rounded-xl p-1">
-                <button
-                  onClick={() => {
-                    setCurrency('USD');
-                    onCurrencyChange?.('USD');
-                  }}
-                  className={`px-3 py-0.5.5 rounded-lg text-sm transition-all ${
-                    currency === 'USD'
-                      ? 'bg-white text-[#5B9BD5] shadow-sm'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  USD $
-                </button>
-                <button
-                  onClick={() => {
-                    setCurrency('EUR');
-                    onCurrencyChange?.('EUR');
-                  }}
-                  className={`px-3 py-0.5.5 rounded-lg text-sm transition-all ${
-                    currency === 'EUR'
-                      ? 'bg-white text-[#5B9BD5] shadow-sm'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  EUR €
-                </button>
-              </div>
+            <div className="flex items-center bg-gray-50 rounded-xl p-1 shrink-0">
+              <button
+                onClick={() => {
+                  setCurrency('USD');
+                  onCurrencyChange?.('USD');
+                }}
+                className={`min-w-[52px] px-3 py-0.5 rounded-lg text-sm transition-all whitespace-nowrap ${
+                  currency === 'USD'
+                    ? 'bg-white text-[#5B9BD5] shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                USD $
+              </button>
+              <button
+                onClick={() => {
+                  setCurrency('EUR');
+                  onCurrencyChange?.('EUR');
+                }}
+                className={`min-w-[52px] px-3 py-0.5 rounded-lg text-sm transition-all whitespace-nowrap ${
+                  currency === 'EUR'
+                    ? 'bg-white text-[#5B9BD5] shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                EUR €
+              </button>
+            </div>
+
+            {/* Exchange Rate + Export - Stacked */}
+            <div className="flex flex-col items-center gap-0.5 shrink-0">
               {/* Exchange Rate Status Indicator */}
               <div
                 className="flex items-center gap-1"
@@ -1587,16 +1581,15 @@ export const PricingTable: React.FC<PricingTableProps> = ({ currency: propCurren
                   {exchangeRateStatus === 'success' ? exchangeRate.toFixed(2) : '...'}
                 </span>
               </div>
+              {/* Export Button */}
+              <button
+                onClick={exportToCSV}
+                className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded transition-all"
+                title="Export to CSV"
+              >
+                <Download className="w-3.5 h-3.5" />
+              </button>
             </div>
-            
-            {/* Export Button - Far Right */}
-            <button
-              onClick={exportToCSV}
-              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-all"
-              title="Export to CSV"
-            >
-              <Download className="w-4 h-4" />
-            </button>
           </div>
       
           {/* Active filter indicator */}
