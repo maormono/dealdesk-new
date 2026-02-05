@@ -29,7 +29,7 @@ class DealPersistenceService {
   /**
    * Create a new deal in draft status
    */
-  async createDeal(request: DealRequest, userId: string, userEmail: string): Promise<SavedDeal> {
+  async createDeal(request: DealRequest, userId: string, userEmail: string, dealName?: string): Promise<SavedDeal> {
     const { data, error } = await supabase
       .from('deal_evaluations')
       .insert({
@@ -37,6 +37,7 @@ class DealPersistenceService {
         user_email: userEmail,
         status: 'draft',
         deal_request: request,
+        deal_name: dealName || null,
         sim_quantity: request.simQuantity,
         countries: request.countries,
         monthly_data_per_sim: request.monthlyDataPerSim,
@@ -58,11 +59,12 @@ class DealPersistenceService {
   /**
    * Update an existing deal's request data
    */
-  async updateDeal(dealId: string, request: DealRequest): Promise<SavedDeal> {
+  async updateDeal(dealId: string, request: DealRequest, dealName?: string): Promise<SavedDeal> {
     const { data, error } = await supabase
       .from('deal_evaluations')
       .update({
         deal_request: request,
+        deal_name: dealName || null,
         sim_quantity: request.simQuantity,
         countries: request.countries,
         monthly_data_per_sim: request.monthlyDataPerSim,
@@ -94,17 +96,24 @@ class DealPersistenceService {
   /**
    * Save evaluation results for a deal
    */
-  async saveEvaluation(dealId: string, request: DealRequest, results: EvaluationResults): Promise<SavedDeal> {
+  async saveEvaluation(dealId: string, request: DealRequest, results: EvaluationResults, dealName?: string): Promise<SavedDeal> {
     const basicEval = results.basic_evaluation;
 
     // Get the currently active pricing data
     const pricingData = await this.getActivePricingData();
 
+    // Validate and fix monthlyDataPerSim - ensure it's at least 0.001 GB (≈1 MB)
+    // This prevents saving corrupted values when dataUnit is accidentally set to KB
+    const validatedMonthlyData = request.monthlyDataPerSim < 0.001
+      ? 1 // Default to 1 GB if value is suspiciously small
+      : request.monthlyDataPerSim;
+
     const updateData: any = {
-      deal_request: request,
+      deal_request: { ...request, monthlyDataPerSim: validatedMonthlyData },
+      deal_name: dealName || null,
       sim_quantity: request.simQuantity,
       countries: request.countries,
-      monthly_data_per_sim: request.monthlyDataPerSim,
+      monthly_data_per_sim: validatedMonthlyData,
       proposed_price_per_sim: request.proposedPricePerSim,
       currency: request.currency,
       duration_months: request.duration,

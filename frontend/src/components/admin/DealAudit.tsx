@@ -322,6 +322,7 @@ export const DealAudit: React.FC = () => {
   const exportToCSV = () => {
     const headers = [
       'Deal ID',
+      'Deal Name',
       'User Email',
       'Status',
       'Verdict',
@@ -337,6 +338,7 @@ export const DealAudit: React.FC = () => {
 
     const rows = deals.map(deal => [
       formatDealId(deal.id),
+      deal.deal_name || '',
       deal.user_email,
       deal.status,
       deal.verdict || 'N/A',
@@ -592,6 +594,9 @@ export const DealAudit: React.FC = () => {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                     Deal ID
                   </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Deal Name
+                  </th>
                   <th
                     className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer hover:text-gray-700"
                     onClick={() => handleSort('user_email')}
@@ -651,6 +656,11 @@ export const DealAudit: React.FC = () => {
                           {formatDealId(deal.id)}
                           <ExternalLink className="w-3 h-3 opacity-50" />
                         </button>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="text-sm text-gray-700 truncate max-w-[150px] block" title={deal.deal_name || ''}>
+                          {deal.deal_name || <span className="text-gray-400">—</span>}
+                        </span>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
@@ -821,6 +831,11 @@ export const DealAudit: React.FC = () => {
                 <span className="font-mono text-lg font-semibold text-[#5B9BD5]">
                   {formatDealId(selectedDeal.id)}
                 </span>
+                {selectedDeal.deal_name && (
+                  <span className="text-lg font-medium text-gray-700">
+                    {selectedDeal.deal_name}
+                  </span>
+                )}
                 {selectedDeal.verdict && verdictConfig[selectedDeal.verdict] && (
                   <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${verdictConfig[selectedDeal.verdict].color}`}>
                     {selectedDeal.verdict.charAt(0).toUpperCase() + selectedDeal.verdict.slice(1)}

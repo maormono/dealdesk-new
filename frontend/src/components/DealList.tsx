@@ -147,6 +147,11 @@ export const DealList: React.FC<DealListProps> = ({
                       <span className="font-mono text-sm font-semibold text-[#5B9BD5]">
                         {formatDealId(deal.id)}
                       </span>
+                      {deal.deal_name && (
+                        <span className="text-sm font-medium text-gray-700 truncate max-w-[200px]" title={deal.deal_name}>
+                          {deal.deal_name}
+                        </span>
+                      )}
                       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${status.color}`}>
                         <StatusIcon className="w-3 h-3" />
                         {status.label}

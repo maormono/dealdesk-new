@@ -172,7 +172,34 @@ const loadFormState = () => {
   try {
     const saved = localStorage.getItem(FORM_STORAGE_KEY);
     if (saved) {
-      return JSON.parse(saved);
+      const parsed = JSON.parse(saved);
+
+      // Detect corrupted data scenarios:
+      // 1. monthlyDataPerSim is 0 or very small (< 0.001 GB = ~1 MB)
+      // 2. dataAmount is 0 or very small (< 1)
+      // 3. dataUnit is 'KB' with large dataAmount (likely user meant MB)
+      const isCorrupted =
+        (parsed.formData?.monthlyDataPerSim !== undefined && parsed.formData.monthlyDataPerSim < 0.001) ||
+        (parsed.dataAmount !== undefined && parsed.dataAmount < 1) ||
+        (parsed.dataUnit === 'KB' && parsed.dataAmount >= 50); // 50+ KB with KB unit is probably meant to be MB
+
+      if (isCorrupted) {
+        console.warn('Detected corrupted form state in localStorage, clearing it. Data:', {
+          monthlyDataPerSim: parsed.formData?.monthlyDataPerSim,
+          dataAmount: parsed.dataAmount,
+          dataUnit: parsed.dataUnit
+        });
+        localStorage.removeItem(FORM_STORAGE_KEY);
+        return null;
+      }
+
+      // Force dataUnit to 'MB' if it was saved as 'KB' (KB is rarely used intentionally)
+      if (parsed.dataUnit === 'KB') {
+        console.warn('Converting dataUnit from KB to MB for better UX');
+        parsed.dataUnit = 'MB';
+      }
+
+      return parsed;
     }
   } catch (e) {
     console.warn('Failed to load form state from localStorage:', e);
@@ -258,6 +285,7 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({
     if (savedState?.formData) {
       return {
         ...savedState.formData,
+        monthlyDataPerSim: savedState.formData.monthlyDataPerSim || 1, // Ensure monthlyDataPerSim is never 0
         expectedUsagePattern: 'low' // Always default to 'low' for new deals
       };
     }
@@ -292,6 +320,7 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({
   const [durationStr, setDurationStr] = useState<string>(() => savedState?.durationStr || String(initialDeal?.duration || 12));
   const [cellularTechnologies, setCellularTechnologies] = useState<string[]>(() => savedState?.cellularTechnologies || ['2G', '3G', '4G', '5G']);
   const [lpwanTechnologies, setLpwanTechnologies] = useState<string[]>(() => savedState?.lpwanTechnologies || []);
+  const [dealName, setDealName] = useState<string>(() => savedState?.dealName || '');
   const [showCellularDropdown, setShowCellularDropdown] = useState(false);
   const [showLpwanDropdown, setShowLpwanDropdown] = useState(false);
   const [showUsagePatternDropdown, setShowUsagePatternDropdown] = useState(false);
@@ -309,10 +338,14 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({
   const usagePatternDropdownRef = useRef<HTMLDivElement>(null);
 
   // Save form state to localStorage whenever it changes
+  // Ensure we don't save 0 for dataAmount to prevent perpetuating bad state
   useEffect(() => {
     saveFormState({
-      formData,
-      dataAmount,
+      formData: {
+        ...formData,
+        monthlyDataPerSim: formData.monthlyDataPerSim || 1 // Ensure we never save 0
+      },
+      dataAmount: dataAmount || 1024, // Ensure we never save 0
       dataUnit,
       priceAmount,
       simQuantityStr,
@@ -320,8 +353,9 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({
       durationStr,
       cellularTechnologies,
       lpwanTechnologies,
+      dealName,
     });
-  }, [formData, dataAmount, dataUnit, priceAmount, simQuantityStr, monthlySmsStr, durationStr, cellularTechnologies, lpwanTechnologies]);
+  }, [formData, dataAmount, dataUnit, priceAmount, simQuantityStr, monthlySmsStr, durationStr, cellularTechnologies, lpwanTechnologies, dealName]);
 
   // Update evaluation state when initialEvaluation/initialEnhancedAnalysis prop changes (e.g., loading from URL)
   useEffect(() => {
@@ -479,9 +513,15 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({
   
   useEffect(() => {
     loadCountries();
-    // Initialize data amount from existing monthlyDataPerSim (convert GB to MB)
-    setDataAmount(formData.monthlyDataPerSim * 1024);
-    setPriceAmount(String(formData.proposedPricePerSim));
+    // Only initialize data amount from formData if not already loaded from savedState
+    // This prevents overwriting user's saved dataAmount with 0 when monthlyDataPerSim is 0
+    const savedState = loadFormState();
+    if (!savedState?.dataAmount && formData.monthlyDataPerSim > 0) {
+      setDataAmount(formData.monthlyDataPerSim * 1024);
+    }
+    if (!savedState?.priceAmount) {
+      setPriceAmount(String(formData.proposedPricePerSim));
+    }
   }, []);
 
   // Fetch live exchange rates on mount
@@ -524,6 +564,13 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({
       default:
         gbValue = dataAmount / 1024;
     }
+
+    // Debug logging to identify unit conversion issues
+    console.log(`[Data Sync] dataAmount=${dataAmount}, dataUnit=${dataUnit}, gbValue=${gbValue}`);
+    if (gbValue < 0.001 && dataAmount > 0) {
+      console.warn(`[Data Sync] WARNING: Very small gbValue detected! This might be a unit error. dataUnit="${dataUnit}" might be wrong.`);
+    }
+
     setFormData(prev => ({ ...prev, monthlyDataPerSim: gbValue }));
   }, [dataAmount, dataUnit]);
 
@@ -731,7 +778,7 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({
             basic_evaluation: basicResult,
             enhanced_analysis: enhancedResult,
             comprehensive_analysis: comprehensiveResult,
-          });
+          }, dealName);
           console.log('Deal evaluation saved:', savedDeal.id);
           if (onDealSaved) {
             onDealSaved(savedDeal);
@@ -893,10 +940,26 @@ export const DealReviewForm: React.FC<DealReviewFormProps> = ({
         {/* Reorganized Deal Form */}
         <div className="bg-gradient-to-br from-white via-[#5B9BD5]/[0.02] to-[#5B9BD5]/[0.05] rounded-2xl shadow-sm border border-[#5B9BD5]/10 p-6">
 
-          {/* Form Header */}
+          {/* Form Header with Deal Name */}
           <div className="mb-6">
-            <h3 className="text-lg font-semibold text-gray-900">Recurring Deal Charges</h3>
-            <p className="text-sm text-gray-500 mt-1">Enter your deal parameters to analyze pricing and profitability</p>
+            <div className="flex items-start justify-between gap-6">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Recurring Deal Charges</h3>
+                <p className="text-sm text-gray-500 mt-1">Enter your deal parameters to analyze pricing and profitability</p>
+              </div>
+              <div className="shrink-0 w-64">
+                <label className="block text-sm font-medium text-gray-500 mb-1">
+                  Deal Name
+                </label>
+                <input
+                  type="text"
+                  value={dealName}
+                  onChange={(e) => setDealName(e.target.value)}
+                  placeholder="e.g., Acme Corp Q1 2026"
+                  className="w-full px-3 py-2 text-sm bg-gray-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]/50 focus:bg-white transition-all placeholder-gray-400"
+                />
+              </div>
+            </div>
           </div>
 
           {/* First Row: Number of SIM, Monthly data usage, Monthly SMS */}
