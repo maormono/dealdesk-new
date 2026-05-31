@@ -1,0 +1,22 @@
+name = "dealdesk-mcp"
+main = "src/index.ts"
+compatibility_date = "2026-01-01"
+compatibility_flags = ["nodejs_compat"]
+account_id = "79ce8e881c564e1417d0146c7ba8058f"
+
+[vars]
+GATEWAY_JWKS_URL = "https://mcp.monogoto.io/.well-known/jwks.json"
+GATEWAY_ISSUER   = "https://mcp.monogoto.io"
+SUPABASE_URL     = "https://uddmjjgnexdazfedrytt.supabase.co"
+
+# Secrets (set with `wrangler secret put`):
+#   SUPABASE_SERVICE_ROLE_KEY  — sb_secret_*, GRANTs scoped to the DealDesk tables
+#                                (carrier_pricing, network_pricing,
+#                                 daily_network_cost_snapshots, deal_rules, deal_evaluations)
+#   CONFIRMATION_SECRET        — random 32-byte hex; signs preview→apply tokens
+#
+# No Google secrets, no OAuth KV, no signing key: this Worker only VERIFIES the
+# gateway's MGT-JWT against the public JWKS above.
+#
+# After deploy, set DEALDESK_MCP_URL on the gateway to this Worker's URL — the
+# "dealdesk" route already exists in services/mcp-gateway/src/routing.ts.

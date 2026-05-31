@@ -1,0 +1,6 @@
+{
+  "//": "Deno config for the Supabase Edge Function entry (src/edge-function.ts). Maps the bare `jose` specifier the runtime-agnostic core imports to its esm.sh build, so src/core/*.ts run unchanged under Deno.",
+  "imports": {
+    "jose": "https://esm.sh/jose@5.9.6"
+  }
+}

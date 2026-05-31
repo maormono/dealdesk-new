@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.wrangler/
+.dev.vars
+worker-configuration.d.ts
+*.log
+# generated local-test artifacts (ephemeral keypair + tokens; regenerate via harness.mjs)
+test-local/jwks.json
+test-local/token-*.txt
