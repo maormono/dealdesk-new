@@ -46,13 +46,13 @@ describe("resolveScopes", () => {
 });
 
 describe("maskPricingRow", () => {
-  const row = { tadig: "USACG", data_per_mb: 0.5, imsi_access_fee: 1.2, lte_4g: true };
+  const row = { tadig: "USACG", data_per_mb: 0.5, imsi_access: 1.2, lte: true };
 
   it("masks raw cost for sell-price-only users", () => {
     const s: DealDeskScopes = { scopes: ["view_sell_price"], markup: 50 };
     const out = maskPricingRow(row, s);
     expect(out.data_per_mb).toBeUndefined();
-    expect(out.imsi_access_fee).toBeUndefined();
+    expect(out.imsi_access).toBeUndefined();
     expect(out.sell_price_per_mb).toBe(0.75); // 0.5 * 1.5
     expect(out.pricing_view).toBe("sell_price");
     expect(out.tadig).toBe("USACG");

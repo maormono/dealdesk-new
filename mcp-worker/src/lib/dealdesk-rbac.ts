@@ -51,8 +51,8 @@ export function maskPricingRow(
   s: DealDeskScopes,
 ): Record<string, unknown> {
   if (hasScope(s, "view_costs_revenue")) return row;
-  const { data_per_mb, imsi_access_fee, ...rest } = row;
-  void imsi_access_fee; // intentionally dropped for non-privileged callers
+  const { data_per_mb, imsi_access, ...rest } = row;
+  void imsi_access; // raw carrier cost — intentionally dropped for non-privileged callers
   const sell =
     typeof data_per_mb === "number"
       ? Math.round(data_per_mb * (1 + s.markup / 100) * 1e6) / 1e6

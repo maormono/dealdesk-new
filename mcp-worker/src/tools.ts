@@ -16,17 +16,21 @@ export const APP_ID = "dealdesk";
 type ToolEnv = DbEnv & ConfirmationEnv;
 const envOf = (ctx: ToolContext): ToolEnv => ctx.env as unknown as ToolEnv;
 
+// Real table is public.carrier_pricing (the view v_network_pricing_all does not
+// exist in the live DB). Column names below match carrier_pricing exactly.
+const PRICING_TABLE = "carrier_pricing";
 const PRICING_COLS =
-  "tadig,network_name,country,region,source_name,currency,data_per_mb,imsi_access_fee,sms_mo,voice_moc,lte_4g,lte_5g,volte";
+  "tadig,country,network_name,operator_name,carrier_source,data_per_mb,imsi_access,sms_mo,voice_moc,lte,five_g,lte_m,nb_iot,original_currency,is_current";
 
 interface PricingRow {
   tadig: string;
   network_name: string;
+  operator_name: string | null;
   country: string;
-  source_name: string;
-  currency: string;
+  carrier_source: string;
+  original_currency: string | null;
   data_per_mb: number | null;
-  imsi_access_fee: number | null;
+  imsi_access: number | null;
 }
 
 // ── READ: rate card lookup (source-aware, cost-masked) ─────────────────────
@@ -48,11 +52,11 @@ const lookupRateCard: ToolDef = {
   handler: async (args, ctx) => {
     const env = envOf(ctx);
     const scopes = await resolveScopes(env, ctx.userId);
-    const q: string[] = [`select=${PRICING_COLS}`, `limit=${Number(args.limit ?? 50)}`];
+    const q: string[] = [`select=${PRICING_COLS}`, "is_current=eq.true", `limit=${Number(args.limit ?? 50)}`];
     if (args.country) q.push(`country=ilike.*${pgValue(String(args.country))}*`);
     if (args.tadig) q.push(`tadig=eq.${pgValue(String(args.tadig))}`);
-    if (args.source) q.push(`source_name=eq.${pgValue(String(args.source))}`);
-    const rows = await dbSelect<PricingRow>(env, `v_network_pricing_all?${q.join("&")}`);
+    if (args.source) q.push(`carrier_source=eq.${pgValue(String(args.source))}`);
+    const rows = await dbSelect<PricingRow>(env, `${PRICING_TABLE}?${q.join("&")}`);
     return {
       count: rows.length,
       pricing_view: hasScope(scopes, "view_costs_revenue") ? "cost" : "sell_price",
@@ -83,7 +87,7 @@ const getRealizedCost: ToolDef = {
     }
     const rows = await dbSelect<PricingRow>(
       env,
-      `v_network_pricing_all?tadig=eq.${pgValue(String(args.tadig))}&select=${PRICING_COLS}`,
+      `${PRICING_TABLE}?tadig=eq.${pgValue(String(args.tadig))}&is_current=eq.true&select=${PRICING_COLS}`,
     );
     const priced = rows.filter((r) => typeof r.data_per_mb === "number");
     if (priced.length === 0) return { tadig: args.tadig, cheapest: null, sources: rows };

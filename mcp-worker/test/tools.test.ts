@@ -30,7 +30,7 @@ function route(opts: { profile?: Record<string, unknown>; pricing?: unknown[]; r
       calls.push({ url: String(url), init });
       let body: unknown = [];
       if (String(url).includes("user_profiles")) body = opts.profile ? [opts.profile] : [];
-      else if (String(url).includes("v_network_pricing_all")) body = opts.pricing ?? [];
+      else if (String(url).includes("carrier_pricing")) body = opts.pricing ?? [];
       else if (String(url).includes("deal_rules")) body = opts.rules ?? [];
       else if (String(url).includes("deal_evaluations")) body = opts.insert ?? [];
       return new Response(JSON.stringify(body), { status: 200, headers: { "Content-Type": "application/json" } });
@@ -57,16 +57,18 @@ describe("tool catalog", () => {
 });
 
 describe("dealdesk_lookup_rate_card", () => {
-  it("queries v_network_pricing_all filtered by country + source", async () => {
-    const calls = route({ profile: SALES, pricing: [{ tadig: "USACG", source_name: "A1", data_per_mb: 0.5 }] });
+  it("queries carrier_pricing filtered by country + source", async () => {
+    const calls = route({ profile: SALES, pricing: [{ tadig: "USACG", carrier_source: "A1", data_per_mb: 0.5 }] });
     await tool("dealdesk_lookup_rate_card").handler({ country: "United States", source: "A1" }, ctx);
-    const url = calls.find((c) => c.url.includes("v_network_pricing_all"))!.url;
+    const url = calls.find((c) => c.url.includes("carrier_pricing"))!.url;
+    expect(url).toContain("/rest/v1/carrier_pricing?");
+    expect(url).toContain("is_current=eq.true");
     expect(url).toContain("country=ilike.*United%20States*");
-    expect(url).toContain("source_name=eq.A1");
+    expect(url).toContain("carrier_source=eq.A1");
   });
 
   it("masks raw cost for a sales (non-cost) user", async () => {
-    route({ profile: SALES, pricing: [{ tadig: "USACG", source_name: "A1", data_per_mb: 0.5, imsi_access_fee: 1 }] });
+    route({ profile: SALES, pricing: [{ tadig: "USACG", carrier_source: "A1", data_per_mb: 0.5, imsi_access: 1 }] });
     const out: any = await tool("dealdesk_lookup_rate_card").handler({ tadig: "USACG" }, ctx);
     expect(out.pricing_view).toBe("sell_price");
     expect(out.rows[0].data_per_mb).toBeUndefined();
@@ -74,7 +76,7 @@ describe("dealdesk_lookup_rate_card", () => {
   });
 
   it("returns raw cost for an admin", async () => {
-    route({ profile: ADMIN, pricing: [{ tadig: "USACG", source_name: "A1", data_per_mb: 0.5, imsi_access_fee: 1 }] });
+    route({ profile: ADMIN, pricing: [{ tadig: "USACG", carrier_source: "A1", data_per_mb: 0.5, imsi_access: 1 }] });
     const out: any = await tool("dealdesk_lookup_rate_card").handler({ tadig: "USACG" }, ctx);
     expect(out.pricing_view).toBe("cost");
     expect(out.rows[0].data_per_mb).toBe(0.5);
@@ -91,12 +93,12 @@ describe("dealdesk_get_realized_cost", () => {
     route({
       profile: ADMIN,
       pricing: [
-        { tadig: "USACG", source_name: "A1", data_per_mb: 0.5, imsi_access_fee: 1, currency: "EUR" },
-        { tadig: "USACG", source_name: "Tele2", data_per_mb: 0.3, imsi_access_fee: 2, currency: "EUR" },
+        { tadig: "USACG", carrier_source: "A1", data_per_mb: 0.5, imsi_access: 1, currency: "EUR" },
+        { tadig: "USACG", carrier_source: "Tele2", data_per_mb: 0.3, imsi_access: 2, currency: "EUR" },
       ],
     });
     const out: any = await tool("dealdesk_get_realized_cost").handler({ tadig: "USACG" }, ctx);
-    expect(out.cheapest.source_name).toBe("Tele2");
+    expect(out.cheapest.carrier_source).toBe("Tele2");
     expect(out.cheapest.data_per_mb).toBe(0.3);
   });
 });
