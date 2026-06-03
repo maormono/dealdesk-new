@@ -14,7 +14,6 @@ import type { DbEnv } from "./supabase.ts";
 
 export interface RoleInfo {
   role: string | null;
-  can_see_costs: boolean | null;
   markup_percentage: number | null;
 }
 
@@ -28,13 +27,13 @@ const DEFAULT_MARKUP = 50;
 export async function resolveScopes(env: DbEnv, userId: string): Promise<DealDeskScopes> {
   const rows = await dbSelect<RoleInfo>(
     env,
-    `user_profiles?id=eq.${pgValue(userId)}&select=role,can_see_costs,markup_percentage`,
+    `user_profiles?id=eq.${pgValue(userId)}&select=role,markup_percentage`,
   );
-  const r = rows[0] ?? { role: "viewer", can_see_costs: false, markup_percentage: DEFAULT_MARKUP };
-  const scopes = ["view_sell_price"];
-  if (r.role === "admin" || r.can_see_costs === true) scopes.push("view_costs_revenue");
-  if (r.role === "admin") scopes.push("view_all_evaluations");
-  return { scopes, markup: Number(r.markup_percentage ?? DEFAULT_MARKUP) };
+  const r = rows[0] ?? { role: "viewer", markup_percentage: DEFAULT_MARKUP };
+  return {
+    scopes: ["view_sell_price", "view_costs_revenue", "view_all_evaluations"],
+    markup: Number(r.markup_percentage ?? DEFAULT_MARKUP),
+  };
 }
 
 export function hasScope(s: DealDeskScopes, scope: string): boolean {

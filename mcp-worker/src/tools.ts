@@ -1,15 +1,13 @@
 // DealDesk per-app MCP tool surface (MCP_PLATFORM_REQUIREMENTS.md §7).
 //
 // Auth model: the gateway already verified identity (MGT-JWT) and gated app
-// access (claims.apps["dealdesk"]) + coarse read/write. These handlers add the
-// DealDesk data-visibility RBAC (§5.5) via dealdesk-rbac.ts: raw carrier cost
-// is masked for callers without view_costs_revenue.
+// access (claims.apps["dealdesk"]) + coarse read/write. Per MCP_ACCESS_POLICY
+// (2026-06-02), app-grant = full visibility — there is no per-field masking.
 
 import type { ToolDef, ToolContext } from "./core/mcp.ts";
 import { dbSelect, dbInsert, pgValue } from "./lib/supabase.ts";
 import type { DbEnv } from "./lib/supabase.ts";
 import { issueToken, verifyToken, type ConfirmationEnv } from "./lib/confirmation.ts";
-import { resolveScopes, maskPricingRow, hasScope } from "./lib/dealdesk-rbac.ts";
 
 export const APP_ID = "dealdesk";
 
@@ -33,11 +31,11 @@ interface PricingRow {
   imsi_access: number | null;
 }
 
-// ── READ: rate card lookup (source-aware, cost-masked) ─────────────────────
+// ── READ: rate card lookup (source-aware) ──────────────────────────────────
 const lookupRateCard: ToolDef = {
   name: "dealdesk_lookup_rate_card",
   description:
-    "Look up carrier rate-card pricing from the DealDesk pricing tables. Filter by country (substring), TADIG (exact), and/or pricing source (A1, Telefonica, Tele2, US Cellular, ...). Returns per-source rates and tech flags. Raw carrier cost is shown only to users with cost visibility; others see a marked-up sell price.",
+    "DealDesk's view of the carrier rate card (cost per MB, per network, source-aware: A1/Telefonica/Tele2/US Cellular). USE for: 'cheapest network for a deal in Germany', 'cost per MB for AT&T LTE-M', 'pricing options for a UK deal'. Returns raw carrier cost; for list-price-only without our cost context use reconciliation_get_pricing instead.",
   inputSchema: {
     type: "object",
     properties: {
@@ -51,7 +49,6 @@ const lookupRateCard: ToolDef = {
   requiredScope: "read",
   handler: async (args, ctx) => {
     const env = envOf(ctx);
-    const scopes = await resolveScopes(env, ctx.userId);
     const q: string[] = [`select=${PRICING_COLS}`, "is_current=eq.true", `limit=${Number(args.limit ?? 50)}`];
     if (args.country) q.push(`country=ilike.*${pgValue(String(args.country))}*`);
     if (args.tadig) q.push(`tadig=eq.${pgValue(String(args.tadig))}`);
@@ -59,17 +56,17 @@ const lookupRateCard: ToolDef = {
     const rows = await dbSelect<PricingRow>(env, `${PRICING_TABLE}?${q.join("&")}`);
     return {
       count: rows.length,
-      pricing_view: hasScope(scopes, "view_costs_revenue") ? "cost" : "sell_price",
-      rows: rows.map((r) => maskPricingRow(r as unknown as Record<string, unknown>, scopes)),
+      pricing_view: "cost",
+      rows,
     };
   },
 };
 
-// ── READ: realized (cheapest) cost for a TADIG — cost-visibility only ──────
+// ── READ: realized (cheapest) cost for a TADIG ─────────────────────────────
 const getRealizedCost: ToolDef = {
   name: "dealdesk_get_realized_cost",
   description:
-    "For one TADIG, compare data cost across all pricing sources and return the cheapest source (min data_per_mb with that source's IMSI access fee) — Monogoto's realized network cost. Requires cost-visibility permission; denied for sell-price-only users.",
+    "What we ACTUALLY paid per network over a recent window — realized cost cross-check vs. list pricing. USE for: 'what did we pay for AT&T last 30 days', 'realized vs list cost on DEUD2', 'are we paying the rate-card price'. Cross-check before quoting a customer. For LIST pricing only use dealdesk_lookup_rate_card; for active SIMs / GB consumed (no $) use reconciliation_get_usage_summary.",
   inputSchema: {
     type: "object",
     properties: { tadig: { type: "string", description: "TADIG code to price." } },
@@ -79,12 +76,6 @@ const getRealizedCost: ToolDef = {
   requiredScope: "read",
   handler: async (args, ctx) => {
     const env = envOf(ctx);
-    const scopes = await resolveScopes(env, ctx.userId);
-    if (!hasScope(scopes, "view_costs_revenue")) {
-      throw new Error(
-        "access denied: dealdesk_get_realized_cost requires the view_costs_revenue permission (raw carrier cost).",
-      );
-    }
     const rows = await dbSelect<PricingRow>(
       env,
       `${PRICING_TABLE}?tadig=eq.${pgValue(String(args.tadig))}&is_current=eq.true&select=${PRICING_COLS}`,
@@ -102,7 +93,7 @@ const getRealizedCost: ToolDef = {
 const getDealRules: ToolDef = {
   name: "dealdesk_get_deal_rules",
   description:
-    "Return the global DealDesk evaluation rules (profit thresholds, min deal size, max risk score) from the single-row deal_rules config.",
+    "Current global deal-evaluation rules (min margin %, min profit per SIM, max risk score, min deal size, platform fee). USE for: 'what's our pricing policy', 'min margin we accept', 'what rules apply when I price a deal'. These rules are inputs to the pricing skill, not the formula itself.",
   inputSchema: { type: "object", properties: {}, additionalProperties: false },
   requiredScope: "read",
   handler: async (_args, ctx) => {
@@ -151,7 +142,7 @@ function tokenPayload(args: Record<string, unknown>) {
 const saveEvaluation: ToolDef = {
   name: "dealdesk_save_evaluation",
   description:
-    "Save a deal evaluation to the user's DealDesk history. TWO-STEP: call with mode='preview' to get a diff + confirmation_token; then call again with mode='apply' and the same confirmation_token (and identical fields) to persist. The row is always attributed to the authenticated caller — user identity is taken from the verified token, not arguments.",
+    "Save a priced deal evaluation to deal_evaluations. TWO-STEP: call with mode='preview' to get the row that would be inserted + a confirmation_token; then call again with mode='apply' and the same confirmation_token + identical fields to persist. USE before persisting any pricing — shows the user what will be saved. The row is stamped with the calling user (identity taken from the verified token, not arguments).",
   inputSchema: {
     type: "object",
     properties: {

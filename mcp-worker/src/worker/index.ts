@@ -19,10 +19,14 @@ function configFromEnv(env: Env): AppMcpConfig {
     serverName: "monogoto-dealdesk-mcp",
     serverVersion: "0.1.0",
     instructions:
-      "DealDesk pricing tools. Reads need 'read'; dealdesk_save_evaluation needs 'write' " +
-      "and uses a preview→apply confirmation step. Raw carrier cost is shown only to users " +
-      "with cost visibility; others see a marked-up sell price. Saved evaluations are " +
-      "attributed to your verified identity.",
+      "DealDesk MCP — operator rate-card pricing, realized-cost cross-check, and saving priced deals. " +
+      "Tool routing: 'cheapest network / price per MB for a deal' → dealdesk_lookup_rate_card. " +
+      "'what did we actually pay' / 'realized cost' → dealdesk_get_realized_cost. " +
+      "'raw cost build-up for skill' → dealdesk_get_cost_buildup. " +
+      "'what are our pricing rules' → dealdesk_get_deal_rules. " +
+      "'save / log a priced deal' → preview/apply_save_evaluation. " +
+      "'change pricing policy' → preview/apply_update_deal_rules (admin). " +
+      "For active SIMs / GB consumed (no $) use Reconciliation. For list pricing only use Reconciliation.",
     verify: { jwksUrl: env.GATEWAY_JWKS_URL, issuer: env.GATEWAY_ISSUER },
     audit:
       env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY

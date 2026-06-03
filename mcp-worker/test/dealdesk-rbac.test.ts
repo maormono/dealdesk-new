@@ -17,49 +17,45 @@ function stubProfile(row: Record<string, unknown> | null) {
 }
 afterEach(() => vi.restoreAllMocks());
 
+// Per MCP_ACCESS_POLICY (2026-06-02): app-grant = full visibility. Every caller
+// resolves to the same three scopes; only `markup` varies by profile.
+const ALL_SCOPES = ["view_sell_price", "view_costs_revenue", "view_all_evaluations"];
+
 describe("resolveScopes", () => {
-  it("sales without cost visibility → sell price only", async () => {
-    stubProfile({ role: "sales", can_see_costs: false, markup_percentage: 40 });
+  it("sales user gets full visibility", async () => {
+    stubProfile({ role: "sales", markup_percentage: 40 });
     const s = await resolveScopes(env, "u1");
-    expect(s.scopes).toEqual(["view_sell_price"]);
+    expect(s.scopes).toEqual(ALL_SCOPES);
     expect(s.markup).toBe(40);
   });
 
-  it("can_see_costs adds view_costs_revenue", async () => {
-    stubProfile({ role: "sales", can_see_costs: true, markup_percentage: 50 });
+  it("admin user gets full visibility", async () => {
+    stubProfile({ role: "admin", markup_percentage: 0 });
     const s = await resolveScopes(env, "u1");
-    expect(s.scopes).toContain("view_costs_revenue");
-    expect(s.scopes).not.toContain("view_all_evaluations");
+    expect(s.scopes).toEqual(ALL_SCOPES);
+    expect(s.markup).toBe(0);
   });
 
-  it("admin gets cost + all-evaluations", async () => {
-    stubProfile({ role: "admin", can_see_costs: false, markup_percentage: 0 });
-    const s = await resolveScopes(env, "u1");
-    expect(s.scopes).toEqual(expect.arrayContaining(["view_sell_price", "view_costs_revenue", "view_all_evaluations"]));
-  });
-
-  it("missing profile defaults to least privilege", async () => {
+  it("missing profile falls back to default markup, still full visibility", async () => {
     stubProfile(null);
     const s = await resolveScopes(env, "u1");
-    expect(s.scopes).toEqual(["view_sell_price"]);
+    expect(s.scopes).toEqual(ALL_SCOPES);
+    expect(s.markup).toBe(50); // DEFAULT_MARKUP
   });
 });
 
-describe("maskPricingRow", () => {
+describe("maskPricingRow (legacy helper — kept for callers, no longer used by tools)", () => {
   const row = { tadig: "USACG", data_per_mb: 0.5, imsi_access: 1.2, lte: true };
-
-  it("masks raw cost for sell-price-only users", () => {
-    const s: DealDeskScopes = { scopes: ["view_sell_price"], markup: 50 };
-    const out = maskPricingRow(row, s);
-    expect(out.data_per_mb).toBeUndefined();
-    expect(out.imsi_access).toBeUndefined();
-    expect(out.sell_price_per_mb).toBe(0.75); // 0.5 * 1.5
-    expect(out.pricing_view).toBe("sell_price");
-    expect(out.tadig).toBe("USACG");
-  });
 
   it("returns raw row when cost visibility granted", () => {
     const s: DealDeskScopes = { scopes: ["view_sell_price", "view_costs_revenue"], markup: 50 };
     expect(maskPricingRow(row, s)).toBe(row);
+  });
+
+  it("strips raw cost when only sell-price scope is present", () => {
+    const s: DealDeskScopes = { scopes: ["view_sell_price"], markup: 50 };
+    const out = maskPricingRow(row, s);
+    expect(out.data_per_mb).toBeUndefined();
+    expect(out.sell_price_per_mb).toBe(0.75);
   });
 });

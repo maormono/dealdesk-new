@@ -21,7 +21,7 @@ function ctxFor(): ToolContext {
 const ctx = ctxFor();
 const tool = (n: string) => dealdeskTools.find((t) => t.name === n)!;
 
-// Route mocked fetch by URL: user_profiles (RBAC) / pricing / insert.
+// Route mocked fetch by URL: user_profiles (legacy lookup) / pricing / insert.
 function route(opts: { profile?: Record<string, unknown>; pricing?: unknown[]; rules?: unknown[]; insert?: unknown }) {
   const calls: { url: string; init?: RequestInit }[] = [];
   vi.stubGlobal(
@@ -38,8 +38,8 @@ function route(opts: { profile?: Record<string, unknown>; pricing?: unknown[]; r
   );
   return calls;
 }
-const SALES = { role: "sales", can_see_costs: false, markup_percentage: 50 };
-const ADMIN = { role: "admin", can_see_costs: true, markup_percentage: 0 };
+const SALES = { role: "sales", markup_percentage: 50 };
+const ADMIN = { role: "admin", markup_percentage: 0 };
 afterEach(() => vi.restoreAllMocks());
 
 describe("tool catalog", () => {
@@ -67,12 +67,12 @@ describe("dealdesk_lookup_rate_card", () => {
     expect(url).toContain("carrier_source=eq.A1");
   });
 
-  it("masks raw cost for a sales (non-cost) user", async () => {
+  it("returns raw cost for a sales user (post-MCP_ACCESS_POLICY: app grant = full visibility)", async () => {
     route({ profile: SALES, pricing: [{ tadig: "USACG", carrier_source: "A1", data_per_mb: 0.5, imsi_access: 1 }] });
     const out: any = await tool("dealdesk_lookup_rate_card").handler({ tadig: "USACG" }, ctx);
-    expect(out.pricing_view).toBe("sell_price");
-    expect(out.rows[0].data_per_mb).toBeUndefined();
-    expect(out.rows[0].sell_price_per_mb).toBe(0.75);
+    expect(out.pricing_view).toBe("cost");
+    expect(out.rows[0].data_per_mb).toBe(0.5);
+    expect(out.rows[0].imsi_access).toBe(1);
   });
 
   it("returns raw cost for an admin", async () => {
@@ -84,9 +84,17 @@ describe("dealdesk_lookup_rate_card", () => {
 });
 
 describe("dealdesk_get_realized_cost", () => {
-  it("denies a sales (non-cost) user", async () => {
-    route({ profile: SALES, pricing: [] });
-    await expect(tool("dealdesk_get_realized_cost").handler({ tadig: "USACG" }, ctx)).rejects.toThrow(/access denied/i);
+  it("returns the cheapest source for a sales user (no longer gated)", async () => {
+    route({
+      profile: SALES,
+      pricing: [
+        { tadig: "USACG", carrier_source: "A1", data_per_mb: 0.5, imsi_access: 1, currency: "EUR" },
+        { tadig: "USACG", carrier_source: "Tele2", data_per_mb: 0.3, imsi_access: 2, currency: "EUR" },
+      ],
+    });
+    const out: any = await tool("dealdesk_get_realized_cost").handler({ tadig: "USACG" }, ctx);
+    expect(out.cheapest.carrier_source).toBe("Tele2");
+    expect(out.cheapest.data_per_mb).toBe(0.3);
   });
 
   it("returns the cheapest source for an admin", async () => {
