@@ -1,0 +1,18 @@
+name = "dealdesk-mcp"
+main = "src/worker/index.ts"
+compatibility_date = "2026-01-01"
+compatibility_flags = ["nodejs_compat"]
+account_id = "79ce8e881c564e1417d0146c7ba8058f"
+
+[vars]
+GATEWAY_JWKS_URL = "https://mcp.monogoto.io/.well-known/jwks.json"
+GATEWAY_ISSUER   = "https://mcp.monogoto.io"
+SUPABASE_URL     = "https://uddmjjgnexdazfedrytt.supabase.co"
+
+# Secrets (set with `wrangler secret put`):
+#   SUPABASE_SERVICE_ROLE_KEY  — sb_secret_*, data reads + audit writes
+#   CONFIRMATION_SECRET        — random 32-byte hex; HMAC key for preview/apply tokens
+#
+# A per-app MCP needs NO Google secrets, NO OAuth KV, NO signing key — it only
+# verifies the gateway's MGT-JWT against the public JWKS above. After deploy,
+# register this Worker's URL in the gateway's DEALDESK_MCP_URL var.
